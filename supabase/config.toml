@@ -1,0 +1,3 @@
+[functions.hello]
+# This demo endpoint returns no private data and is intentionally public.
+verify_jwt = false

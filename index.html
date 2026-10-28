@@ -3,19 +3,60 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My GitHub Pages Site</title>
+  <title>Supabase API Demo</title>
   <style>
     :root { color-scheme: light; font-family: system-ui, sans-serif; }
     body { max-width: 46rem; margin: 12vh auto; padding: 0 1.5rem; color: #20242b; line-height: 1.6; }
     h1 { line-height: 1.15; }
-    a { color: #075ec8; }
+    button { border: 0; border-radius: .5rem; padding: .7rem 1rem; background: #075ec8; color: white; font: inherit; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: wait; }
+    pre { min-height: 3rem; padding: 1rem; border-radius: .5rem; background: #f2f4f7; overflow-x: auto; }
+    .hint { color: #596273; }
   </style>
 </head>
 <body>
   <main>
     <h1>Hello from GitHub Pages</h1>
-    <p>This is a simple static site, ready to publish from a repository.</p>
-    <p>Edit <code>index.html</code> to make it yours.</p>
+    <p>This page calls a Supabase Edge Function with a GET request.</p>
+    <button id="call-api" type="button">Call the API</button>
+    <pre id="result" aria-live="polite">API response will appear here.</pre>
+    <p class="hint" id="status">The API project connection is being configured.</p>
   </main>
+  <script type="module">
+    // These public project values will be filled in after the Supabase project is connected.
+    const SUPABASE_URL = "";
+    const SUPABASE_PUBLISHABLE_KEY = "";
+    const button = document.querySelector("#call-api");
+    const result = document.querySelector("#result");
+    const status = document.querySelector("#status");
+
+    button.addEventListener("click", async () => {
+      if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+        status.textContent = "Waiting for the Supabase project URL and publishable key.";
+        return;
+      }
+
+      button.disabled = true;
+      status.textContent = "Calling Supabase…";
+      result.textContent = "";
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/hello`, {
+          method: "GET",
+          headers: {
+            apikey: SUPABASE_PUBLISHABLE_KEY,
+            Accept: "application/json",
+          },
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? `Request failed (${response.status})`);
+        result.textContent = JSON.stringify(data, null, 2);
+        status.textContent = "API request succeeded.";
+      } catch (error) {
+        status.textContent = `API request failed: ${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
 </body>
 </html>
