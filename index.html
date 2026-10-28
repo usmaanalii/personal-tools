@@ -1,62 +1,13 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Supabase API Demo</title>
-  <style>
-    :root { color-scheme: light; font-family: system-ui, sans-serif; }
-    body { max-width: 46rem; margin: 12vh auto; padding: 0 1.5rem; color: #20242b; line-height: 1.6; }
-    h1 { line-height: 1.15; }
-    button { border: 0; border-radius: .5rem; padding: .7rem 1rem; background: #075ec8; color: white; font: inherit; cursor: pointer; }
-    button:disabled { opacity: .6; cursor: wait; }
-    pre { min-height: 3rem; padding: 1rem; border-radius: .5rem; background: #f2f4f7; overflow-x: auto; }
-    .hint { color: #596273; }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>Hello from GitHub Pages</h1>
-    <p>This page calls a Supabase Edge Function with a GET request.</p>
-    <button id="call-api" type="button">Call the API</button>
-    <pre id="result" aria-live="polite">API response will appear here.</pre>
-    <p class="hint" id="status">The API project is connected. Click the button to test it.</p>
-  </main>
-  <script type="module">
-    // Both values are public and intended for browser use.
-    const SUPABASE_URL = "https://igcpdfceijwqescflyub.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-KSlcXUIWC0LG2tS4qYiVg_aJ7a4hVD";
-    const button = document.querySelector("#call-api");
-    const result = document.querySelector("#result");
-    const status = document.querySelector("#status");
-
-    button.addEventListener("click", async () => {
-      if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-        status.textContent = "Waiting for the Supabase project URL and publishable key.";
-        return;
-      }
-
-      button.disabled = true;
-      status.textContent = "Calling Supabase…";
-      result.textContent = "";
-      try {
-        const response = await fetch(`${SUPABASE_URL}/functions/v1/hello`, {
-          method: "GET",
-          headers: {
-            apikey: SUPABASE_PUBLISHABLE_KEY,
-            Accept: "application/json",
-          },
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? `Request failed (${response.status})`);
-        result.textContent = JSON.stringify(data, null, 2);
-        status.textContent = "API request succeeded.";
-      } catch (error) {
-        status.textContent = `API request failed: ${error.message}`;
-      } finally {
-        button.disabled = false;
-      }
-    });
-  </script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f9fc" />
+    <title>Supabase API Demo</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
