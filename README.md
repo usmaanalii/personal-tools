@@ -2,6 +2,8 @@
 
 A small React + TypeScript GitHub Pages site with a button that calls a Supabase Edge Function using `GET`.
 
+**Live site:** [Open the Supabase API demo](https://usmaanalii.github.io/scratch-pages/)
+
 ## Supabase setup
 
 The function lives at `supabase/functions/hello/index.ts`. The page calls the configured Supabase project's public `hello` endpoint. The project URL and publishable key live in `src/config.ts`; both values are public and intended for browser use. Never put a Supabase secret or service-role key in the page.
