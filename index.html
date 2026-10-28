@@ -20,12 +20,12 @@
     <p>This page calls a Supabase Edge Function with a GET request.</p>
     <button id="call-api" type="button">Call the API</button>
     <pre id="result" aria-live="polite">API response will appear here.</pre>
-    <p class="hint" id="status">The API project connection is being configured.</p>
+    <p class="hint" id="status">The API project is connected. Click the button to test it.</p>
   </main>
   <script type="module">
-    // These public project values will be filled in after the Supabase project is connected.
-    const SUPABASE_URL = "";
-    const SUPABASE_PUBLISHABLE_KEY = "";
+    // Both values are public and intended for browser use.
+    const SUPABASE_URL = "https://igcpdfceijwqescflyub.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_-KSlcXUIWC0LG2tS4qYiVg_aJ7a4hVD";
     const button = document.querySelector("#call-api");
     const result = document.querySelector("#result");
     const status = document.querySelector("#status");
