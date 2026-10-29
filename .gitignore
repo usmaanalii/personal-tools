@@ -7,3 +7,9 @@ dist/
 .e2e/
 playwright-report/
 test-results/
+
+# Local environment files; keep the template tracked.
+.env
+.env.*
+!.env.example
+!.env.test

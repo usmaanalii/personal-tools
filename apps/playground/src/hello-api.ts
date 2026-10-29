@@ -1,4 +1,4 @@
-import { supabasePublishableKey, supabaseUrl } from './config'
+import { getSupabaseConfig } from './config'
 
 export type HelloResponse = {
   message: string
@@ -22,6 +22,7 @@ function errorMessage(value: unknown): string | undefined {
 }
 
 export async function getHello(): Promise<HelloResponse> {
+  const { supabaseUrl, supabasePublishableKey } = getSupabaseConfig()
   const response = await fetch(`${supabaseUrl}/functions/v1/hello`, {
     method: 'GET',
     headers: {

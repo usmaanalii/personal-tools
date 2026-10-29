@@ -1,39 +1,46 @@
-# Scratch Pages API Demo
+# Personal Tools
 
-A small React + TypeScript GitHub Pages site with a button that calls a Supabase Edge Function using `GET`.
+A small monorepo for personal web apps, starting with **Playground**, a React and TypeScript app that calls a public Supabase Edge Function.
 
-**Live site:** [Open the Supabase API demo](https://usmaanalii.github.io/scratch-pages/)
+**Live site:** [Open Playground](https://usmaanalii.github.io/personal-tools/)
 
-## Supabase setup
+## Local setup
 
-The function lives at `supabase/functions/hello/index.ts`. The page calls the configured Supabase project's public `hello` endpoint. The project URL and publishable key live in `src/config.ts`; both values are public and intended for browser use. Never put a Supabase secret or service-role key in the page.
-
-The `hello` function is a public demo endpoint that returns `{ "message": "Hello from Supabase!", "ok": true }`. It does not read or write private data.
-
-## Local development
+Install dependencies with pnpm:
 
 ```sh
-npm ci
-npm run dev
+corepack pnpm install
 ```
 
-Run the React component tests and production build with:
+Run Playground locally:
 
 ```sh
-npm test
-npm run typecheck
-npm run build
+pnpm dev
 ```
 
-Run the browser end-to-end tests with Playwright:
+Common checks:
 
 ```sh
-npx playwright install chromium
-npm run test:e2e
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm test:e2e
 ```
 
-Playwright starts the Vite development server automatically. The separate GitHub Actions workflow installs Chromium and runs the same suite on pull requests and pushes to `main`.
+Run a workspace app directly with `pnpm --filter playground <script>`.
+
+## Supabase
+
+For local development, copy `apps/playground/.env.example` to `apps/playground/.env.local` and fill in the project URL and publishable key. GitHub Actions reads the same public values from repository variables named `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+
+Values prefixed with `VITE_` are included in the browser build. Use only the Supabase publishable key there; it is intentionally public and must be paired with appropriate Row Level Security policies. Never put a Supabase secret or service-role key in a `VITE_` variable or frontend code.
+
+The function lives at `supabase/functions/hello/index.ts`. The page calls the configured project's public `hello` endpoint. Project URL and publishable key are public browser values; never put a Supabase secret or service-role key in frontend code.
+
+The `hello` function returns a public demo response and does not read or write private data. Add database changes as Supabase migrations and enable Row Level Security for tables accessed by client apps.
 
 ## GitHub Pages
 
-The workflow in `.github/workflows/deploy-pages.yml` builds the site and deploys `dist` to GitHub Pages when changes reach `main`. In the repository settings, set **Pages → Build and deployment → Source** to **GitHub Actions**.
+GitHub Actions builds the Playground app and deploys its static output to GitHub Pages. The Vite base path defaults to `/personal-tools/`; set `VITE_BASE_PATH=/` when deploying the app at a domain root.
+
+In repository settings, set **Pages > Build and deployment > Source** to **GitHub Actions**.
