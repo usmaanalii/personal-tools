@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests',
-  testMatch: '**/*.spec.ts',
+  testMatch: '**/*.e2e.ts',
   fullyParallel: true,
   forbidOnly: true,
   workers: 1,
