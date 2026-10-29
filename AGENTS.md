@@ -6,3 +6,9 @@
 - Keep app-specific code in its app directory. Add shared packages only when multiple apps need the same code.
 - Treat all `VITE_*` values as public browser configuration. Never put service-role keys or other secrets in frontend code.
 - Keep Supabase schema changes in migrations and require Row Level Security for tables exposed to client applications.
+
+## Dependabot workflow
+
+- Check whether dependency PRs overlap before merging; consolidate distinct, compatible updates into one PR when that simplifies review.
+- For pnpm dependency bumps, update `pnpm-lock.yaml` with the manifest. CI uses `pnpm install --frozen-lockfile`, so a manifest-only bump fails.
+- When GitHub connector write actions return 403, use the authenticated `gh` CLI for PR creation and merge if available.
