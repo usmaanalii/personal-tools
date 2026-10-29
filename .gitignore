@@ -13,3 +13,6 @@ test-results/
 .env.*
 !.env.example
 !.env.test
+
+# Restore agent skills from skills-lock.json when needed.
+.agents/skills/ui-ux-pro-max/
