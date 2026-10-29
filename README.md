@@ -2,11 +2,17 @@
 
 A small monorepo for personal web app experiments.
 
-## Playground: Quran reader
+## Playground
 
-**Live page:** [Open the Quran reader](https://usmaanalii.github.io/personal-tools/)
+**Live page:** [Open the playground](https://usmaanalii.github.io/personal-tools/)
 
-A phone-first reading prototype for exploring how browsing Quran chapters and reading verses could feel on a small screen.
+The playground is a small collection of tools and experiments. Pick a page from the index to get started.
+
+### Quran reader
+
+**Open:** [Quran reader](https://usmaanalii.github.io/personal-tools/quran/)
+
+A phone-first reading prototype for exploring chapters and verses.
 
 - **Find a chapter:** Search the sample chapter list by name or English meaning.
 - **Read verses:** Open a chapter to see Arabic text with an English translation.
@@ -40,9 +46,11 @@ pnpm test:e2e
 
 Run a workspace app directly with `pnpm --filter playground <script>`.
 
-## Supabase demo function
+### Supabase API demo
 
-The repo also contains the original public `hello` Edge Function and its frontend client example. They are separate from the Quran reader, which does not call the function.
+**Open:** [Supabase API demo](https://usmaanalii.github.io/personal-tools/supabase/)
+
+Try a GET request to the public `hello` Edge Function and inspect the response. The Quran reader is a separate page and does not call this function.
 
 For local work on the Supabase example, copy `apps/playground/.env.example` to `apps/playground/.env.local` and fill in the project URL and publishable key. GitHub Actions reads the same public values from repository variables named `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 

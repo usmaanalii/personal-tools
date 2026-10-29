@@ -1,0 +1,8 @@
+.supabase-demo{max-width:46rem;margin:12vh auto;padding:0 1.5rem;color:#20242b;font-family:system-ui,sans-serif;line-height:1.6}
+.supabase-demo h1{line-height:1.15}
+.supabase-demo .back-home{display:inline-block;margin-bottom:18px;color:#406b4a;font-size:.9rem}
+.supabase-demo button{border:0;border-radius:.5rem;padding:.7rem 1rem;background:#075ec8;color:white;font:inherit;cursor:pointer}
+.supabase-demo button:focus-visible{outline:3px solid #99c7ff;outline-offset:2px}
+.supabase-demo button:disabled{opacity:.6;cursor:wait}
+.supabase-demo pre{min-height:3rem;padding:1rem;border-radius:.5rem;background:#f2f4f7;overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.supabase-demo .hint{color:#596273}

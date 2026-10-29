@@ -1,13 +1,16 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import App from './App'
 
 function renderReader() {
   const user = userEvent.setup()
+  window.history.pushState({}, '', '/quran/')
   render(<App />)
   return { user }
 }
+
+afterEach(() => window.history.pushState({}, '', '/'))
 
 describe('Quran reader bookmarks', () => {
   it('shows a verse by its chapter and number after saving it', async () => {
