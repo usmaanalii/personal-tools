@@ -2,15 +2,19 @@
 
 A small monorepo for personal web app experiments.
 
+## Quick access
+
+- [Playground index](https://usmaanalii.github.io/personal-tools/)
+- [Quran reader](https://usmaanalii.github.io/personal-tools/quran/)
+- [Supabase API demo](https://usmaanalii.github.io/personal-tools/supabase/)
+
 ## Playground
 
-**Live page:** [Open the playground](https://usmaanalii.github.io/personal-tools/)
-
-The playground is a small collection of tools and experiments. Pick a page from the index to get started.
+The playground is a small collection of tools and experiments. Start at the [index page](https://usmaanalii.github.io/personal-tools/) to choose one.
 
 ### Quran reader
 
-**Open:** [Quran reader](https://usmaanalii.github.io/personal-tools/quran/)
+**Page:** [Open the Quran reader](https://usmaanalii.github.io/personal-tools/quran/)
 
 A phone-first reading prototype for exploring chapters and verses.
 
@@ -48,7 +52,7 @@ Run a workspace app directly with `pnpm --filter playground <script>`.
 
 ### Supabase API demo
 
-**Open:** [Supabase API demo](https://usmaanalii.github.io/personal-tools/supabase/)
+**Page:** [Open the Supabase API demo](https://usmaanalii.github.io/personal-tools/supabase/)
 
 Try a GET request to the public `hello` Edge Function and inspect the response. The Quran reader is a separate page and does not call this function.
 
