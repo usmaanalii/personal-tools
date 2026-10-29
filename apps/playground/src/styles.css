@@ -11,3 +11,8 @@
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+.saved-verse-row{width:100%;display:flex;flex-direction:column;gap:4px;padding:11px 9px;border:0;border-bottom:1px solid #e9ece7;background:transparent;text-align:left}
+.saved-verse-row:hover{background:#f0f4ee}
+.saved-verse-reference{font:600 10px Manrope;color:#35433a}
+.saved-verse-translation{font-size:9px;line-height:1.5;color:#78847b}
