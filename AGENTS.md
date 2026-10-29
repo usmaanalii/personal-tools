@@ -6,6 +6,7 @@
 - Keep app-specific code in its app directory. Add shared packages only when multiple apps need the same code.
 - Treat all `VITE_*` values as public browser configuration. Never put service-role keys or other secrets in frontend code.
 - Keep Supabase schema changes in migrations and require Row Level Security for tables exposed to client applications.
+- See `.github/workflows/README.md` for CI-specific workflow conventions.
 
 ## Development principles
 
