@@ -1,5 +1,5 @@
-import QuranReader from './QuranReader'
-import SupabaseDemo from './SupabaseDemo'
+import QuranReader from '../prototypes/quran/QuranReader'
+import SupabaseDemo from '../prototypes/supabase/SupabaseDemo'
 import './home.css'
 
 const basePath = import.meta.env.BASE_URL

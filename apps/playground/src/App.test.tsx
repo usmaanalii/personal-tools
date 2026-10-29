@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it } from 'vitest'
-import App from './App'
+import App from './app/App'
 import { helloEndpoint, server } from './test-server'
 
 function renderAtPath(path: string) {

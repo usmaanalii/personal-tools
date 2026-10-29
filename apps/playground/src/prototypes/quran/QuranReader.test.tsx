@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
-import App from './App'
+import App from '../../app/App'
 
 function renderReader() {
   const user = userEvent.setup()
