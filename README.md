@@ -1,8 +1,19 @@
 # Personal Tools
 
-A small monorepo for personal web apps, starting with **Playground**, a React and TypeScript app that calls a public Supabase Edge Function.
+A small monorepo for personal web app experiments.
 
-**Live site:** [Open Playground](https://usmaanalii.github.io/personal-tools/)
+## Playground: Quran reader
+
+**Live page:** [Open the Quran reader](https://usmaanalii.github.io/personal-tools/)
+
+A phone-first reading prototype for exploring how browsing Quran chapters and reading verses could feel on a small screen.
+
+- **Find a chapter:** Search the sample chapter list by name or English meaning.
+- **Read verses:** Open a chapter to see Arabic text with an English translation.
+- **Save a verse:** Bookmark an ayah and find it again in My bookmarks.
+- **Explore the layout:** The chapter list and reader sit side by side on desktop and stack for mobile.
+
+The chapter and verse content is sample text. Quran.com data, audio playback, and reading progress are not connected yet.
 
 ## Local setup
 
@@ -29,15 +40,15 @@ pnpm test:e2e
 
 Run a workspace app directly with `pnpm --filter playground <script>`.
 
-## Supabase
+## Supabase demo function
 
-For local development, copy `apps/playground/.env.example` to `apps/playground/.env.local` and fill in the project URL and publishable key. GitHub Actions reads the same public values from repository variables named `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+The repo also contains the original public `hello` Edge Function and its frontend client example. They are separate from the Quran reader, which does not call the function.
+
+For local work on the Supabase example, copy `apps/playground/.env.example` to `apps/playground/.env.local` and fill in the project URL and publishable key. GitHub Actions reads the same public values from repository variables named `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 
 Values prefixed with `VITE_` are included in the browser build. Use only the Supabase publishable key there; it is intentionally public and must be paired with appropriate Row Level Security policies. Never put a Supabase secret or service-role key in a `VITE_` variable or frontend code.
 
-The function lives at `supabase/functions/hello/index.ts`. The page calls the configured project's public `hello` endpoint. Project URL and publishable key are public browser values; never put a Supabase secret or service-role key in frontend code.
-
-The `hello` function returns a public demo response and does not read or write private data. Add database changes as Supabase migrations and enable Row Level Security for tables accessed by client apps.
+The function lives at `supabase/functions/hello/index.ts`. It returns a public demo response and does not read or write private data. Add database changes as Supabase migrations and enable Row Level Security for tables accessed by client apps.
 
 ## GitHub Pages
 
