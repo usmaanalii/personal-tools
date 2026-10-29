@@ -12,3 +12,8 @@
 - Check whether dependency PRs overlap before merging; consolidate distinct, compatible updates into one PR when that simplifies review.
 - For pnpm dependency bumps, update `pnpm-lock.yaml` with the manifest. CI uses `pnpm install --frozen-lockfile`, so a manifest-only bump fails.
 - When GitHub connector write actions return 403, use the authenticated `gh` CLI for PR creation and merge if available.
+
+## Git workflow
+
+- After each completed task or independently reviewable unit of work, show the user the changes and ask whether they want them committed and pushed.
+- Leave changes local until the user approves. When approved, use the target branch they specify.
