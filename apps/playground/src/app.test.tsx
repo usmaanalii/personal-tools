@@ -23,16 +23,16 @@ describe('Playground navigation', () => {
 
   it('keeps the Supabase request demo available at its own route', async () => {
     renderAtPath('/supabase/')
-    await userEvent.click(screen.getByRole('button', { name: 'Call the API' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Call the API' }))
 
     expect(await screen.findByText('API request succeeded.')).toBeInTheDocument()
     expect(screen.getByLabelText('API response')).toHaveTextContent('"Hello from Supabase!"')
   })
 
-  it('opens the Quran reader directly at its own route', () => {
+  it('opens the Quran reader directly at its own route', async () => {
     renderAtPath('/quran/')
 
-    expect(screen.getByRole('heading', { name: 'Al-Fātiḥah' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Al-Fātiḥah' })).toBeInTheDocument()
   })
 
   it('announces a Supabase request failure and lets the user retry', async () => {
@@ -42,7 +42,7 @@ describe('Playground navigation', () => {
       ),
     )
     renderAtPath('/supabase/')
-    const button = screen.getByRole('button', { name: 'Call the API' })
+    const button = await screen.findByRole('button', { name: 'Call the API' })
     await userEvent.click(button)
 
     expect(await screen.findByText('API request failed: Network unavailable')).toBeInTheDocument()

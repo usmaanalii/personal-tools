@@ -1,6 +1,8 @@
-import QuranReader from '../prototypes/quran/quran-reader'
-import SupabaseDemo from '../prototypes/supabase/supabase-demo'
+import { lazy, Suspense } from 'react'
 import './home.css'
+
+const QuranReader = lazy(() => import('../prototypes/quran/quran-reader'))
+const SupabaseDemo = lazy(() => import('../prototypes/supabase/supabase-demo'))
 
 const basePath = import.meta.env.BASE_URL
 
@@ -31,7 +33,19 @@ function PlaygroundHome() {
 export default function App() {
   const route = window.location.pathname.split('/').filter(Boolean).at(-1)
 
-  if (route === 'quran') return <QuranReader />
-  if (route === 'supabase') return <SupabaseDemo />
+  if (route === 'quran') {
+    return (
+      <Suspense fallback={<main><p role="status">Loading Quran reader…</p></main>}>
+        <QuranReader />
+      </Suspense>
+    )
+  }
+  if (route === 'supabase') {
+    return (
+      <Suspense fallback={<main><p role="status">Loading Supabase demo…</p></main>}>
+        <SupabaseDemo />
+      </Suspense>
+    )
+  }
   return <PlaygroundHome />
 }
