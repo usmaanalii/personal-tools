@@ -3,5 +3,7 @@ dist/
 *.tsbuildinfo
 .DS_Store
 
-# e2e run output
+# End-to-end test artifacts
 .e2e/
+playwright-report/
+test-results/

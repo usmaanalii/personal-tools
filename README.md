@@ -25,6 +25,15 @@ npm run typecheck
 npm run build
 ```
 
+Run the browser end-to-end tests with Playwright:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+```
+
+Playwright starts the Vite development server automatically. The separate GitHub Actions workflow installs Chromium and runs the same suite on pull requests and pushes to `main`.
+
 ## GitHub Pages
 
 The workflow in `.github/workflows/deploy-pages.yml` builds the site and deploys `dist` to GitHub Pages when changes reach `main`. In the repository settings, set **Pages → Build and deployment → Source** to **GitHub Actions**.

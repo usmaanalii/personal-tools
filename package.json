@@ -9,13 +9,13 @@
     "test": "vitest run --configLoader runner",
     "test:watch": "vitest --configLoader runner",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "e2e run"
+    "test:e2e": "playwright test"
   },
   "keywords": [],
   "author": "",
   "private": true,
   "devDependencies": {
-    "@e2e-dev/web": "^0.15.3",
+    "@playwright/test": "^1.64.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
@@ -23,7 +23,6 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "e2e": "^0.21.3",
     "jsdom": "^27.0.1",
     "msw": "^3.0.3",
     "typescript": "^7.0.2",
