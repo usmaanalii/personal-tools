@@ -1,22 +1,30 @@
 version: 2
+multi-ecosystem-groups:
+  daily-dependencies:
+    schedule:
+      interval: daily
 updates:
   - package-ecosystem: npm
     directory: /
-    schedule:
-      interval: weekly
+    patterns:
+      - "*"
+    multi-ecosystem-group: daily-dependencies
     open-pull-requests-limit: 5
   - package-ecosystem: npm
     directory: /apps/playground
-    schedule:
-      interval: weekly
+    patterns:
+      - "*"
+    multi-ecosystem-group: daily-dependencies
     open-pull-requests-limit: 5
   - package-ecosystem: npm
     directory: /apps/next-vercel-supabase-app
-    schedule:
-      interval: weekly
+    patterns:
+      - "*"
+    multi-ecosystem-group: daily-dependencies
     open-pull-requests-limit: 5
   - package-ecosystem: github-actions
     directory: /
-    schedule:
-      interval: weekly
+    patterns:
+      - "*"
+    multi-ecosystem-group: daily-dependencies
     open-pull-requests-limit: 5
