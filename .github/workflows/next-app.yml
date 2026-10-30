@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'apps/next-vercel-supabase-app/**'
+      - 'packages/api-contracts/**'
       - 'biome.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -37,6 +38,7 @@ jobs:
           filters: |
             next:
               - 'apps/next-vercel-supabase-app/**'
+              - 'packages/api-contracts/**'
               - 'biome.json'
               - 'package.json'
               - 'pnpm-lock.yaml'

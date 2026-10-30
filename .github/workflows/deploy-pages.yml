@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'apps/playground/**'
+      - 'packages/api-contracts/**'
+      - 'supabase/functions/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'

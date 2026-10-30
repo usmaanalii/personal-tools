@@ -1,6 +1,1 @@
-import { z } from 'zod'
-
-export const greetingSchema = z.object({
-  ok: z.literal(true),
-  message: z.string().min(1),
-})
+export { HelloResponseSchema as greetingSchema } from '@scratch-pages/api-contracts/hello'

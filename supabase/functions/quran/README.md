@@ -30,7 +30,7 @@ The current pre-live catalogue offers English translation 85 (M.A.S. Abdel Halee
 
 ## API contract
 
-The entry point is `index.ts`, with `handler.ts` as its only dependency. Deploy both files to the existing `scratch-pages-hello-world` project as function `quran`. This is a deliberately public reading endpoint; `verify_jwt=false` allows visitors without user sessions. Do not reuse that setting for private data endpoints. The browser sends its public `apikey` header, but the handler does not treat this public value as authentication.
+The entry point is `index.ts`, which imports `handler.ts`, the private `provider.ts` adapter, and schemas from `packages/api-contracts`. Deploy function `quran` to the existing `scratch-pages-hello-world` project from the complete repository root using the Supabase CLI; it must bundle all relative imports. Keep the function-specific `deno.json` and `deno.lock`. Uploading only the two former source files is insufficient. This is a deliberately public reading endpoint; `verify_jwt=false` allows visitors without user sessions. Do not reuse that setting for private data endpoints. The browser sends its public `apikey` header, but the handler does not treat this public value as authentication.
 
 - `GET /functions/v1/quran/chapters`: chapter metadata, `language=en`.
 - `GET /functions/v1/quran/verses?chapter=<1–114>&page=<1–15>`: one page of up to 20 verses, Uthmani text, translation 85 (M.A.S. Abdel Haleem) in pre-live or 131 (Dr. Mustafa Khattab, The Clear Quran) in production. Page defaults to 1.
@@ -46,6 +46,21 @@ Fixed HTTPS upstream hosts and two allowlisted operations prevent arbitrary URL 
 CORS only controls which browser origins may read responses. It does not authenticate callers: non-browser callers can supply an allowed Origin. The aggregate budget of 60 valid requests per minute **per warm function instance** bounds local work, but is not a distributed rate limit and resets when an instance restarts. Shared token requests reduce duplicate authentication only inside one instance. This does not provide global denial-of-service or quota protection. Review project usage and upstream quotas before broader public rollout; add a distributed limiter if required by observed traffic or provider limits.
 
 No tables or database privileges are introduced. If private bookmarks or progress are added later, they need separate user authorization and RLS policies.
+
+## Owned v2 contract and migration
+
+The new frontend calls `GET /functions/v1/quran/v2/chapters` and `GET /functions/v1/quran/v2/verses?chapter=<1–114>&page=<1–15>`. Page defaults to 1. See the [shared contract package](../../../packages/api-contracts/README.md) for exact schemas. Responses expose application-owned chapter/verse fields, translation attribution, and pagination. Provider field names and translation IDs remain in `provider.ts`. The explicit `translationHtml` field carries untrusted markup; the frontend extracts inert text.
+
+Existing `/chapters` and `/verses` routes retain their previous upstream-shaped bodies for deployed clients. They are superseded by `/v2/chapters` and `/v2/verses` and must remain until older consumers have migrated. Both versions retain the same CORS, methods, request restrictions, token lifecycle, and shared per-instance budget. Malformed upstream v2 payloads and nonsequential pagination return a generic 502 without validation details.
+
+Quran v2 was deployed as function version 5 on 2026-10-30 using the Supabase connector with the complete source/import graph, including function-specific Deno configuration and shared schemas. Live checks confirmed two pre-live chapters, Al-Fatihah verses 1–7, Al-Baqarah page 2 (21–40) and page 15 (281–286), translation attribution, unchanged legacy response formats, CORS, preflight, and invalid-input rejection. The frontend publishes separately through Pages after push. For future releases, deploy backend first:
+
+1. Run the backend suite and `pnpm --filter edge-functions check:deno` with Deno 2.9.6, then the frontend checks.
+2. With the CLI linked to the existing project, run `supabase functions deploy quran` from the repository root. Preserve the existing public-function configuration and server-only secrets.
+3. Verify real v2 chapters, verse pages, attribution, invalid inputs, and CORS; verify the legacy routes still return their original shape. Check the deployed bundle contains the provider adapter and shared schemas.
+4. Only after v2 is verified, approve the frontend commit/push to publish Pages. Run `test:smoke` against the deployed website after publication.
+
+This release deployed the backend without changing credentials or upgrading provider access; the project remains in pre-live.
 
 ## Deployment status
 

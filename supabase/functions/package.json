@@ -4,11 +4,16 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "check:deno": "deno check --frozen --config hello/deno.json hello/index.ts && deno check --frozen --config quran/deno.json quran/index.ts"
   },
   "devDependencies": {
     "vitest": "5.0.5",
     "@vitest/coverage-v8": "5.0.5",
     "msw": "3.0.3"
+  },
+  "dependencies": {
+    "@scratch-pages/api-contracts": "workspace:*",
+    "zod": "4.6.7"
   }
 }

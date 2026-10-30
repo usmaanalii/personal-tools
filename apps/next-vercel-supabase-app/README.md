@@ -90,3 +90,7 @@ This desktop/mobile smoke test reuses the same greeting journey and clicks the r
 Configure **Next.js quality and E2E** as a required branch-protection check in GitHub to enforce it before merging. Committing the workflow alone does not change branch protection. Vercel's own build runs the quality gate; browser E2E runs in GitHub Actions.
 
 A manual workflow run can additionally accept a deployed URL to run the live smoke test. A local successful build or fixture test must not be reported as a successful Vercel deployment.
+
+## Shared API contract
+
+The app’s `greetingSchema` re-exports the hello schema from [`@scratch-pages/api-contracts`](../../packages/api-contracts/README.md), shared with Playground and the Edge Function. The existing server route and environment variables are unchanged. Install dependencies from the repository root; Vercel must include workspace files outside the app Root Directory when building this app. The current hosted hello response already satisfies this schema.

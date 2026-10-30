@@ -1,0 +1,14 @@
+{
+  "name": "@scratch-pages/api-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./quran": "./src/quran.ts",
+    "./hello": "./src/hello.ts",
+    "./error": "./src/error.ts"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  }
+}

@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'apps/playground/**'
+      - 'packages/api-contracts/**'
       - 'supabase/functions/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -37,6 +38,7 @@ jobs:
           filters: |
             e2e:
               - 'apps/playground/**'
+              - 'packages/api-contracts/**'
               - 'supabase/functions/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
@@ -71,6 +73,11 @@ jobs:
         run: pnpm --filter playground exec playwright install chromium
       - name: Page integration tests (Vitest)
         run: pnpm test
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: '2.9.6'
+      - name: Deno entry points and shared contract imports
+        run: pnpm --filter edge-functions check:deno
       - name: Edge Function API contract tests (Vitest)
         run: pnpm test:functions
       - name: Production static-site routing and layout smoke (fixture content)

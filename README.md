@@ -26,6 +26,12 @@ A phone-first reading prototype for exploring chapters and verses.
 
 The reader loads Quran Foundation content through a Supabase Edge Function, with paginated verses, translation attribution, and retry states. The current API environment is pre-live, so only Al-Fatihah and Al-Baqarah are available. All 114 chapters require Quran Foundation production approval; see [Production access](supabase/functions/quran/README.md#production-access). Frontend changes are published by the Pages workflow after a push to `main`. Audio playback and reading progress remain unconnected. See the [Playground setup](apps/playground/README.md#quran-api-setup) and [function setup](supabase/functions/quran/README.md).
 
+## Shared API contracts
+
+[`packages/api-contracts`](packages/api-contracts/README.md) contains browser-safe Zod schemas and inferred types consumed by both frontends and the Edge Functions. Native fetch adapters validate responses; provider formats stay behind the Quran backend adapter. No code generation is required.
+
+The owned Quran `/v2/` routes were deployed and verified on 2026-10-30 as backend version 5. The Pages workflow publishes the corresponding frontend after push; legacy routes remain available during migration. See [release order](supabase/functions/quran/README.md#owned-v2-contract-and-migration).
+
 ## Test strategy
 
 Use Vitest for detailed page and handler integration tests, keeping application code real and mocking only necessary HTTP boundaries. Keep Playwright to short production-build smoke journeys and browser-specific risks such as direct routing, refresh and layout. A repeated assertion must protect a distinct integration risk.

@@ -8,7 +8,7 @@ export default defineConfig({
     restoreMocks: true,
     coverage: {
       provider: 'v8',
-      include: ['hello/handler.ts', 'quran/handler.ts'],
+      include: ['hello/handler.ts', 'quran/handler.ts', 'quran/provider.ts'],
       reporter: ['text', 'lcov'],
     },
   },

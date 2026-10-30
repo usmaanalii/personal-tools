@@ -1,3 +1,7 @@
+import { VersesRequestSchema } from '../../../packages/api-contracts/src/quran.ts'
+import { ApiErrorSchema } from '../../../packages/api-contracts/src/error.ts'
+import { mapChapters, mapVerses } from './provider.ts'
+
 type Config = { clientId: string; clientSecret: string; environment: string; origins: string[]; timeoutMs?: number }
 
 export function createQuranHandler(config: Config) {
@@ -28,21 +32,23 @@ export function createQuranHandler(config: Config) {
   return async (request: Request): Promise<Response> => {
     const origin = request.headers.get('origin') ?? ''
     const headers = { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Headers': 'apikey, content-type', 'Access-Control-Allow-Methods': 'GET, OPTIONS', Vary: 'Origin', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
-    const error = (message: string, status: number) => Response.json({ error: message }, { status, headers })
+    const error = (message: string, status: number) => Response.json(ApiErrorSchema.parse({ error: message }), { status, headers })
     if (!config.origins.includes(origin)) return new Response(null, { status: 403 })
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers })
     if (request.method !== 'GET') return error('Method not allowed.', 405)
     const url = new URL(request.url)
-    const route = url.pathname.split('/quran/')[1]
+    const pathRoute = url.pathname.split('/quran/')[1] ?? ''
+    const ownedContract = pathRoute.startsWith('v2/')
+    const route = ownedContract ? pathRoute.slice(3) : pathRoute
     const chapter = url.searchParams.get('chapter') ?? ''
     const page = url.searchParams.get('page') ?? '1'
     const allowed = route === 'chapters' ? [] : ['chapter', 'page']
     if ((route !== 'chapters' && route !== 'verses') || [...url.searchParams.keys()].some(key => !allowed.includes(key) || url.searchParams.getAll(key).length !== 1)) return error('Invalid content request.', 400)
-    if (route === 'verses' && (!/^[1-9]\d{0,2}$/.test(chapter) || Number(chapter) > 114 || !/^[1-9]\d?$/.test(page) || Number(page) > 15)) return error('Invalid chapter or page.', 400)
+    if (route === 'verses' && (!/^[1-9]\d{0,2}$/.test(chapter) || !/^[1-9]\d?$/.test(page) || !VersesRequestSchema.safeParse({ chapter: Number(chapter), page: Number(page) }).success)) return error('Invalid chapter or page.', 400)
     if (!config.clientId || !config.clientSecret || !['prelive', 'production'].includes(config.environment)) return error('Quran content is not configured yet.', 503)
     if (Date.now() - windowStart >= 60_000) { windowStart = Date.now(); requests = 0 }
     // A bounded per-isolate budget, not a global or per-user rate limiter.
-    if (++requests > 60) return Response.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429, headers: { ...headers, 'Retry-After': '60' } })
+    if (++requests > 60) return Response.json(ApiErrorSchema.parse({ error: 'Too many requests. Please try again shortly.' }), { status: 429, headers: { ...headers, 'Retry-After': '60' } })
     const translationId = config.environment === 'prelive' ? 85 : 131
     const path = route === 'chapters' ? 'chapters?language=en' : `verses/by_chapter/${chapter}?fields=text_uthmani&translations=${translationId}&per_page=20&page=${page}`
     try {
@@ -55,7 +61,11 @@ export function createQuranHandler(config: Config) {
         response = await read(await getToken())
       }
       if (!response.ok) return error('Quran content is temporarily unavailable. Please try again.', response.status === 429 ? 429 : 502)
-      return Response.json(await response.json(), { headers })
+      const payload: unknown = await response.json()
+      const content = ownedContract
+        ? route === 'chapters' ? mapChapters(payload) : mapVerses(payload, translationId, Number(page))
+        : payload
+      return Response.json(content, { headers })
     } catch {
       return error('Quran content is temporarily unavailable. Please try again.', 502)
     }

@@ -35,3 +35,12 @@ describe('Supabase demo', () => {
     expect(button).toBeEnabled()
   })
 })
+
+
+it('rejects a greeting that contradicts the success contract', async () => {
+  server.use(http.get(helloEndpoint, () => HttpResponse.json({ ok: false, message: 'Not a success' })))
+  renderAtPath('/supabase/')
+  await userEvent.click(await screen.findByRole('button', { name: 'Call the API' }))
+  expect(await screen.findByText('API request failed: The API returned an unexpected response.')).toBeInTheDocument()
+  expect(screen.queryByText('API request succeeded.')).not.toBeInTheDocument()
+})

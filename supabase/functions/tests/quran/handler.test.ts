@@ -213,3 +213,58 @@ describe('Quran upstream response contracts', () => {
     expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull()
   })
 })
+
+
+describe('Quran v2 owned contract', () => {
+  it('returns owned chapter fields while preserving the legacy response', async () => {
+    upstream()
+    const provider = { chapters: [{ id: 1, name_simple: 'Al-Fatihah', name_arabic: 'الفاتحة', translated_name: { name: 'The Opening' }, verses_count: 7, revelation_place: 'makkah', private_extra: 'not public' }] }
+    server.use(http.get('https://apis-prelive.quran.foundation/content/api/v4/chapters', () => HttpResponse.json(provider)))
+    const handler = setup()
+    const response = await handler(request('v2/chapters'))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ chapters: [{ id: 1, name: 'Al-Fatihah', arabic: 'الفاتحة', meaning: 'The Opening', verses: 7, place: 'Meccan' }] })
+    expect(await (await handler(request())).json()).toEqual(provider)
+  })
+})
+
+
+it('returns owned verse content and attribution without provider translation IDs', async () => {
+  upstream()
+  server.use(http.get('https://apis-prelive.quran.foundation/content/api/v4/verses/by_chapter/2', () => HttpResponse.json({
+    verses: [{ verse_number: 21, text_uthmani: 'نص', translations: [{ resource_id: 999, text: 'Wrong translation' }, { resource_id: 85, text: 'Translation<sup>1</sup>' }] }],
+    pagination: { next_page: 3 },
+  })))
+  const response = await setup()(request('v2/verses?chapter=2&page=2'))
+  expect(response.status).toBe(200)
+  expect(await response.json()).toEqual({ verses: [{ number: 21, arabic: 'نص', translationHtml: 'Translation<sup>1</sup>' }], translationName: 'M.A.S. Abdel Haleem', nextPage: 3 })
+})
+
+
+it('rejects an upstream pagination jump before publishing the owned response', async () => {
+  upstream()
+  server.use(http.get('https://apis-prelive.quran.foundation/content/api/v4/verses/by_chapter/1', () => HttpResponse.json({
+    verses: [{ verse_number: 1, text_uthmani: 'نص', translations: [{ resource_id: 85, text: 'Translation' }] }],
+    pagination: { next_page: 3 },
+  })))
+  const response = await setup()(request('v2/verses?chapter=1&page=1'))
+  expect(response.status).toBe(502)
+  expect(await response.json()).toEqual({ error: 'Quran content is temporarily unavailable. Please try again.' })
+})
+
+
+it.each([
+  { chapters: [] },
+  { chapters: [{ id: 1 }] },
+  { chapters: [{ id: 115, name_simple: 'Invalid', name_arabic: 'نص', translated_name: { name: 'Invalid' }, verses_count: 7, revelation_place: 'makkah' }] },
+])('rejects malformed provider chapters without leaking validation details, case %#', async payload => {
+  upstream()
+  server.use(http.get('https://apis-prelive.quran.foundation/content/api/v4/chapters', () => HttpResponse.json(payload)))
+  const response = await setup()(request('v2/chapters'))
+  expect(response.status).toBe(502)
+  expect(await response.json()).toEqual({ error: 'Quran content is temporarily unavailable. Please try again.' })
+})
+
+it.each(['verses', 'verses?chapter=0', 'verses?chapter=115', 'verses?chapter=1&page=0', 'verses?chapter=1&page=16', 'verses?chapter=1&chapter=2', 'verses?chapter=1&page=1&page=2', 'verses?chapter=1&extra=1', 'chapters?extra=1'])('rejects invalid v2 requests before contacting the provider: %s', async path => {
+  expect((await setup()(request(`v2/${path}`))).status).toBe(400)
+})

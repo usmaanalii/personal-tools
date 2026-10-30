@@ -1,3 +1,6 @@
+import { HelloResponseSchema } from '../../../packages/api-contracts/src/hello.ts'
+import { ApiErrorSchema } from '../../../packages/api-contracts/src/error.ts'
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "https://usmaanalii.github.io",
   "Access-Control-Allow-Headers": "apikey, authorization, content-type, x-client-info",
@@ -12,13 +15,13 @@ export function helloHandler(request: Request): Response {
 
   if (request.method !== "GET") {
     return Response.json(
-      { error: "Method not allowed. Use GET." },
+      ApiErrorSchema.parse({ error: "Method not allowed. Use GET." }),
       { status: 405, headers: { ...corsHeaders, Allow: "GET, OPTIONS" } },
     );
   }
 
   return Response.json(
-    { message: "Hello from Supabase!", ok: true },
+    HelloResponseSchema.parse({ message: "Hello from Supabase!", ok: true }),
     { headers: corsHeaders },
   );
 }

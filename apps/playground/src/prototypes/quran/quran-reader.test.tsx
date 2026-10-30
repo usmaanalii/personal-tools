@@ -89,8 +89,8 @@ describe('Quran reader saved verse removal', () => {
 describe('Quran API content', () => {
   it('shows the API chapter and its verses with translation attribution', async () => {
     server.use(
-      http.get(`${quranEndpoint}/chapters`, () => HttpResponse.json({ chapters: [{ id: 112, name_simple: 'Al-Ikhlas', name_arabic: 'الإخلاص', translated_name: { name: 'Sincerity' }, verses_count: 4, revelation_place: 'makkah' }] })),
-      http.get(`${quranEndpoint}/verses`, () => HttpResponse.json({ verses: [{ verse_number: 1, text_uthmani: 'قُلْ هُوَ ٱللَّهُ أَحَدٌ', translations: [{ resource_id: 131, text: 'Say, “He is Allah—One.”' }] }], pagination: { next_page: null } })),
+      http.get(`${quranEndpoint}/chapters`, () => HttpResponse.json({ chapters: [{ id: 112, name: 'Al-Ikhlas', arabic: 'الإخلاص', meaning: 'Sincerity', verses: 4, place: 'Meccan' }] })),
+      http.get(`${quranEndpoint}/verses`, () => HttpResponse.json({ verses: [{ number: 1, arabic: 'قُلْ هُوَ ٱللَّهُ أَحَدٌ', translationHtml: 'Say, “He is Allah—One.”' }], translationName: 'Dr. Mustafa Khattab, The Clear Quran', nextPage: null })),
     )
     window.history.pushState({}, '', '/quran/')
     render(<App />)
@@ -116,7 +116,7 @@ describe('Quran request recovery and pagination', () => {
   it('loads the next verse page and opens a saved verse on its original page', async () => {
     server.use(http.get(`${quranEndpoint}/verses`, ({ request }) => {
       const page = Number(new URL(request.url).searchParams.get('page'))
-      return HttpResponse.json({ verses: [{ verse_number: page === 1 ? 1 : 21, text_uthmani: 'نص للاختبار', translations: [{ resource_id: 131, text: `Page ${page} translation.<sup>1</sup><script>unsafe()</script>` }] }], pagination: { next_page: page === 1 ? 2 : null } })
+      return HttpResponse.json({ verses: [{ number: page === 1 ? 1 : 21, arabic: 'نص للاختبار', translationHtml: `Page ${page} translation.<sup>1</sup><script>unsafe()</script>` }], translationName: 'Dr. Mustafa Khattab, The Clear Quran', nextPage: page === 1 ? 2 : null })
     }))
     const { user } = await renderReader()
     expect(screen.getByText('Page 1 translation.')).toBeInTheDocument()
@@ -150,7 +150,7 @@ describe('Quran request recovery and pagination', () => {
 
 describe('Pre-live translation availability', () => {
   it('shows the pre-live translation with the correct attribution', async () => {
-    server.use(http.get(`${quranEndpoint}/verses`, () => HttpResponse.json({ verses: [{ verse_number: 1, text_uthmani: 'نص للاختبار', translations: [{ resource_id: 85, text: 'Pre-live English translation.' }] }], pagination: { next_page: null } })))
+    server.use(http.get(`${quranEndpoint}/verses`, () => HttpResponse.json({ verses: [{ number: 1, arabic: 'نص للاختبار', translationHtml: 'Pre-live English translation.' }], translationName: 'M.A.S. Abdel Haleem', nextPage: null })))
     window.history.pushState({}, '', '/quran/')
     render(<App />)
     expect(await screen.findByText('Pre-live English translation.')).toBeInTheDocument()
