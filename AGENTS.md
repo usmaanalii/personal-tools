@@ -24,6 +24,7 @@
 - Check whether dependency PRs overlap before merging; consolidate distinct, compatible updates into one PR when that simplifies review.
 - For pnpm dependency bumps, update `pnpm-lock.yaml` with the manifest. CI uses `pnpm install --frozen-lockfile`, so a manifest-only bump fails.
 - When GitHub connector write actions return 403, use the authenticated `gh` CLI for PR creation and merge if available.
+- Prefer Dependabot’s native daily `multi-ecosystem-groups` for one scheduled PR across package ecosystems and directories; use a custom GitHub Actions job only when native grouping cannot meet the workflow.
 
 ## Git workflow
 
