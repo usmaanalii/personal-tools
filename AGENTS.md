@@ -28,4 +28,5 @@
 ## Git workflow
 
 - After each completed task or independently reviewable unit of work, show the user the changes and ask whether they want them committed and pushed.
-- Leave changes local until the user approves. When approved, use the target branch they specify.
+- Leave changes local until the user approves committing and pushing.
+- Push approved changes only to `main` unless the user explicitly specifies another branch. Do not ask which branch to use; `main` is the default.
