@@ -1,0 +1,114 @@
+:root {
+  color-scheme: dark;
+  --background: #0f172a;
+  --surface: #1b2336;
+  --foreground: #f8fafc;
+  --muted: #b3bfd1;
+  --border: #475569;
+  --accent: #80e0a5;
+  --on-accent: #0f172a;
+  --error: #ffb4b4;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  line-height: 1.6;
+}
+main {
+  width: min(100% - 3rem, 64rem);
+  margin-inline: auto;
+}
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  padding-block: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+.wordmark,
+.stack-label,
+.eyebrow {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.07em;
+}
+.stack-label,
+.eyebrow {
+  color: var(--accent);
+}
+.intro {
+  max-width: 46rem;
+  padding-block: clamp(2.5rem, 8vw, 6rem) 2rem;
+}
+h1 {
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+  margin-block: 1rem 1.5rem;
+  text-wrap: balance;
+}
+h2 {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  line-height: 1.25;
+  margin-block: 0.75rem 1rem;
+}
+p {
+  color: var(--muted);
+  max-width: 40rem;
+}
+.intro > p:last-child {
+  font-size: 1.15rem;
+}
+.connection-card {
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+.connection-card .eyebrow {
+  margin: 0;
+}
+button {
+  min-height: 48px;
+  padding: 0.75rem 1.25rem;
+  margin-top: 1rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+button:hover {
+  filter: brightness(1.1);
+}
+button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+:focus-visible {
+  outline: 3px solid var(--foreground);
+  outline-offset: 5px;
+}
+.connection-result {
+  min-height: 1.6em;
+  margin-bottom: 0;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+.error {
+  color: var(--error);
+}
+footer {
+  padding-block: 2rem 3rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}

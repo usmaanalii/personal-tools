@@ -16,3 +16,8 @@ test-results/
 
 # Restore agent skills from skills-lock.json when needed.
 .agents/skills/ui-ux-pro-max/
+
+# Next.js and quality-tool output
+.next/
+.vercel/
+coverage/

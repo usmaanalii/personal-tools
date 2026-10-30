@@ -67,3 +67,19 @@ The function lives at `supabase/functions/hello/index.ts`. It returns a public d
 GitHub Actions builds the Playground app and deploys its static output to GitHub Pages. The Vite base path defaults to `/personal-tools/`; set `VITE_BASE_PATH=/` when deploying the app at a domain root.
 
 In repository settings, set **Pages > Build and deployment > Source** to **GitHub Actions**.
+
+## Next.js app
+
+**Live app:** [Next.js connection lab](https://next-vercel-supabase-app.vercel.app)
+
+[`apps/next-vercel-supabase-app`](apps/next-vercel-supabase-app/README.md) is an independent Next.js App Router app configured for Vercel and the existing public Supabase demo function.
+
+```sh
+pnpm dev:next
+pnpm check:next
+pnpm --filter next-vercel-supabase-app test:e2e
+```
+
+Root commands such as `pnpm dev`, `pnpm test`, and `pnpm build` still target Playground. Use `pnpm test:all`, `pnpm typecheck:all`, `pnpm build:all`, or `pnpm test:e2e:all` to run the corresponding scripts for every app.
+
+See the app README for server-only environment variables, production-build browser tests, Vercel deployment, and the live backend smoke check.

@@ -1,0 +1,84 @@
+name: Next.js app checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/next-vercel-supabase-app/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.nvmrc'
+      - '.github/workflows/next-app.yml'
+  workflow_dispatch:
+    inputs:
+      deployment_url:
+        description: 'Optional HTTPS deployment URL for a live Supabase browser smoke test'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      next: ${{ steps.filter.outputs.next }}
+    steps:
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            next:
+              - 'apps/next-vercel-supabase-app/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - '.nvmrc'
+              - '.github/workflows/next-app.yml'
+
+  quality:
+    name: Next.js quality and E2E
+    needs: changes
+    if: always() && (github.event_name != 'pull_request' || needs.changes.result != 'success' || needs.changes.outputs.next == 'true')
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Require successful pull request change detection
+        if: github.event_name == 'pull_request' && needs.changes.result != 'success'
+        run: exit 1
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.5.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint, formatting, strict types, and API unit tests with coverage
+        run: pnpm --filter next-vercel-supabase-app check
+      - name: Install Chromium and system dependencies
+        run: pnpm --filter next-vercel-supabase-app exec playwright install --with-deps chromium
+      - name: Production-build browser tests against a local Supabase fixture
+        run: pnpm --filter next-vercel-supabase-app test:e2e
+      - name: Live deployment browser smoke test (no backend mocks)
+        if: github.event_name == 'workflow_dispatch' && inputs.deployment_url != ''
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ inputs.deployment_url }}
+        run: pnpm --filter next-vercel-supabase-app test:smoke
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: next-app-test-evidence
+          path: |
+            apps/next-vercel-supabase-app/playwright-report/
+            apps/next-vercel-supabase-app/test-results/
+            apps/next-vercel-supabase-app/coverage/
+          retention-days: 7
