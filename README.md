@@ -44,7 +44,6 @@ Common checks:
 
 ```sh
 pnpm lint
-pnpm test:lint # Verify lint enforcement through both entry points
 pnpm lint:fix # Apply safe lint fixes; review the diff
 pnpm test
 pnpm typecheck

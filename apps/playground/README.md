@@ -18,7 +18,7 @@ For the Supabase demo, copy `.env.example` to `.env.local` and set `VITE_SUPABAS
 
 ## Linting
 
-Run `pnpm lint` from the repository root for shared Biome recommended lint rules across all apps. `pnpm lint:fix` applies safe fixes without formatting. Existing CSS cascade and user-triggered search autofocus exceptions have inline explanations. `pnpm test:lint` verifies lint enforcement through the root and Next.js app commands.
+Run `pnpm lint` from the repository root for shared Biome recommended lint rules across all apps. `pnpm lint:fix` applies safe fixes without formatting. Existing CSS cascade and user-triggered search autofocus exceptions have inline explanations.
 
 ## Tests
 

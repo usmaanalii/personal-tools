@@ -31,7 +31,7 @@ pnpm --filter next-vercel-supabase-app test:e2e
 
 `check` runs zero-warning Biome lint (shared recommended rules plus Next.js/React rules, explicit-any and `@ts-ignore` errors, and floating-promise checks), Prettier, Next route type generation, strict TypeScript, and API unit tests with coverage. Coverage gates require 100% statements, branches, functions, and lines for the API route and shared response schema. UI behavior is covered by browser tests rather than the unit coverage metric.
 
-The app’s `biome.json` extends the repository configuration. Biome replaces ESLint; its type inference and rules are not identical to typescript-eslint. The floating-promise rule is explicitly enabled at error level but remains an experimental nursery rule. Strict TypeScript remains a separate gate. `pnpm test:lint` from the repository root verifies that both lint entry points reject representative unsafe code and accept handled promises.
+The app’s `biome.json` extends the repository configuration. Biome replaces ESLint; its type inference and rules are not identical to typescript-eslint. The floating-promise rule is explicitly enabled at error level but remains an experimental nursery rule. Strict TypeScript remains a separate gate.
 
 `test:e2e` builds production Next.js and starts it on port 3100, plus a local HTTP Supabase fixture on port 54329. Playwright checks desktop and mobile Chromium: the greeting, failure and retry, keyboard activation and loading feedback, malformed responses, direct loading, refresh, and horizontal overflow. No Supabase credentials or external backend are required. These tests prove the app-to-fixture path, not the hosted service.
 
