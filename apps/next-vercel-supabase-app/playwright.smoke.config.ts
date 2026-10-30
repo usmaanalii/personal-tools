@@ -20,5 +20,11 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'live-chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'mobile-chromium',
+      use: { ...devices['Pixel 7'], defaultBrowserType: 'chromium' },
+    },
+  ],
 })

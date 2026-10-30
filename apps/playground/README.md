@@ -36,19 +36,25 @@ UI test descriptions use the visible interaction and outcome: **shows** for disp
 
 Vitest with React Testing Library in jsdom covers component routing, greetings, request errors, chapter search and navigation, bookmark state, pagination, loading recovery, and safe translation text. The proxy tests exercise the real HTTP handler against mocked upstream token/content endpoints, including token reuse, expiry, bounded retry, input restrictions, request budgets, and timeouts. These checks do not verify hosted credentials. The UI suite does not prove browser layout or deployed routing.
 
-Playwright tests are organized by the route that owns the journey:
+Keep detailed page behavior in Vitest with real application components and HTTP-level MSW responses. Add Playwright coverage only for a distinct served-app or browser risk.
 
-- `tests/homepage.e2e.ts`: opening the Quran reader from the homepage on mobile.
-- `tests/quran.e2e.ts`: opening and refreshing the reader directly, desktop heading positions, and horizontal overflow.
-- `tests/supabase.e2e.ts`: opening the demo directly and returning to the homepage.
+`test:e2e` builds the production app and serves only its static files at `http://127.0.0.1:5173/personal-tools/`, without an SPA fallback. Playwright owns the server and refuses to reuse that port. Desktop and mobile Chromium smoke checks cover:
 
-Quran browser tests intercept content requests with fixtures. They prove browser navigation and layout, not real Quran Foundation or Supabase connectivity.
+- `tests/homepage.e2e.ts` and `tests/supabase.e2e.ts`: direct loading, refresh and navigation between served pages.
+- `tests/quran.e2e.ts`: direct loading/refresh of the reader, responsive overflow and desktop panel positioning.
+- `tests/static-routes.e2e.ts`: a 404 for missing pages, so an SPA fallback cannot hide broken static routing.
 
-The browser suite starts a local Vite development server at `/`. It does not verify built GitHub Pages routing, the `/personal-tools/` deployment prefix, or the hosted Supabase backend.
+Quran content is supplied at the HTTP boundary solely to make these static-site/layout checks independent of hosted services. They prove production assets, the deployment prefix, navigation and layout; they do not prove the Edge Function or Quran Foundation connectivity. The build uses explicit test-only public configuration; it must not be published as the deployed build.
 
-## Optional live browser check
+## Deployment smoke
 
-Build with the real public `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, then run `pnpm --filter playground test:e2e:live` using Node 24. This explicit check mounts the local `dist` HTML/assets at the website origin through Playwright request routing, while leaving all Supabase content requests unmocked. It checks reading, translation attribution, chapter switching, pagination, reopening a bookmarked verse, refresh, and overflow on desktop and mobile. It does not publish files to GitHub Pages or prove that the hosted site contains the local build. The check currently targets pre-live chapters 1 and 2 and translation 85; adapt its expectations deliberately when moving to production.
+Run against an existing deployed website, including its base prefix and trailing slash:
+
+```sh
+PLAYWRIGHT_BASE_URL=https://usmaanalii.github.io/personal-tools/ pnpm --filter playground test:smoke
+```
+
+`tests/deployment.smoke.ts` opens the actual deployed Quran reader, confirms content and translation load after refresh, and calls the greeting function through the Supabase demo. It runs on desktop and mobile Chromium without replacing HTML, assets or backend responses. It does not build or deploy anything, and does not repeat detailed pagination/bookmark behavior. Loopback HTTP URLs are accepted for testing an already-served production build configured against real services. The Playwright workflow accepts the same root URL through its optional manual `deployment_url` input.
 
 ## Deployment
 

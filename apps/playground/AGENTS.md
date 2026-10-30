@@ -7,3 +7,9 @@
 
 - Build each directly addressable route as a separate Vite HTML entry point and list it in `vite.config.ts` under `build.rollupOptions.input`. GitHub Pages serves static files without SPA route fallback, so a client-side route alone is not enough for direct links or refreshes.
 - Verify each route by opening its URL directly and refreshing it in Playwright.
+
+## Test allocation
+
+- Keep detailed page behavior in Vitest integration tests using real application components and MSW at HTTP boundaries.
+- Keep Playwright smoke checks short and focused on production static files, the deployment prefix, direct loading/refresh, navigation and responsive layout. Content fixtures in these checks do not prove backend connectivity.
+- `test:smoke` targets an actual deployment with no asset replacement or backend interception. Do not maintain a second detailed behavioral suite under a live/mocked split.

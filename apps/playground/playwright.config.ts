@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test'
+import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests',
@@ -11,18 +11,21 @@ export default defineConfig({
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
   use: {
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://127.0.0.1:5173/personal-tools/',
     trace: 'retain-on-failure',
   },
   projects: [
-    {
-      name: 'chromium',
-      use: { browserName: 'chromium' },
-    },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
+    { name: 'mobile', use: { ...devices['Pixel 7'], defaultBrowserType: 'chromium' } },
   ],
   webServer: {
-    command: 'VITE_BASE_PATH=/ VITE_SUPABASE_URL=https://quran-fixture.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_test pnpm exec vite --host 127.0.0.1 --port 5173 --strictPort',
-    url: 'http://127.0.0.1:5173',
+    command: 'pnpm build && node tests/serve-dist.mjs',
+    env: {
+      VITE_BASE_PATH: '/personal-tools/',
+      VITE_SUPABASE_URL: 'https://quran-fixture.supabase.co',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
+    },
+    url: 'http://127.0.0.1:5173/personal-tools/',
     reuseExistingServer: false,
   },
 })

@@ -24,7 +24,7 @@ To enable the complete Quran:
 1. Open the existing Backend/server app in the [Quran Foundation Developer Console](https://api-docs.quran.foundation/request-access/) and request production `content` permission.
 2. Once approved, save the matching production `QF_CLIENT_ID` and `QF_CLIENT_SECRET` directly in Supabase Edge Function secrets, and set `QF_ENV=production`. Never commit the credentials. The function selects the matching production OAuth and content hosts from this setting; changing the environment alone cannot upgrade pre-live credentials.
 3. Redeploy the function to replace any instances using the previous configuration or token.
-4. Verify the live chapter catalogue contains all 114 chapters, the selected production translation (131) is available, and verses outside chapters 1 and 2 load correctly. Update the optional live browser test's pre-live expectations before using it as a production check.
+4. Verify the live chapter catalogue contains all 114 chapters, the selected production translation (131) is available, and verses outside chapters 1 and 2 load correctly. Run the deployment browser smoke against the actual website after publishing the corresponding frontend.
 
 The current pre-live catalogue offers English translation 85 (M.A.S. Abdel Haleem), not 131. The function therefore selects 85 in pre-live and 131 in production, and the reader displays attribution from the returned resource. Production access and content have not yet been verified. Pushing the frontend to GitHub Pages does not grant production API access; while `QF_ENV=prelive`, the deployed prototype remains limited to two chapters.
 
@@ -63,6 +63,6 @@ pnpm --filter playground test:e2e
 pnpm lint
 ```
 
-Vitest exercises this handler through its Request/Response interface with MSW upstream responses. Browser tests use fixture content; neither proves real provider credentials. After credentials are saved and the function deployed, separately verify live chapters and verses, preflight, invalid-input rejection, and generic error responses. Never print token responses or request auth headers. Verify the frontend build contains no QF credentials before publishing. Commit/push and GitHub Pages release require the repository owner's approval.
+Vitest exercises this handler through its Request/Response interface with MSW upstream responses. Production static-site/layout browser checks use fixture content; neither proves real provider credentials. The separate deployment smoke uses the deployed website and real service responses. After credentials are saved and the function deployed, separately verify live chapters and verses, preflight, invalid-input rejection, and generic error responses. Never print token responses or request auth headers. Verify the frontend build contains no QF credentials before publishing. Commit/push and GitHub Pages release require the repository owner's approval.
 
 Official references: [Content quickstart](https://api-docs.quran.foundation/docs/quickstart/), [token lifecycle](https://api-docs.quran.foundation/docs/quickstart/token-management/), [Supabase secrets](https://supabase.com/docs/guides/functions/secrets), [public function authentication](https://supabase.com/docs/guides/functions/auth).

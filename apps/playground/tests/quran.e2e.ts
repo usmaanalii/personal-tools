@@ -1,10 +1,9 @@
 import { expect, test } from '@playwright/test'
 import { mockQuranContent } from './quran-fixture'
 
-test('shows the chapter heading to the left of the reader heading when the reader opens on desktop', async ({ page }) => {
+test('opens the reader without overflow and places desktop panels side by side', async ({ page }) => {
   await mockQuranContent(page)
-  await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto('/quran/')
+  await page.goto('./quran/')
 
   await page.reload()
   const chapterHeading = page.getByRole('heading', { name: 'Chapters' })
@@ -17,7 +16,9 @@ test('shows the chapter heading to the left of the reader heading when the reade
   expect(chapterBounds).not.toBeNull()
   expect(readerBounds).not.toBeNull()
   if (!chapterBounds || !readerBounds) throw new Error('Reader panels must be visible')
-  expect(chapterBounds.x).toBeLessThan(readerBounds.x)
+  if ((page.viewportSize()?.width ?? 0) >= 1200) {
+    expect(chapterBounds.x).toBeLessThan(readerBounds.x)
+  }
 
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,

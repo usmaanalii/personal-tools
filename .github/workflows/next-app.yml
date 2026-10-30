@@ -64,11 +64,11 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Lint, formatting, strict types, and API unit tests with coverage
+      - name: Lint, formatting, strict types, and Vitest API/UI integration tests
         run: pnpm --filter next-vercel-supabase-app check
       - name: Install Chromium and system dependencies
         run: pnpm --filter next-vercel-supabase-app exec playwright install --with-deps chromium
-      - name: Production-build browser tests against a local Supabase fixture
+      - name: Production-build browser smoke against a local Supabase fixture
         run: pnpm --filter next-vercel-supabase-app test:e2e
       - name: Live deployment browser smoke test (no backend mocks)
         if: github.event_name == 'workflow_dispatch' && inputs.deployment_url != ''

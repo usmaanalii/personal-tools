@@ -26,6 +26,12 @@ A phone-first reading prototype for exploring chapters and verses.
 
 The reader loads Quran Foundation content through a Supabase Edge Function, with paginated verses, translation attribution, and retry states. The current API environment is pre-live, so only Al-Fatihah and Al-Baqarah are available. All 114 chapters require Quran Foundation production approval; see [Production access](supabase/functions/quran/README.md#production-access). Frontend changes are published by the Pages workflow after a push to `main`. Audio playback and reading progress remain unconnected. See the [Playground setup](apps/playground/README.md#quran-api-setup) and [function setup](supabase/functions/quran/README.md).
 
+## Test strategy
+
+Use Vitest for detailed page and handler integration tests, keeping application code real and mocking only necessary HTTP boundaries. Keep Playwright to short production-build smoke journeys and browser-specific risks such as direct routing, refresh and layout. A repeated assertion must protect a distinct integration risk.
+
+Both apps expose `test:smoke` for an existing deployment via `PLAYWRIGHT_BASE_URL`. These checks use the deployed assets and real backend responses; local fixture-backed smoke checks do not prove hosted connectivity. See each app README for commands and exact evidence boundaries.
+
 ## Local setup
 
 Use Node 24 for Playground tests and the Pages build; the separate Next.js app uses Node 22. Install dependencies with pnpm:
@@ -83,7 +89,7 @@ In repository settings, set **Pages > Build and deployment > Source** to **GitHu
 
 [`apps/next-vercel-supabase-app`](apps/next-vercel-supabase-app/README.md) is an independent Next.js App Router app configured for Vercel and the existing public Supabase demo function.
 
-Select **Check connection** to call Supabase through the Next.js server. The page shows progress, displays the greeting on success, and lets you retry after a failed request. The app has strict TypeScript, lint and formatting checks, API tests with coverage, and desktop/mobile browser tests.
+Select **Check connection** to call Supabase through the Next.js server. The page shows progress, displays the greeting on success, and lets you retry after a failed request. The app has strict TypeScript, lint and formatting checks, API and page integration tests, and desktop/mobile browser smoke checks.
 
 ```sh
 pnpm dev:next

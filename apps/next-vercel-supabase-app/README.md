@@ -29,11 +29,11 @@ pnpm --filter next-vercel-supabase-app check
 pnpm --filter next-vercel-supabase-app test:e2e
 ```
 
-`check` runs zero-warning Biome lint (shared recommended rules plus Next.js/React rules, explicit-any and `@ts-ignore` errors, and floating-promise checks), Prettier, Next route type generation, strict TypeScript, and API unit tests with coverage. Coverage gates require 100% statements, branches, functions, and lines for the API route and shared response schema. UI behavior is covered by browser tests rather than the unit coverage metric.
+`check` runs zero-warning Biome lint (shared recommended rules plus Next.js/React rules, explicit-any and `@ts-ignore` errors, and floating-promise checks), Prettier, Next route type generation, strict TypeScript, and Vitest API/UI integration tests with coverage. Coverage gates require 100% statements, branches, functions, and lines for the API route and shared response schema. A separate jsdom UI project renders the real home page and uses MSW only at the HTTP boundary. It covers greetings, failure/retry, Enter activation, loading feedback, and malformed responses; it does not prove native browser behavior, layout, or the served Next application. API coverage thresholds remain scoped to the route and shared schema.
 
 The app’s `biome.json` extends the repository configuration. Biome replaces ESLint; its type inference and rules are not identical to typescript-eslint. The floating-promise rule is explicitly enabled at error level but remains an experimental nursery rule. Strict TypeScript remains a separate gate.
 
-`test:e2e` builds production Next.js and starts it on port 3100, plus a local HTTP Supabase fixture on port 54329. Playwright checks desktop and mobile Chromium: the greeting, failure and retry, keyboard activation and loading feedback, malformed responses, direct loading, refresh, and horizontal overflow. No Supabase credentials or external backend are required. These tests prove the app-to-fixture path, not the hosted service.
+`test:e2e` builds production Next.js and starts it on port 3100, plus a local HTTP Supabase fixture on port 54329. A short Playwright smoke journey checks desktop and mobile Chromium: direct loading, refresh, the greeting through the real Next route, and horizontal overflow. Detailed UI states belong in Vitest rather than being repeated here. No Supabase credentials or external backend are required. These tests prove the app-to-fixture path, not the hosted service.
 
 Useful individual commands:
 
@@ -79,7 +79,7 @@ After deployment, verify the actual hosted connection:
 PLAYWRIGHT_BASE_URL=https://your-app.vercel.app pnpm --filter next-vercel-supabase-app test:smoke
 ```
 
-This smoke test clicks the real UI and requires `Hello from Supabase!` without mocks or a local fixture. It does not provision a deployment. The target must be reachable by the test runner; an authentication-protected Vercel preview needs the appropriate access setup. For checking a locally started production app against the real backend, loopback HTTP URLs are also accepted.
+This desktop/mobile smoke test reuses the same greeting journey and clicks the real UI and requires `Hello from Supabase!` without mocks or a local fixture. It does not provision a deployment. The target must be reachable by the test runner; an authentication-protected Vercel preview needs the appropriate access setup. For checking a locally started production app against the real backend, loopback HTTP URLs are also accepted.
 
 ## CI and merge protection
 
