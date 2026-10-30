@@ -16,6 +16,10 @@ pnpm --filter playground test:e2e
 
 For the Supabase demo, copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Both are public browser configuration; never use a secret or service-role key. Vitest uses `.env.test` and MSW responses.
 
+## Linting
+
+Run `pnpm lint` from the repository root for shared Biome recommended lint rules across all apps. `pnpm lint:fix` applies safe fixes without formatting. Existing CSS cascade and user-triggered search autofocus exceptions have inline explanations. `pnpm test:lint` verifies lint enforcement through the root and Next.js app commands.
+
 ## Tests
 
 UI test descriptions use the visible interaction and outcome: **shows** for displayed results, **opens** for navigation, and **marks** for pressed bookmark states.

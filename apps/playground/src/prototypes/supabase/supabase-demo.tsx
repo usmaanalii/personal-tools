@@ -50,7 +50,7 @@ export default function SupabaseDemo() {
       <button type="button" onClick={handleCallApi} disabled={apiState.status === 'loading'}>
         Call the API
       </button>
-      <pre aria-label="API response" aria-live="polite">{messageForState(apiState)}</pre>
+      <section aria-label="API response" aria-live="polite"><pre>{messageForState(apiState)}</pre></section>
       <p className="hint" role="status" aria-live="polite">{statusForState(apiState)}</p>
     </main>
   )

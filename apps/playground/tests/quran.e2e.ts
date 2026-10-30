@@ -13,7 +13,8 @@ test('shows the chapter heading to the left of the reader heading when the reade
   const readerBounds = await readerHeading.boundingBox()
   expect(chapterBounds).not.toBeNull()
   expect(readerBounds).not.toBeNull()
-  expect(chapterBounds!.x).toBeLessThan(readerBounds!.x)
+  if (!chapterBounds || !readerBounds) throw new Error('Reader panels must be visible')
+  expect(chapterBounds.x).toBeLessThan(readerBounds.x)
 
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,

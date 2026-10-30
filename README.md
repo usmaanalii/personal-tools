@@ -43,11 +43,18 @@ pnpm dev
 Common checks:
 
 ```sh
+pnpm lint
+pnpm test:lint # Verify lint enforcement through both entry points
+pnpm lint:fix # Apply safe lint fixes; review the diff
 pnpm test
 pnpm typecheck
 pnpm build
 pnpm test:e2e
 ```
+
+Biome provides repository-wide linting for supported source and configuration files, including future apps. It uses recommended rules, respects `.gitignore`, and excludes generated Next.js declarations and the pnpm lockfile. Formatting and import organization are disabled to avoid rewriting existing code; the Next.js app extends the shared Biome config with Next.js/React and floating-promise rules and retains Prettier for formatting. A few documented inline exceptions preserve existing Quran reader focus and CSS cascade behavior.
+
+The **Biome lint** GitHub Actions check runs on every pull request and push to `main`. Add it as a required check in branch protection to enforce it before merge.
 
 Run a workspace app directly with `pnpm --filter playground <script>`.
 

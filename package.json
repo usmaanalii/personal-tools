@@ -13,6 +13,12 @@
     "test:all": "pnpm -r test",
     "typecheck:all": "pnpm -r typecheck",
     "build:all": "pnpm -r build",
-    "test:e2e:all": "pnpm -r test:e2e"
+    "test:e2e:all": "pnpm -r test:e2e",
+    "lint": "biome lint . --error-on-warnings",
+    "lint:fix": "biome lint . --write",
+    "test:lint": "node --test tests/lint.test.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4"
   }
 }

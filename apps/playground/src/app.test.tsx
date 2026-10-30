@@ -26,7 +26,7 @@ describe('Playground navigation', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Call the API' }))
 
     expect(await screen.findByText('API request succeeded.')).toBeInTheDocument()
-    expect(screen.getByLabelText('API response')).toHaveTextContent('"Hello from Supabase!"')
+    expect(screen.getByRole('region', { name: 'API response' })).toHaveTextContent('"Hello from Supabase!"')
   })
 
   it('shows the Quran reader when the current path is /quran/', async () => {
