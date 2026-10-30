@@ -13,6 +13,12 @@
 - For behavior changes, use TDD: write a behavior-focused test, run it and confirm it fails for the intended reason, implement the smallest change that makes it pass, then run the relevant regression checks. Keep the regression test with the behavior change.
 - Before implementation, check the available skills and read the ones whose guidance applies to the task. Follow their workflows for relevant frameworks, design, accessibility, and testing. Apply skills selectively; user requests and repository instructions take precedence.
 
+## Documentation
+
+- Update the relevant documentation in the same change when adding or changing a feature or app. Keep the app's README current with its behavior, setup, environment variables, development commands, checks, and deployment instructions; update the root README overview when affected.
+- Keep the root README's **Quick access** section at the top as the directory of live websites. Include every deployed app and separately addressable user-facing page, and update links when routes or domains change or pages are removed. Do not present an undeployed URL as live.
+- Before handing back a change, check that its documentation and Quick access links match the implemented behavior and deployment status.
+
 ## Dependabot workflow
 
 - Check whether dependency PRs overlap before merging; consolidate distinct, compatible updates into one PR when that simplifies review.

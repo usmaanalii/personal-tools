@@ -7,6 +7,7 @@ A small monorepo for personal web app experiments.
 - [Playground index](https://usmaanalii.github.io/personal-tools/)
 - [Quran reader](https://usmaanalii.github.io/personal-tools/quran/)
 - [Supabase API demo](https://usmaanalii.github.io/personal-tools/supabase/)
+- [Next.js connection lab](https://next-vercel-supabase-app.vercel.app)
 
 ## Playground
 
@@ -73,6 +74,8 @@ In repository settings, set **Pages > Build and deployment > Source** to **GitHu
 **Live app:** [Next.js connection lab](https://next-vercel-supabase-app.vercel.app)
 
 [`apps/next-vercel-supabase-app`](apps/next-vercel-supabase-app/README.md) is an independent Next.js App Router app configured for Vercel and the existing public Supabase demo function.
+
+Select **Check connection** to call Supabase through the Next.js server. The page shows progress, displays the greeting on success, and lets you retry after a failed request. The app has strict TypeScript, lint and formatting checks, API tests with coverage, and desktop/mobile browser tests.
 
 ```sh
 pnpm dev:next
