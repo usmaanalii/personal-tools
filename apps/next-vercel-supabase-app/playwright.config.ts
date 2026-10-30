@@ -23,7 +23,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'node tests/fixtures/supabase.mjs',
+      command: 'node tests/connection/fixtures/supabase.mjs',
       url: 'http://127.0.0.1:54329/health',
       reuseExistingServer: false,
     },

@@ -11,7 +11,7 @@ if (!target || (target.protocol !== 'https:' && !local)) {
 
 export default defineConfig({
   testDir: './tests',
-  testMatch: 'greeting.e2e.ts',
+  testMatch: '**/greeting.e2e.ts',
   forbidOnly: true,
   retries: 0,
   reporter: 'list',

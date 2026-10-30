@@ -34,15 +34,28 @@ Run `pnpm lint` from the repository root for shared Biome recommended lint rules
 
 UI test descriptions use the visible interaction and outcome: **shows** for displayed results, **opens** for navigation, and **marks** for pressed bookmark states.
 
-Vitest with React Testing Library in jsdom covers component routing, greetings, request errors, chapter search and navigation, bookmark state, pagination, loading recovery, and safe translation text. The proxy tests exercise the real HTTP handler against mocked upstream token/content endpoints, including token reuse, expiry, bounded retry, input restrictions, request budgets, and timeouts. These checks do not verify hosted credentials. The UI suite does not prove browser layout or deployed routing.
+Vitest with React Testing Library in jsdom covers component routing, greetings, request errors, chapter search and navigation, bookmark state, pagination, loading recovery, and safe translation text. Backend API-contract tests belong to the independent `edge-functions` workspace under `supabase/functions/tests/`; run `pnpm test:functions` from the repository root. They exercise real handlers against mocked upstream token/content endpoints, including token reuse, expiry, bounded retry, input restrictions, request budgets, and timeouts. These checks do not verify hosted credentials. The UI suite does not prove browser layout or deployed routing.
 
 Keep detailed page behavior in Vitest with real application components and HTTP-level MSW responses. Add Playwright coverage only for a distinct served-app or browser risk.
 
 `test:e2e` builds the production app and serves only its static files at `http://127.0.0.1:5173/personal-tools/`, without an SPA fallback. Playwright owns the server and refuses to reuse that port. Desktop and mobile Chromium smoke checks cover:
 
-- `tests/homepage.e2e.ts` and `tests/supabase.e2e.ts`: direct loading, refresh and navigation between served pages.
-- `tests/quran.e2e.ts`: direct loading/refresh of the reader, responsive overflow and desktop panel positioning.
-- `tests/static-routes.e2e.ts`: a 404 for missing pages, so an SPA fallback cannot hide broken static routing.
+- `tests/prototypes/quran/reader.e2e.ts`: homepage entry, reader refresh, visible content and overflow.
+- `tests/prototypes/supabase/demo.e2e.ts`: direct loading, refresh and navigation back to the homepage.
+
+There are two smoke journeys per viewport. The static-server fallback/404 contract runs once in Vitest's Node infrastructure project, not in a browser matrix.
+
+Tests follow the same ownership as source code:
+
+```text
+src/app/app.test.tsx                         # shared homepage/routing
+src/prototypes/quran/*.test.tsx              # reader page integration
+src/prototypes/supabase/*.test.tsx           # demo page integration
+tests/prototypes/quran/                      # reader E2E, deployment smoke and content fixture
+tests/prototypes/supabase/                   # demo E2E and deployment smoke
+tests/infrastructure/                       # static server, launcher and HTTP integration check
+../../supabase/functions/tests/             # backend-owned API contracts
+```
 
 Quran content is supplied at the HTTP boundary solely to make these static-site/layout checks independent of hosted services. They prove production assets, the deployment prefix, navigation and layout; they do not prove the Edge Function or Quran Foundation connectivity. The build uses explicit test-only public configuration; it must not be published as the deployed build.
 
@@ -54,7 +67,7 @@ Run against an existing deployed website, including its base prefix and trailing
 PLAYWRIGHT_BASE_URL=https://usmaanalii.github.io/personal-tools/ pnpm --filter playground test:smoke
 ```
 
-`tests/deployment.smoke.ts` opens the actual deployed Quran reader, confirms content and translation load after refresh, and calls the greeting function through the Supabase demo. It runs on desktop and mobile Chromium without replacing HTML, assets or backend responses. It does not build or deploy anything, and does not repeat detailed pagination/bookmark behavior. Loopback HTTP URLs are accepted for testing an already-served production build configured against real services. The Playwright workflow accepts the same root URL through its optional manual `deployment_url` input.
+The `*-deployment.e2e.ts` files alongside each prototype’s E2E tests open the actual deployed Quran reader, confirm content and translation load after refresh, and call the greeting function through the Supabase demo. They run on desktop and mobile Chromium without replacing HTML, assets or backend responses. They do not build or deploy anything, and do not repeat detailed pagination/bookmark behavior. Loopback HTTP URLs are accepted for testing an already-served production build configured against real services. The Playwright workflow accepts the same root URL through its optional manual `deployment_url` input.
 
 ## Deployment
 

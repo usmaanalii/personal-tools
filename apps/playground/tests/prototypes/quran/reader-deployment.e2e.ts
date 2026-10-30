@@ -12,10 +12,3 @@ test('reads Quran content from the deployed app and backend after refresh', asyn
   await expect(page.getByRole('article').first()).toBeVisible()
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
-
-test('calls the deployed Supabase function through the demo page', async ({ page }) => {
-  await page.goto('./supabase/')
-  await page.getByRole('button', { name: 'Call the API' }).click()
-  await expect(page.getByRole('status')).toHaveText('API request succeeded.')
-  await expect(page.getByRole('region', { name: 'API response' })).toContainText('Hello from Supabase!')
-})

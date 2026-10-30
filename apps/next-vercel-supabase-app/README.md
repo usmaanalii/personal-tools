@@ -35,6 +35,8 @@ The app’s `biome.json` extends the repository configuration. Biome replaces ES
 
 `test:e2e` builds production Next.js and starts it on port 3100, plus a local HTTP Supabase fixture on port 54329. A short Playwright smoke journey checks desktop and mobile Chromium: direct loading, refresh, the greeting through the real Next route, and horizontal overflow. Detailed UI states belong in Vitest rather than being repeated here. No Supabase credentials or external backend are required. These tests prove the app-to-fixture path, not the hosted service.
 
+Test ownership stays inside this app: `src/components/connection-check.test.tsx` covers page interactions, `src/app/api/supabase/route.test.ts` covers the HTTP handler, and `tests/connection/greeting.e2e.ts` owns the shared local/deployment smoke journey. Its upstream fixture lives in `tests/connection/fixtures/`. Failure screenshots and traces come from Playwright configuration; the journey does not take unconditional screenshots.
+
 Useful individual commands:
 
 ```sh

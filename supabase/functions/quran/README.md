@@ -56,6 +56,8 @@ Function `quran` version 4 was deployed on 2026-10-30 with credentials configure
 From the repository root using Node 24:
 
 ```sh
+pnpm test:functions
+pnpm --filter edge-functions test:coverage
 pnpm --filter playground test
 pnpm --filter playground typecheck
 pnpm --filter playground build
@@ -63,6 +65,6 @@ pnpm --filter playground test:e2e
 pnpm lint
 ```
 
-Vitest exercises this handler through its Request/Response interface with MSW upstream responses. Production static-site/layout browser checks use fixture content; neither proves real provider credentials. The separate deployment smoke uses the deployed website and real service responses. After credentials are saved and the function deployed, separately verify live chapters and verses, preflight, invalid-input rejection, and generic error responses. Never print token responses or request auth headers. Verify the frontend build contains no QF credentials before publishing. Commit/push and GitHub Pages release require the repository owner's approval.
+The backend-owned tests in `../tests/quran/handler.test.ts` exercise this handler through its Request/Response interface with MSW upstream responses. Coverage measures the handler, not the Deno environment/server entry point. Production static-site/layout browser checks use fixture content; neither proves real provider credentials. The separate deployment smoke uses the deployed website and real service responses. After credentials are saved and the function deployed, separately verify live chapters and verses, preflight, invalid-input rejection, and generic error responses. Never print token responses or request auth headers. Verify the frontend build contains no QF credentials before publishing. Commit/push and GitHub Pages release require the repository owner's approval.
 
 Official references: [Content quickstart](https://api-docs.quran.foundation/docs/quickstart/), [token lifecycle](https://api-docs.quran.foundation/docs/quickstart/token-management/), [Supabase secrets](https://supabase.com/docs/guides/functions/secrets), [public function authentication](https://supabase.com/docs/guides/functions/auth).

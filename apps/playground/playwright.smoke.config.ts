@@ -8,8 +8,8 @@ if (!target || (target.protocol !== 'https:' && !local) || !target.pathname.ends
 }
 
 export default defineConfig({
-  testDir: './tests',
-  testMatch: '**/*.smoke.ts',
+  testDir: './tests/prototypes',
+  testMatch: '**/*-deployment.e2e.ts',
   forbidOnly: true,
   retries: 0,
   timeout: 30_000,

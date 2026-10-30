@@ -30,6 +30,8 @@ The reader loads Quran Foundation content through a Supabase Edge Function, with
 
 Use Vitest for detailed page and handler integration tests, keeping application code real and mocking only necessary HTTP boundaries. Keep Playwright to short production-build smoke journeys and browser-specific risks such as direct routing, refresh and layout. A repeated assertion must protect a distinct integration risk.
 
+Edge Function API-contract tests live under `supabase/functions/tests/` in an independent workspace. Run `pnpm test:functions` or `pnpm --filter edge-functions test:coverage`; see [backend test ownership and setup](supabase/functions/README.md).
+
 Both apps expose `test:smoke` for an existing deployment via `PLAYWRIGHT_BASE_URL`. These checks use the deployed assets and real backend responses; local fixture-backed smoke checks do not prove hosted connectivity. See each app README for commands and exact evidence boundaries.
 
 ## Local setup
@@ -97,6 +99,6 @@ pnpm check:next
 pnpm --filter next-vercel-supabase-app test:e2e
 ```
 
-Root commands such as `pnpm dev`, `pnpm test`, and `pnpm build` still target Playground. Use `pnpm test:all`, `pnpm typecheck:all`, `pnpm build:all`, or `pnpm test:e2e:all` to run the corresponding scripts for every app.
+Root commands such as `pnpm dev`, `pnpm test`, and `pnpm build` still target Playground. Use `pnpm test:all`, `pnpm typecheck:all`, `pnpm build:all`, or `pnpm test:e2e:all` to run the corresponding scripts across the workspace; `test:all` also includes the Edge Function tests.
 
 See the app README for server-only environment variables, production-build browser tests, Vercel deployment, and the live backend smoke check.

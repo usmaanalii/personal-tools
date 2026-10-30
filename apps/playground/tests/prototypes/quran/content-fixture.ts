@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { chapters, alFatihah } from '../src/prototypes/quran/quran-fixtures.test-data'
+import { chapters, alFatihah } from '../../../src/prototypes/quran/quran-fixtures.test-data'
 
 // Browser UI fixture: this does not exercise the hosted Edge Function or Quran API.
 export async function mockQuranContent(page: Page) {

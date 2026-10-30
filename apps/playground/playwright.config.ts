@@ -1,8 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: './tests/prototypes',
   testMatch: '**/*.e2e.ts',
+  testIgnore: '**/*-deployment.e2e.ts',
   fullyParallel: true,
   forbidOnly: true,
   workers: 1,
@@ -19,7 +20,7 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['Pixel 7'], defaultBrowserType: 'chromium' } },
   ],
   webServer: {
-    command: 'pnpm build && node tests/serve-dist.mjs',
+    command: 'pnpm build && node tests/infrastructure/serve-dist.mjs',
     env: {
       VITE_BASE_PATH: '/personal-tools/',
       VITE_SUPABASE_URL: 'https://quran-fixture.supabase.co',

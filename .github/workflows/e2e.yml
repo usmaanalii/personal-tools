@@ -6,7 +6,7 @@ on:
     branches: [main]
     paths:
       - 'apps/playground/**'
-      - 'supabase/functions/quran/**'
+      - 'supabase/functions/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
@@ -37,7 +37,7 @@ jobs:
           filters: |
             e2e:
               - 'apps/playground/**'
-              - 'supabase/functions/quran/**'
+              - 'supabase/functions/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
@@ -69,8 +69,10 @@ jobs:
       - name: Install Chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm --filter playground exec playwright install chromium
-      - name: Page and handler integration tests (Vitest)
+      - name: Page integration tests (Vitest)
         run: pnpm test
+      - name: Edge Function API contract tests (Vitest)
+        run: pnpm test:functions
       - name: Production static-site routing and layout smoke (fixture content)
         run: pnpm test:e2e
       - name: Deployment browser smoke (no asset or backend mocks)
