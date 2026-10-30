@@ -1,9 +1,12 @@
 import { expect, test } from '@playwright/test'
+import { mockQuranContent } from './quran-fixture'
 
 test('shows the chapter heading to the left of the reader heading when the reader opens on desktop', async ({ page }) => {
+  await mockQuranContent(page)
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/quran/')
 
+  await page.reload()
   const chapterHeading = page.getByRole('heading', { name: 'Chapters' })
   const readerHeading = page.getByRole('heading', { name: 'Al-Fātiḥah' })
   await expect(chapterHeading).toBeVisible()

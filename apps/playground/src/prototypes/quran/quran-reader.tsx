@@ -1,36 +1,8 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import './styles.css'
+import { getChapters, getVerses, type Chapter, type Ayah, type VersePage } from './quran-api'
 
-type Chapter = { id: number; name: string; arabic: string; meaning: string; verses: number; place: 'Meccan' | 'Medinan' }
-type Ayah = { number: number; arabic: string; translation: string }
 type SavedVerse = { chapterId: number; verse: Ayah }
-
-const chapters: [Chapter, ...Chapter[]] = [
-  { id: 1, name: 'Al-Fātiḥah', arabic: 'الفاتحة', meaning: 'The Opening', verses: 7, place: 'Meccan' },
-  { id: 2, name: 'Al-Baqarah', arabic: 'البقرة', meaning: 'The Cow', verses: 286, place: 'Medinan' },
-  { id: 3, name: 'Āl ʿImrān', arabic: 'آل عمران', meaning: 'Family of Imran', verses: 200, place: 'Medinan' },
-  { id: 4, name: 'An-Nisā', arabic: 'النساء', meaning: 'The Women', verses: 176, place: 'Medinan' },
-  { id: 5, name: 'Al-Māʾidah', arabic: 'المائدة', meaning: 'The Table Spread', verses: 120, place: 'Medinan' },
-  { id: 6, name: 'Al-Anʿām', arabic: 'الأنعام', meaning: 'The Cattle', verses: 165, place: 'Meccan' },
-  { id: 7, name: 'Al-Aʿrāf', arabic: 'الأعراف', meaning: 'The Heights', verses: 206, place: 'Meccan' },
-  { id: 8, name: 'Al-Anfāl', arabic: 'الأنفال', meaning: 'The Spoils of War', verses: 75, place: 'Medinan' },
-  { id: 9, name: 'At-Tawbah', arabic: 'التوبة', meaning: 'The Repentance', verses: 129, place: 'Medinan' },
-  { id: 10, name: 'Yūnus', arabic: 'يونس', meaning: 'Jonah', verses: 109, place: 'Meccan' },
-  { id: 18, name: 'Al-Kahf', arabic: 'الكهف', meaning: 'The Cave', verses: 110, place: 'Meccan' },
-  { id: 36, name: 'Yā-Sīn', arabic: 'يس', meaning: 'Ya Sin', verses: 83, place: 'Meccan' },
-  { id: 55, name: 'Ar-Raḥmān', arabic: 'الرحمن', meaning: 'The Most Merciful', verses: 78, place: 'Medinan' },
-  { id: 112, name: 'Al-Ikhlāṣ', arabic: 'الإخلاص', meaning: 'Sincerity', verses: 4, place: 'Meccan' },
-]
-
-const alFatihah: Ayah[] = [
-  { number: 1, arabic: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ', translation: 'In the name of Allah—the Most Compassionate, Most Merciful.' },
-  { number: 2, arabic: 'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ', translation: 'All praise is for Allah—Lord of all worlds,' },
-  { number: 3, arabic: 'الرَّحْمَٰنِ الرَّحِيمِ', translation: 'the Most Compassionate, Most Merciful,' },
-  { number: 4, arabic: 'مَالِكِ يَوْمِ الدِّينِ', translation: 'Master of the Day of Judgment.' },
-  { number: 5, arabic: 'إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ', translation: 'You ˹alone˺ we worship and You ˹alone˺ we ask for help.' },
-  { number: 6, arabic: 'اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ', translation: 'Guide us along the Straight Path,' },
-  { number: 7, arabic: 'صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ', translation: 'the Path of those You have blessed—not those You are displeased with, or those who are astray.' },
-]
 
 type IconName = 'search' | 'bookmark' | 'back' | 'next' | 'play' | 'more' | 'list' | 'home' | 'settings'
 
@@ -45,26 +17,57 @@ function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>
 }
 
+type ChaptersState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; chapters: [Chapter, ...Chapter[]] }
+
 export default function App() {
-  const [selected, setSelected] = useState(1)
+  const [attempt, setAttempt] = useState(0)
+  return <ChapterLoader key={attempt} retry={() => setAttempt(value => value + 1)}/>
+}
+
+function ChapterLoader({ retry }: { retry: () => void }) {
+  const [state, setState] = useState<ChaptersState>({ status: 'loading' })
+  useEffect(() => {
+    const controller = new AbortController()
+    setState({ status: 'loading' })
+    getChapters(controller.signal).then(chapters => { if (!controller.signal.aborted) setState({ status: 'ready', chapters }) }).catch((error: unknown) => {
+      if (!controller.signal.aborted) setState({ status: 'error', message: error instanceof Error ? error.message : 'Unable to load Quran content.' })
+    })
+    return () => controller.abort()
+  }, [])
+  if (state.status === 'loading') return <main className="reader-message" aria-busy="true"><p role="status">Loading chapters…</p></main>
+  if (state.status === 'error') return <main className="reader-message"><p role="alert">{state.message}</p><button type="button" onClick={retry}>Retry chapters</button></main>
+  return <Reader chapters={state.chapters}/>
+}
+
+type VersesState = { key: string; status: 'loading' } | { key: string; status: 'error'; message: string } | { key: string; status: 'ready'; data: VersePage }
+function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
+  const [selected, setSelected] = useState(chapters[0].id)
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [bookmarked, setBookmarked] = useState(false)
   const [savedVerses, setSavedVerses] = useState<SavedVerse[]>([])
-  const [playing, setPlaying] = useState(false)
+  const [page, setPage] = useState(1)
+  const [attempt, setAttempt] = useState(0)
+  const key = `${selected}:${page}:${attempt}`
+  const [verseState, setVerseState] = useState<VersesState>({ key, status: 'loading' })
+  useEffect(() => {
+    const controller = new AbortController()
+    setVerseState({ key, status: 'loading' })
+    getVerses(selected, page, controller.signal).then(data => { if (!controller.signal.aborted) setVerseState({ key, status: 'ready', data }) }).catch((error: unknown) => {
+      if (!controller.signal.aborted) setVerseState({ key, status: 'error', message: error instanceof Error ? error.message : 'Unable to load Quran content.' })
+    })
+    return () => controller.abort()
+  }, [selected, page, key])
+  const current: VersesState = verseState.key === key ? verseState : { key, status: 'loading' }
+  const verses = current.status === 'ready' ? current.data.verses : []
   const [tab, setTab] = useState<'chapters' | 'bookmarks'>('chapters')
   const [activeVerse, setActiveVerse] = useState<number | null>(null)
   const chapterIndex = chapters.findIndex(item => item.id === selected)
   const chapter = chapters[chapterIndex] ?? chapters[0]
   const previousChapter = chapters[Math.max(0, chapterIndex - 1)] ?? chapter
   const nextChapter = chapters[Math.min(chapters.length - 1, chapterIndex + 1)] ?? chapter
-  const visibleChapters = useMemo(() => chapters.filter(item => `${item.name} ${item.meaning} ${item.id}`.toLowerCase().includes(query.toLowerCase())), [query])
-  const verses = selected === 1 ? alFatihah : [
-    { number: 1, arabic: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ', translation: 'In the name of Allah—the Most Compassionate, Most Merciful.' },
-    { number: 2, arabic: 'الم', translation: 'Alif-Lãm-Mĩm.' },
-    { number: 3, arabic: 'ذَٰلِكَ الْكِتَابُ لَا رَيْبَ ۛ فِيهِ ۛ هُدًى لِّلْمُتَّقِينَ', translation: 'This is the Book! There is no doubt about it—a guide for those mindful ˹of Allah˺,' },
-  ]
-  const openChapter = (id: number) => { setSelected(id); setActiveVerse(null) }
+  const visibleChapters = chapters.filter(item => `${item.name} ${item.meaning} ${item.id}`.toLowerCase().includes(query.toLowerCase()))
+  const openChapter = (id: number, verse = 1) => { setSelected(id); setPage(Math.ceil(verse / 20)); setActiveVerse(null) }
   const isVerseSaved = (verse: Ayah) => savedVerses.some(item => item.chapterId === selected && item.verse.number === verse.number)
   const toggleSavedVerse = (verse: Ayah) => {
     setSavedVerses(current => {
@@ -88,24 +91,31 @@ export default function App() {
       <div className="content-layout">
         <section className="reading-column">
           <div className="welcome-line"><div><div className="eyebrow">WEDNESDAY, 29 OCTOBER</div><h1>A moment with the Quran<span>.</span></h1><p className="subhead">Find a little stillness in the words that matter.</p></div><div className="ornament">۞</div></div>
-          <div className="continue-card"><div className="continue-glow"/><div className="continue-content"><div className="eyebrow light">PICK UP WHERE YOU LEFT OFF</div><div className="continue-title">Al-Baqarah <span>·</span> 2:18</div><div className="continue-meta">Juz 1 <i/> 3 min read</div><button type="button" className="continue-button" onClick={() => openChapter(2)}>Continue reading <span>→</span></button></div><div className="progress-ring"><div><b>12%</b><small>complete</small></div></div><div className="card-arabic">البقرة</div></div>
-          <div className="section-heading"><div><div className="eyebrow">THE HOLY QURAN</div><h2>Chapters <span className="chapter-total">114</span></h2></div><button type="button" className="sort-button"><Icon name="list" size={17}/> All chapters <span>⌄</span></button></div>
+          <div className="continue-card"><div className="continue-glow"/><div className="continue-content"><div className="eyebrow light">EXPLORE THE QURAN</div><div className="continue-title">Al-Baqarah <span>·</span> Chapter 2</div><div className="continue-meta">Read at your own pace</div><button type="button" className="continue-button" onClick={() => openChapter(2)}>Open Al-Baqarah <span>→</span></button></div><div className="card-arabic">البقرة</div></div>
+          <div className="section-heading"><div><div className="eyebrow">THE HOLY QURAN</div><h2>Chapters <span className="chapter-total">{chapters.length}</span></h2></div><button type="button" className="sort-button"><Icon name="list" size={17}/> All chapters <span>⌄</span></button></div>
           <div className="tabs"><button type="button" className={tab === 'chapters' ? 'tab selected' : 'tab'} onClick={() => setTab('chapters')}>All chapters</button><button type="button" className={tab === 'bookmarks' ? 'tab selected' : 'tab'} onClick={() => setTab('bookmarks')}>My bookmarks <span className="tab-count">{savedVerses.length + (bookmarked ? 1 : 0)}</span></button></div>
           {/* biome-ignore lint/a11y/noAutofocus: Search opens on explicit user request and immediately accepts typing. */}
           {searchOpen && <div className="search-field"><Icon name="search" size={17}/><input aria-label="Search chapters" autoFocus value={query} onChange={event => setQuery(event.target.value)} placeholder="Search by chapter or meaning…"/><button type="button" aria-label="Close search" onClick={() => { setSearchOpen(false); setQuery('') }}>×</button></div>}
           <div className="chapter-list">
-            {tab === 'chapters' ? visibleChapters.map(item => <button type="button" key={item.id} className={`chapter-row ${selected === item.id ? 'chapter-active' : ''}`} onClick={() => openChapter(item.id)}><span className="chapter-number"><span>{item.id}</span></span><span className="chapter-info"><b>{item.name}</b><small>{item.meaning} <i/> {item.place}</small></span><span className="chapter-arabic">{item.arabic}</span><span className="chapter-verses">{item.verses}<small>VERSES</small></span></button>) : <>
-              {bookmarked && <button type="button" className="chapter-row" onClick={() => openChapter(selected)}><span className="chapter-number"><span>{chapter.id}</span></span><span className="chapter-info"><b>{chapter.name}</b><small>{chapter.meaning} <i/> {chapter.place}</small></span><span className="chapter-arabic">{chapter.arabic}</span><span className="chapter-verses">{chapter.verses}<small>VERSES</small></span></button>}
+            {tab === 'chapters' ? visibleChapters.map(item => <button type="button" key={item.id} className={`chapter-row ${selected === item.id ? 'chapter-active' : ''}`} onClick={() => openChapter(item.id)}><span className="chapter-number"><span>{item.id}</span></span><span className="chapter-info"><b>{item.name}</b><small>{item.meaning} <i/> {item.place}</small></span><span className="chapter-arabic" translate="no" lang="ar" dir="rtl">{item.arabic}</span><span className="chapter-verses">{item.verses}<small>VERSES</small></span></button>) : <>
+              {bookmarked && <button type="button" className="chapter-row" onClick={() => openChapter(selected)}><span className="chapter-number"><span>{chapter.id}</span></span><span className="chapter-info"><b>{chapter.name}</b><small>{chapter.meaning} <i/> {chapter.place}</small></span><span className="chapter-arabic" translate="no" lang="ar" dir="rtl">{chapter.arabic}</span><span className="chapter-verses">{chapter.verses}<small>VERSES</small></span></button>}
               {savedVerses.map(item => {
                 const savedChapter = chapters.find(chapterItem => chapterItem.id === item.chapterId)
                 if (!savedChapter) return null
-                return <button type="button" key={`${item.chapterId}:${item.verse.number}`} className="saved-verse-row" aria-label={`${savedChapter.name} ${item.chapterId}:${item.verse.number}`} onClick={() => { openChapter(item.chapterId); setActiveVerse(item.verse.number) }}><span className="saved-verse-reference">{savedChapter.name} {item.chapterId}:{item.verse.number}</span><span className="saved-verse-translation">{item.verse.translation}</span></button>
+                return <button type="button" key={`${item.chapterId}:${item.verse.number}`} className="saved-verse-row" aria-label={`${savedChapter.name} ${item.chapterId}:${item.verse.number}`} onClick={() => { openChapter(item.chapterId, item.verse.number); setActiveVerse(item.verse.number) }}><span className="saved-verse-reference">{savedChapter.name} {item.chapterId}:{item.verse.number}</span><span className="saved-verse-translation">{item.verse.translation}</span></button>
               })}
               {!bookmarked && savedVerses.length === 0 && <div className="empty-state">Your saved verses will find a home here.</div>}
             </>}
           </div>
         </section>
-        <aside className="verse-panel"><div className="panel-top"><div><div className="eyebrow">NOW READING</div><h2>{chapter.name}</h2><p>{chapter.meaning} <i/> {chapter.place} <i/> {chapter.verses} verses</p></div><button type="button" className={`icon-button ${bookmarked ? 'saved' : ''}`} aria-label="Bookmark this chapter" aria-pressed={bookmarked} onClick={() => setBookmarked(!bookmarked)}><Icon name="bookmark"/></button></div><div className="surah-heading"><div className="surah-line"/><span>سُورَةُ {chapter.arabic}</span><div className="surah-line"/></div>{selected !== 1 && <div className="bismillah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>}<div className="verse-list">{verses.map(verse => <article key={`${selected}-${verse.number}`} className={`verse ${activeVerse === verse.number ? 'verse-selected' : ''}`}><div className="verse-toolbar"><span className="verse-index"><span>۞</span> {selected}:{verse.number}</span><div><button type="button" aria-label={`Play verse ${verse.number}`} className={`tiny-action ${playing && activeVerse === verse.number ? 'playing' : ''}`} onClick={event => { event.stopPropagation(); setActiveVerse(verse.number); setPlaying(!playing) }}><Icon name="play" size={16}/></button><button type="button" aria-label={`Bookmark verse ${verse.number}`} aria-pressed={isVerseSaved(verse)} className="tiny-action" onClick={event => { event.stopPropagation(); toggleSavedVerse(verse); setActiveVerse(verse.number) }}><Icon name="bookmark" size={16}/></button><button type="button" aria-label="More verse actions" className="tiny-action" onClick={event => { event.stopPropagation(); setActiveVerse(verse.number) }}><Icon name="more" size={17}/></button></div></div><p className="arabic-text" lang="ar" dir="rtl">{verse.arabic}<span className="ayah-mark">۝{verse.number}</span></p><p className="translation">{verse.translation}</p></article>)}</div><div className="reader-footer"><button type="button" className="nav-chapter" disabled={chapterIndex === 0} onClick={() => openChapter(previousChapter.id)}><Icon name="back" size={17}/><span><small>PREVIOUS</small>{chapterIndex > 0 ? previousChapter.name : 'Beginning'}</span></button><span className="footer-divider"/><button type="button" className="nav-chapter next-chapter" disabled={chapterIndex === chapters.length - 1} onClick={() => openChapter(nextChapter.id)}><span><small>NEXT</small>{chapterIndex < chapters.length - 1 ? nextChapter.name : 'End of sample'}</span><Icon name="next" size={17}/></button></div></aside>
+        <aside className="verse-panel"><div className="panel-top"><div><div className="eyebrow">NOW READING</div><h2>{chapter.name}</h2><p>{chapter.meaning} <i/> {chapter.place} <i/> {chapter.verses} verses</p></div><button type="button" className={`icon-button ${bookmarked ? 'saved' : ''}`} aria-label="Bookmark this chapter" aria-pressed={bookmarked} onClick={() => setBookmarked(!bookmarked)}><Icon name="bookmark"/></button></div><div className="surah-heading"><div className="surah-line"/><span translate="no" lang="ar" dir="rtl">سُورَةُ {chapter.arabic}</span><div className="surah-line"/></div>{selected !== 1 && selected !== 9 && page === 1 && <div className="bismillah" translate="no" lang="ar" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>}<div className="verse-list" aria-busy={current.status === 'loading'}>
+          {current.status === 'loading' && <p role="status">Loading verses…</p>}
+          {current.status === 'error' && <div><p role="alert">{current.message}</p><button type="button" onClick={() => setAttempt(value => value + 1)}>Retry verses</button></div>}
+          {current.status === 'ready' && <p className="translation-credit">{current.data.translationName} · Quran Foundation</p>}{verses.map(verse => <article key={`${selected}-${verse.number}`} className={`verse ${activeVerse === verse.number ? 'verse-selected' : ''}`}><div className="verse-toolbar"><span className="verse-index"><span>۞</span> {selected}:{verse.number}</span><div><button type="button" aria-label="Audio coming soon" className="tiny-action" disabled><Icon name="play" size={16}/></button><button type="button" aria-label={`Bookmark verse ${verse.number}`} aria-pressed={isVerseSaved(verse)} className="tiny-action" onClick={event => { event.stopPropagation(); toggleSavedVerse(verse); setActiveVerse(verse.number) }}><Icon name="bookmark" size={16}/></button><button type="button" aria-label="More verse actions" className="tiny-action" onClick={event => { event.stopPropagation(); setActiveVerse(verse.number) }}><Icon name="more" size={17}/></button></div></div><p className="arabic-text" translate="no" lang="ar" dir="rtl">{verse.arabic}<span className="ayah-mark">۝{verse.number}</span></p><p className="translation">{verse.translation}</p></article>)}</div><div className="verse-pagination">
+          <button type="button" disabled={page === 1} onClick={() => setPage(value => value - 1)}>Previous verses</button>
+          <span>Page {page}</span>
+          <button type="button" disabled={current.status !== 'ready' || current.data.nextPage === null} onClick={() => { if (current.status === 'ready' && current.data.nextPage) setPage(current.data.nextPage) }}>Next verses</button>
+        </div><div className="reader-footer"><button type="button" className="nav-chapter" disabled={chapterIndex === 0} onClick={() => openChapter(previousChapter.id)}><Icon name="back" size={17}/><span><small>PREVIOUS</small>{chapterIndex > 0 ? previousChapter.name : 'Beginning'}</span></button><span className="footer-divider"/><button type="button" className="nav-chapter next-chapter" disabled={chapterIndex === chapters.length - 1} onClick={() => openChapter(nextChapter.id)}><span><small>NEXT</small>{chapterIndex < chapters.length - 1 ? nextChapter.name : 'End of Quran'}</span><Icon name="next" size={17}/></button></div></aside>
       </div>
       <nav className="mobile-nav"><button type="button" className="mobile-active"><Icon name="home" size={19}/><span>Read</span></button><button type="button" onClick={() => setSearchOpen(true)}><Icon name="search" size={19}/><span>Explore</span></button><button type="button" onClick={() => setTab('bookmarks')}><Icon name="bookmark" size={19}/><span>Saved</span></button><button type="button"><Icon name="settings" size={19}/><span>More</span></button></nav>
     </section>

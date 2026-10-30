@@ -2,12 +2,15 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import App from '../../app/app'
+import { http, HttpResponse } from 'msw'
+import { server, quranEndpoint } from '../../test-server'
 
 async function renderReader() {
   const user = userEvent.setup()
   window.history.pushState({}, '', '/quran/')
   render(<App />)
   await screen.findByRole('heading', { name: 'Al-Fātiḥah' })
+  await screen.findByRole('button', { name: 'Bookmark verse 1' })
   return { user }
 }
 
@@ -47,14 +50,14 @@ describe('Quran reader chapter search', () => {
 })
 
 describe('Quran reader chapter navigation', () => {
-  it('shows the next sample chapter when Next is selected', async () => {
+  it('shows the next available chapter when Next is selected', async () => {
     const { user } = await renderReader()
 
     await user.click(screen.getByRole('button', { name: /Yūnus/ }))
     await user.click(screen.getByRole('button', { name: /NEXT/ }))
 
     expect(screen.getByRole('heading', { name: 'Al-Kahf' })).toBeInTheDocument()
-    expect(screen.getByText('18:1')).toBeInTheDocument()
+    expect(await screen.findByText('18:1')).toBeInTheDocument()
   })
 })
 
@@ -80,5 +83,78 @@ describe('Quran reader saved verse removal', () => {
 
     expect(screen.getByText('Your saved verses will find a home here.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Bookmark verse 1', pressed: false })).toBeInTheDocument()
+  })
+})
+
+describe('Quran API content', () => {
+  it('shows the API chapter and its verses with translation attribution', async () => {
+    server.use(
+      http.get(`${quranEndpoint}/chapters`, () => HttpResponse.json({ chapters: [{ id: 112, name_simple: 'Al-Ikhlas', name_arabic: 'الإخلاص', translated_name: { name: 'Sincerity' }, verses_count: 4, revelation_place: 'makkah' }] })),
+      http.get(`${quranEndpoint}/verses`, () => HttpResponse.json({ verses: [{ verse_number: 1, text_uthmani: 'قُلْ هُوَ ٱللَّهُ أَحَدٌ', translations: [{ resource_id: 131, text: 'Say, “He is Allah—One.”' }] }], pagination: { next_page: null } })),
+    )
+    window.history.pushState({}, '', '/quran/')
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: 'Al-Ikhlas' })).toBeInTheDocument()
+    expect(await screen.findByText('Say, “He is Allah—One.”')).toBeInTheDocument()
+    expect(screen.getByText(/Dr. Mustafa Khattab/)).toBeInTheDocument()
+    expect(screen.queryByText('All praise is for Allah—Lord of all worlds,')).not.toBeInTheDocument()
+  })
+})
+
+describe('Quran request recovery and pagination', () => {
+  it('lets readers retry chapter loading after an unavailable response', async () => {
+    server.use(http.get(`${quranEndpoint}/chapters`, () => HttpResponse.json({ error: 'private server detail' }, { status: 503 })))
+    window.history.pushState({}, '', '/quran/')
+    render(<App />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Quran content is not configured yet.')
+    expect(screen.queryByText(/private server detail/)).not.toBeInTheDocument()
+    server.resetHandlers()
+    await userEvent.click(screen.getByRole('button', { name: 'Retry chapters' }))
+    expect(await screen.findByRole('heading', { name: 'Al-Fātiḥah' })).toBeInTheDocument()
+  })
+
+  it('loads the next verse page and opens a saved verse on its original page', async () => {
+    server.use(http.get(`${quranEndpoint}/verses`, ({ request }) => {
+      const page = Number(new URL(request.url).searchParams.get('page'))
+      return HttpResponse.json({ verses: [{ verse_number: page === 1 ? 1 : 21, text_uthmani: 'نص للاختبار', translations: [{ resource_id: 131, text: `Page ${page} translation.<sup>1</sup><script>unsafe()</script>` }] }], pagination: { next_page: page === 1 ? 2 : null } })
+    }))
+    const { user } = await renderReader()
+    expect(screen.getByText('Page 1 translation.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^NEXT/ }))
+    await screen.findByRole('heading', { name: 'Al-Baqarah' })
+    await screen.findByText('Page 1 translation.')
+    await user.click(screen.getByRole('button', { name: 'Next verses' }))
+    expect(await screen.findByText('Page 2 translation.')).toBeInTheDocument()
+    expect(screen.queryByText('Page 1 translation.')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next verses' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Bookmark verse 21' }))
+    await user.click(screen.getByRole('button', { name: 'Previous verses' }))
+    await screen.findByText('Page 1 translation.')
+    await user.click(screen.getByRole('button', { name: /My bookmarks/ }))
+    await user.click(screen.getByRole('button', { name: 'Al-Baqarah 2:21' }))
+    expect(await screen.findByRole('button', { name: 'Bookmark verse 21', pressed: true })).toBeInTheDocument()
+    expect(screen.queryByText(/unsafe/)).not.toBeInTheDocument()
+  })
+
+  it('hides old verses when a new chapter fails and lets readers retry', async () => {
+    const { user } = await renderReader()
+    server.use(http.get(`${quranEndpoint}/verses`, () => HttpResponse.json({}, { status: 502 })))
+    await user.click(screen.getByRole('button', { name: /NEXT/ }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('temporarily unavailable')
+    expect(screen.queryByText('All praise is for Allah—Lord of all worlds,')).not.toBeInTheDocument()
+    server.resetHandlers()
+    await user.click(screen.getByRole('button', { name: 'Retry verses' }))
+    expect(await screen.findByText('Test translation for chapter 2.')).toBeInTheDocument()
+  })
+})
+
+describe('Pre-live translation availability', () => {
+  it('shows the pre-live translation with the correct attribution', async () => {
+    server.use(http.get(`${quranEndpoint}/verses`, () => HttpResponse.json({ verses: [{ verse_number: 1, text_uthmani: 'نص للاختبار', translations: [{ resource_id: 85, text: 'Pre-live English translation.' }] }], pagination: { next_page: null } })))
+    window.history.pushState({}, '', '/quran/')
+    render(<App />)
+    expect(await screen.findByText('Pre-live English translation.')).toBeInTheDocument()
+    expect(screen.getByText(/M.A.S. Abdel Haleem/)).toBeInTheDocument()
+    expect(screen.queryByText(/Dr. Mustafa Khattab/)).not.toBeInTheDocument()
   })
 })

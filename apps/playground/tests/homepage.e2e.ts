@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
+import { mockQuranContent } from './quran-fixture'
 
 test('opens the Quran reader when its homepage link is selected on mobile', async ({ page }) => {
+  await mockQuranContent(page)
   await page.setViewportSize({ width: 375, height: 812 })
   await page.goto('/')
 

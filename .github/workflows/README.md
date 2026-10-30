@@ -26,3 +26,7 @@ Add `Next.js quality and E2E` to GitHub branch protection when enabling this wor
 ## Repository lint
 
 `lint.yml` runs `pnpm exec biome ci . --error-on-warnings` using the shared Biome configuration on every pull request, push to `main`, and manual dispatch. It installs dependencies with the frozen lockfile and has no path filters, so changes to any app or shared configuration are checked. Errors and warnings fail the check. Generated output follows `.gitignore`; generated Next.js declarations and `pnpm-lock.yaml` are explicitly excluded. Formatting and import organization are disabled. The Next.js app uses the same Biome linter with app-specific rules and retains Prettier in `next-app.yml`. Add **Biome lint** to branch protection to require it before merging.
+
+## Playground Quran reader
+
+The Pages workflow runs Playground tests and builds on Node 24 because the current jsdom/Undici dependency tree does not load on Node 22.22.3. The root Node pin and separate Next.js job are unchanged. Quran UI/browser tests use mocked content responses; they do not prove live provider access. The Supabase `quran` function is deployed separately from Pages; credentials belong in Supabase function secrets. Pages uses only the existing public Supabase variables. See `supabase/functions/quran/README.md` for live verification and the per-instance request-budget limitation.

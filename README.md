@@ -19,16 +19,16 @@ The playground is a small collection of tools and experiments. Start at the [ind
 
 A phone-first reading prototype for exploring chapters and verses.
 
-- **Find a chapter:** Search the sample chapter list by name or English meaning.
+- **Find a chapter:** Search the chapter list by name or English meaning.
 - **Read verses:** Open a chapter to see Arabic text with an English translation.
 - **Save a verse:** Bookmark an ayah and find it again in My bookmarks.
 - **Explore the layout:** The chapter list and reader sit side by side on desktop and stack for mobile.
 
-The chapter and verse content is sample text. Quran.com data, audio playback, and reading progress are not connected yet.
+The reader loads Quran Foundation content through a Supabase Edge Function, with paginated verses, translation attribution, and retry states. The current API environment is pre-live, so only Al-Fatihah and Al-Baqarah are available. All 114 chapters require Quran Foundation production approval; see [Production access](supabase/functions/quran/README.md#production-access). Frontend changes are published by the Pages workflow after a push to `main`. Audio playback and reading progress remain unconnected. See the [Playground setup](apps/playground/README.md#quran-api-setup) and [function setup](supabase/functions/quran/README.md).
 
 ## Local setup
 
-Install dependencies with pnpm:
+Use Node 24 for Playground tests and the Pages build; the separate Next.js app uses Node 22. Install dependencies with pnpm:
 
 ```sh
 corepack pnpm install
