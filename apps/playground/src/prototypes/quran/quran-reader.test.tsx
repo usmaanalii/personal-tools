@@ -14,7 +14,7 @@ async function renderReader() {
 afterEach(() => window.history.pushState({}, '', '/'))
 
 describe('Quran reader bookmarks', () => {
-  it('shows a verse by its chapter and number after saving it', async () => {
+  it('shows the saved verse’s chapter and number when My bookmarks is selected', async () => {
     const { user } = await renderReader()
 
     await user.click(screen.getByRole('button', { name: 'Bookmark verse 1' }))
@@ -23,7 +23,7 @@ describe('Quran reader bookmarks', () => {
     expect(screen.getByRole('button', { name: /Al-Fātiḥah 1:1/ })).toBeInTheDocument()
   })
 
-  it('announces when a verse bookmark is saved', async () => {
+  it('marks the verse bookmark as pressed when Bookmark verse is selected', async () => {
     const { user } = await renderReader()
     const bookmark = screen.getByRole('button', { name: 'Bookmark verse 1' })
 
@@ -34,7 +34,7 @@ describe('Quran reader bookmarks', () => {
 })
 
 describe('Quran reader chapter search', () => {
-  it('filters the chapter list by the accessible search field', async () => {
+  it('shows matching chapters when a chapter name is entered in Search chapters', async () => {
     const { user } = await renderReader()
 
     await user.click(screen.getByRole('button', { name: 'Search chapters' }))
@@ -47,7 +47,7 @@ describe('Quran reader chapter search', () => {
 })
 
 describe('Quran reader chapter navigation', () => {
-  it('moves between available sample chapters', async () => {
+  it('shows the next sample chapter when Next is selected', async () => {
     const { user } = await renderReader()
 
     await user.click(screen.getByRole('button', { name: /Yūnus/ }))
@@ -59,7 +59,7 @@ describe('Quran reader chapter navigation', () => {
 })
 
 describe('Quran reader chapter bookmark', () => {
-  it('exposes whether the current chapter is bookmarked', async () => {
+  it('marks the chapter bookmark as pressed when Bookmark this chapter is selected', async () => {
     const { user } = await renderReader()
 
     const bookmark = screen.getByRole('button', { name: 'Bookmark this chapter', pressed: false })
@@ -70,7 +70,7 @@ describe('Quran reader chapter bookmark', () => {
 })
 
 describe('Quran reader saved verse removal', () => {
-  it('removes a verse from the saved list when it is unbookmarked', async () => {
+  it('shows the empty bookmarks message when the last saved verse is unbookmarked', async () => {
     const { user } = await renderReader()
 
     await user.click(screen.getByRole('button', { name: 'Bookmark verse 1' }))

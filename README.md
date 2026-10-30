@@ -51,6 +51,8 @@ pnpm test:e2e
 
 Run a workspace app directly with `pnpm --filter playground <script>`.
 
+See the [Playground README](apps/playground/README.md) for route-specific browser test files and the boundaries of the test evidence.
+
 ### Supabase API demo
 
 **Page:** [Open the Supabase API demo](https://usmaanalii.github.io/personal-tools/supabase/)

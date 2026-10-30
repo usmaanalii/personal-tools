@@ -21,7 +21,7 @@ describe('Playground navigation', () => {
     expect(screen.getByRole('link', { name: /Supabase API demo/i }).getAttribute('href')).toMatch(/supabase\/$/)
   })
 
-  it('keeps the Supabase request demo available at its own route', async () => {
+  it('shows the greeting when Call the API is selected', async () => {
     renderAtPath('/supabase/')
     await userEvent.click(await screen.findByRole('button', { name: 'Call the API' }))
 
@@ -29,13 +29,13 @@ describe('Playground navigation', () => {
     expect(screen.getByLabelText('API response')).toHaveTextContent('"Hello from Supabase!"')
   })
 
-  it('opens the Quran reader directly at its own route', async () => {
+  it('shows the Quran reader when the current path is /quran/', async () => {
     renderAtPath('/quran/')
 
     expect(await screen.findByRole('heading', { name: 'Al-Fātiḥah' })).toBeInTheDocument()
   })
 
-  it('announces a Supabase request failure and lets the user retry', async () => {
+  it('shows an error and re-enables Call the API when the greeting cannot be loaded', async () => {
     server.use(
       http.get(helloEndpoint, () =>
         HttpResponse.json({ error: 'Network unavailable' }, { status: 503 }),

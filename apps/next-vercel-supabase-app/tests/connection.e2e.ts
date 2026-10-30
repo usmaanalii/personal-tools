@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
 
-test('a visitor can retry a failed connection check', async ({ page }) => {
+test('shows the greeting when Try again is selected after a failed connection check', async ({
+  page,
+}) => {
   const connection = page.getByRole('region', {
     name: 'Say hello to Supabase.',
   })
@@ -28,7 +30,7 @@ test('a visitor can retry a failed connection check', async ({ page }) => {
   await expect(connection.getByRole('alert')).toHaveCount(0)
 })
 
-test('a keyboard user sees progress while the check is in flight', async ({
+test('shows progress when Enter is pressed on Check connection', async ({
   page,
 }) => {
   const pending = Promise.withResolvers<void>()
@@ -51,7 +53,7 @@ test('a keyboard user sees progress while the check is in flight', async ({
   await expect(page.getByRole('status')).toHaveText('Hello from Supabase!')
 })
 
-test('invalid response data is shown as a recoverable error', async ({
+test('shows an error and offers Try again when checking the connection returns an invalid greeting', async ({
   page,
 }) => {
   await page.route('**/api/supabase', (route) =>
@@ -69,7 +71,7 @@ test('invalid response data is shown as a recoverable error', async ({
   await expect(page.getByRole('button', { name: 'Try again' })).toBeEnabled()
 })
 
-test('the page opens directly and remains usable after refresh at this viewport', async ({
+test('shows Check connection without horizontal overflow when the page is refreshed', async ({
   page,
 }) => {
   await page.goto('/')

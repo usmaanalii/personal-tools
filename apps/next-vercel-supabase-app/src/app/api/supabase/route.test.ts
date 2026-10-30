@@ -4,7 +4,7 @@ import { server } from '../../../test/server'
 import { GET } from './route'
 
 describe('GET /api/supabase', () => {
-  it('returns a useful configuration error when Supabase is not configured', async () => {
+  it('returns a configuration error when Supabase is not configured', async () => {
     vi.stubEnv('SUPABASE_URL', '')
     vi.stubEnv('SUPABASE_PUBLISHABLE_KEY', '')
 
@@ -17,7 +17,7 @@ describe('GET /api/supabase', () => {
   })
 })
 
-it('forwards the public key and returns a validated Supabase greeting', async () => {
+it('returns the greeting after forwarding the public key to Supabase', async () => {
   vi.stubEnv('SUPABASE_URL', 'https://demo.supabase.co')
   vi.stubEnv('SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_test')
   server.use(
@@ -69,10 +69,10 @@ it.each([
 })
 
 it.each([
-  ['https://demo.supabase.co', ''],
-  ['', 'sb_publishable_test'],
-  ['invalid-url', 'sb_publishable_test'],
-])('rejects incomplete or invalid configuration (%s)', async (url, key) => {
+  ['the public key is missing', 'https://demo.supabase.co', ''],
+  ['the URL is missing', '', 'sb_publishable_test'],
+  ['the URL is invalid', 'invalid-url', 'sb_publishable_test'],
+])('returns a configuration error when %s', async (_scenario, url, key) => {
   vi.stubEnv('SUPABASE_URL', url)
   vi.stubEnv('SUPABASE_PUBLISHABLE_KEY', key)
   const response = await GET()

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('a visitor receives a Supabase greeting through the Next.js server', async ({
+test('shows the greeting when Check connection is selected', async ({
   page,
 }, testInfo) => {
   const errors: Error[] = []
