@@ -44,3 +44,13 @@ Apply these conventions when creating or triaging issues. Keep the vocabulary sm
 - Use milestones to group delivery phases when needed, rather than adding phase labels. Do not introduce priority or size labels without a concrete workflow need.
 - Preserve existing Dependabot labels such as `dependencies`, `javascript`, and `github_actions`; these conventions do not require relabelling dependency PRs.
 - Add labels without removing unrelated existing labels. Check for duplicates before creating issues, preserve research and unresolved assumptions, and obtain approval of proposed ticket breakdowns before publication.
+
+## Planned shared UI and branding architecture
+
+The approved migration is tracked in issues #23–31. These decisions describe planned ownership, not proof that the packages or migration are implemented; check current code and issue status before relying on them.
+
+- Shared design tokens own foundation values, semantic mappings and themes. Shared UI owns reusable components, their styles and third-party primitive integrations. Apps own screen composition, feature presentation, data and application behaviour.
+- Planned locations are `packages/design-tokens`, `packages/ui` and `docs/style-guide`. Introduce shared packages alongside working adoption by real consumers rather than creating speculative foundations.
+- Complete shared default-guide adoption across existing user-facing surfaces before Quran branding exploration. Separate technical refactors, visual standardisation, design exploration and approved-brand rollout, with the owner approving the chosen identity.
+- Behaviour-only refactors preserve appearance; style-guide adoption may make documented consistency and accessibility improvements while preserving functionality.
+- Keep Quran-specific content rendering separate from generic branding. Preserve source-specific mushaf fonts, glyphs and canonical line layout; theme the surrounding interface without overriding those requirements.
