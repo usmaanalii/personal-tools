@@ -15,13 +15,21 @@ styled as a bottom sheet at mobile widths. No new dependency is required.
 | Partial annotations | Explicit unavailable labels for missing meaning/transliteration | Other details stay available |
 | Missing/invalid words | Existing whole Arabic verse and translation remain readable | No invented word splitting or selectable subset |
 | Failed verse request | Existing safe error and retry controls | Retry → ready or error |
-| Reading context change | Details close; old page's selected words disappear | Chapter, verse page or retry → loading |
+| Reading context change | Details close; old page's selected words disappear. Keep surviving focused controls; if focus is lost, focus the current chapter heading | Chapter, verse page or retry → loading |
 | Long content | Text wraps, sheet/dialog scrolls, controls remain reachable | Close → reading context |
 
 Design gaps were resolved using these states and the local UI/UX search for
 keyboard focus in modals; they do not require a separate visual redesign.
-Vitest with HTTP fixtures checks data and reader transitions. Playwright against
-production static files checks the deployment prefix, direct refresh, 320px
-layout, native keyboard activation, focus containment and restoration. Neither
-fixture harness proves live provider responses; those require a separate check
-after an approved compatible backend deployment.
+Vitest with HTTP fixtures checks word data, navigation, reader transitions and
+application dismissal/focus callbacks. Playwright against production static files
+is high-level smoke: deployment prefix, direct refresh, basic responsive fit and
+selecting/closing a word meaning. jsdom and smoke checks do not establish detailed
+native modal focus containment, browser Escape dispatch or rotated geometry.
+Neither fixture harness proves live provider responses; those require a separate
+check after an approved compatible backend deployment.
+
+For #23, selection/navigation, independently renderable word content and native
+dialog presentation have separate app-local owners. The reader retains its
+chapter/page/retry lifetime keys; DOM focus stays with the composition and Reader.
+Synthetic context invalidations stay in Vitest to verify application wiring;
+they are not E2E user journeys. See the [verification record](word-selection-verification.md).

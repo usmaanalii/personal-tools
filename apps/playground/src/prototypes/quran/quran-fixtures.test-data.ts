@@ -1,3 +1,4 @@
+import type { QuranWord } from '@scratch-pages/api-contracts/quran'
 import type { Chapter, Ayah } from './quran-api'
 
 export const chapters: [Chapter, ...Chapter[]] = [
@@ -26,3 +27,7 @@ export const alFatihah: Ayah[] = [
   { number: 6, arabic: 'اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ', translation: 'Guide us along the Straight Path,' },
   { number: 7, arabic: 'صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ', translation: 'the Path of those You have blessed—not those You are displeased with, or those who are astray.' },
 ]
+
+export function buildWord(overrides: Partial<QuranWord> = {}): QuranWord {
+  return { chapter: 1, verse: 1, position: 1, arabic: 'بِسْمِ', meaning: 'In (the) name', transliteration: "bis'mi", ...overrides }
+}

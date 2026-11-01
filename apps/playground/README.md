@@ -52,6 +52,25 @@ the deployment smoke checks real word details after publication. An older
 backend remains usable but supplies whole-verse reading only. Full-Quran
 coverage still needs production access. See the [backend rollout checklist](../../supabase/functions/quran/README.md#word-data-addition-18).
 
+### Word-details ownership (#23)
+
+The Quran modules remain app-local. `use-word-selection.ts` owns selected
+position and verse-bounded navigation; `word-content.tsx` renders the existing
+word fields independently from fixture data; `word-dialog.tsx` owns native modal
+lifecycle and naming. `verse-words.tsx` composes them and owns occurrence button
+refs, highlighting and focus return. Reader's existing chapter/page/retry keys
+discard stale selection along with the old verses.
+
+Close/Escape returns focus to the latest connected occurrence. When context
+invalidation removes the details, focus stays on a surviving focused control;
+if focus was lost, Reader focuses its current chapter heading, which is outside
+the normal Tab order. The fallback runs after old DOM targets have been removed.
+The dialog markup, CSS and dependencies retain their existing appearance.
+
+See the [#23 verification record](src/prototypes/quran/word-selection-verification.md)
+for checks and evidence limits. The existing Pages workflow publishes the
+frontend after an approved push; this refactor adds no deployment steps.
+
 ## Linting
 
 Run `pnpm lint` from the repository root for shared Biome recommended lint rules across all apps. `pnpm lint:fix` applies safe fixes without formatting. Existing CSS cascade and user-triggered search autofocus exceptions have inline explanations.
@@ -67,10 +86,12 @@ Keep detailed page behavior in Vitest with real application components and HTTP-
 `test:e2e` builds the production app and serves only its static files at `http://127.0.0.1:5173/personal-tools/`, without an SPA fallback. Playwright owns the server and refuses to reuse that port. Desktop and mobile Chromium smoke checks cover:
 
 - `tests/prototypes/quran/reader.e2e.ts`: homepage entry, reader refresh, visible content and overflow.
-- `tests/prototypes/quran/word-dialog.e2e.ts`: direct refresh, native modal focus/Escape, focus return, touch targets and a 320px bottom sheet. Screenshots are saved in the ignored test-results directory.
+- `tests/prototypes/quran/word-dialog.e2e.ts`: opens the reader directly, refreshes it, selects a word, shows its meaning and closes the details to resume reading.
 - `tests/prototypes/supabase/demo.e2e.ts`: direct loading, refresh and navigation back to the homepage.
 
-There are three focused journeys per viewport. The static-server fallback/404 contract runs once in Vitest's Node infrastructure project, not in a browser matrix. Word-data mapping and failure recovery are covered independently in backend-owned tests; reader annotation and context-change states are covered in Vitest/jsdom, which does not prove native focus or layout.
+There are three high-level smoke journeys per viewport. E2E does not repeat detailed word navigation, unavailable-label, focus, typography, rotation or modal lifecycle cases. Detailed word behavior belongs in Vitest; `quran-words.test.tsx` covers the real page composition with HTTP fixtures, and `word-content.test.tsx` proves independent rendering with visible content. The shared typed word factory avoids copied records; fixtures reject unsupported chapter/page requests, and pagination uses Al-Baqarah rather than inventing a second page for seven-verse Al-Fatihah.
+
+The static-server fallback/404 contract runs once in Vitest's Node infrastructure project, not in a browser matrix. Word-data mapping and failure recovery are covered independently in backend-owned tests. Vitest/jsdom models modal visibility and the application's dismissal/focus callbacks; it does not prove native focus containment, browser Escape dispatch or rendered geometry. The smoke suite does not replace a browser component or scoped manual check for those details. See the [verification record](src/prototypes/quran/word-selection-verification.md) for current evidence and limitations.
 
 Tests follow the same ownership as source code:
 

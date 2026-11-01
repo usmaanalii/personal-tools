@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import './styles.css'
 import { VerseWords } from './verse-words'
 import { getChapters, getVerses, type Chapter, type Ayah, type VersePage } from './quran-api'
@@ -42,6 +42,11 @@ function ChapterLoader({ retry }: { retry: () => void }) {
 
 type VersesState = { key: string; status: 'loading' } | { key: string; status: 'error'; message: string } | { key: string; status: 'ready'; data: VersePage }
 function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
+  const readingHeading = useRef<HTMLHeadingElement>(null)
+  const restoreReadingFocus = useCallback(() => {
+    const active = document.activeElement
+    if (!active || active === document.body || !active.isConnected) readingHeading.current?.focus()
+  }, [])
   const [selected, setSelected] = useState(chapters[0].id)
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -109,10 +114,10 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
             </>}
           </div>
         </section>
-        <aside className="verse-panel"><div className="panel-top"><div><div className="eyebrow">NOW READING</div><h2>{chapter.name}</h2><p>{chapter.meaning} <i/> {chapter.place} <i/> {chapter.verses} verses</p></div><button type="button" className={`icon-button ${bookmarked ? 'saved' : ''}`} aria-label="Bookmark this chapter" aria-pressed={bookmarked} onClick={() => setBookmarked(!bookmarked)}><Icon name="bookmark"/></button></div><div className="surah-heading"><div className="surah-line"/><span translate="no" lang="ar" dir="rtl">سُورَةُ {chapter.arabic}</span><div className="surah-line"/></div>{selected !== 1 && selected !== 9 && page === 1 && <div className="bismillah" translate="no" lang="ar" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>}<div className="verse-list" aria-busy={current.status === 'loading'}>
+        <aside className="verse-panel"><div className="panel-top"><div><div className="eyebrow">NOW READING</div><h2 ref={readingHeading} tabIndex={-1}>{chapter.name}</h2><p>{chapter.meaning} <i/> {chapter.place} <i/> {chapter.verses} verses</p></div><button type="button" className={`icon-button ${bookmarked ? 'saved' : ''}`} aria-label="Bookmark this chapter" aria-pressed={bookmarked} onClick={() => setBookmarked(!bookmarked)}><Icon name="bookmark"/></button></div><div className="surah-heading"><div className="surah-line"/><span translate="no" lang="ar" dir="rtl">سُورَةُ {chapter.arabic}</span><div className="surah-line"/></div>{selected !== 1 && selected !== 9 && page === 1 && <div className="bismillah" translate="no" lang="ar" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>}<div className="verse-list" aria-busy={current.status === 'loading'}>
           {current.status === 'loading' && <p role="status">Loading verses…</p>}
           {current.status === 'error' && <div><p role="alert">{current.message}</p><button type="button" onClick={() => setAttempt(value => value + 1)}>Retry verses</button></div>}
-          {current.status === 'ready' && <p className="translation-credit">{current.data.translationName} · Quran Foundation</p>}{verses.map(verse => <article key={`${key}-${verse.number}`} className={`verse ${activeVerse === verse.number ? 'verse-selected' : ''}`}><div className="verse-toolbar"><span className="verse-index"><span>۞</span> {selected}:{verse.number}</span><div><button type="button" aria-label="Audio coming soon" className="tiny-action" disabled><Icon name="play" size={16}/></button><button type="button" aria-label={`Bookmark verse ${verse.number}`} aria-pressed={isVerseSaved(verse)} className="tiny-action" onClick={event => { event.stopPropagation(); toggleSavedVerse(verse); setActiveVerse(verse.number) }}><Icon name="bookmark" size={16}/></button><button type="button" aria-label="More verse actions" className="tiny-action" onClick={event => { event.stopPropagation(); setActiveVerse(verse.number) }}><Icon name="more" size={17}/></button></div></div><VerseWords verse={verse} chapterName={chapter.name}/><p className="translation">{verse.translation}</p></article>)}</div><div className="verse-pagination">
+          {current.status === 'ready' && <p className="translation-credit">{current.data.translationName} · Quran Foundation</p>}{verses.map(verse => <article key={`${key}-${verse.number}`} className={`verse ${activeVerse === verse.number ? 'verse-selected' : ''}`}><div className="verse-toolbar"><span className="verse-index"><span>۞</span> {selected}:{verse.number}</span><div><button type="button" aria-label="Audio coming soon" className="tiny-action" disabled><Icon name="play" size={16}/></button><button type="button" aria-label={`Bookmark verse ${verse.number}`} aria-pressed={isVerseSaved(verse)} className="tiny-action" onClick={event => { event.stopPropagation(); toggleSavedVerse(verse); setActiveVerse(verse.number) }}><Icon name="bookmark" size={16}/></button><button type="button" aria-label="More verse actions" className="tiny-action" onClick={event => { event.stopPropagation(); setActiveVerse(verse.number) }}><Icon name="more" size={17}/></button></div></div><VerseWords verse={verse} chapterName={chapter.name} restoreReadingFocus={restoreReadingFocus}/><p className="translation">{verse.translation}</p></article>)}</div><div className="verse-pagination">
           <button type="button" disabled={page === 1} onClick={() => setPage(value => value - 1)}>Previous verses</button>
           <span>Page {page}</span>
           <button type="button" disabled={current.status !== 'ready' || current.data.nextPage === null} onClick={() => { if (current.status === 'ready' && current.data.nextPage) setPage(current.data.nextPage) }}>Next verses</button>
