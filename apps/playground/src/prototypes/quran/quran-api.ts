@@ -1,7 +1,7 @@
-import { ChaptersResponseSchema, VersesRequestSchema, VersesResponseSchema, type Chapter, type VersesResponse } from '@scratch-pages/api-contracts/quran'
+import { ChaptersResponseSchema, VersesRequestSchema, VersesResponseSchema, type Chapter, type VersesResponse, type QuranWord } from '@scratch-pages/api-contracts/quran'
 
 export type { Chapter }
-export type Ayah = { number: number; arabic: string; translation: string }
+export type Ayah = { number: number; arabic: string; translation: string; words?: QuranWord[] }
 export type VersePage = Omit<VersesResponse, 'verses'> & { verses: Ayah[] }
 
 const formatError = 'Quran content has an unexpected format.'
@@ -36,7 +36,8 @@ export async function getVerses(chapter: number, page: number, signal: AbortSign
     document.querySelectorAll('script, style, sup').forEach(node => { node.remove() })
     const translation = document.body.textContent?.trim()
     if (!translation) throw new Error('The translation is unavailable.')
-    return { number: verse.number, arabic: verse.arabic, translation }
+    const words = verse.words?.every(word => word.chapter === chapter && word.verse === verse.number) ? verse.words : undefined
+    return { number: verse.number, arabic: verse.arabic, translation, ...(words ? { words } : {}) }
   })
   return { verses, nextPage, translationName }
 }

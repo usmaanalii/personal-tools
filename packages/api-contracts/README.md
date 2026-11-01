@@ -12,6 +12,14 @@ import { ApiErrorSchema } from '@scratch-pages/api-contracts/error'
 
 ## Contracts
 
+Quran verses may additionally contain `words: QuranWord[]`. Each word has
+`chapter`, `verse`, `position` (positive provider position), `arabic`, and nullable
+`meaning` and `transliteration`. The occurrence key is `chapter:verse:position`.
+Only selectable words are included; end markers are excluded. Consumers may
+ignore this additive field. Invalid optional word enrichment is discarded while
+the base verse remains validated; the reader also checks occurrence chapter and
+verse against the requested reading context. Provider models remain backend-only.
+
 - `hello`: GET `/functions/v1/hello` returns `{ ok: true, message: string }`.
 - `quran`: GET `/functions/v1/quran/v2/chapters` returns `{ chapters: Chapter[] }`. Chapter fields are `id`, `name`, `arabic`, `meaning`, `verses`, and `place` (`Meccan` or `Medinan`).
 - `quran`: GET `/functions/v1/quran/v2/verses?chapter=1&page=1` returns `{ verses: [{ number, arabic, translationHtml }], translationName, nextPage }`. Chapter is 1–114; page is 1–15 and defaults to 1. A page contains 1–20 verses. `nextPage` is the next sequential page or null.

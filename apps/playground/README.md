@@ -18,13 +18,39 @@ For both the Quran reader and Supabase demo, copy `.env.example` to `.env.local`
 
 ## Quran API setup
 
-The browser calls `/functions/v1/quran/chapters` and `/functions/v1/quran/verses?chapter=1&page=1` on `VITE_SUPABASE_URL`. Each verse page contains at most 20 verses. Previous/Next verses navigate pages; opening a saved verse restores its page. Chapter search uses the chapter list returned by the API.
+The browser calls `/functions/v1/quran/v2/chapters` and `/functions/v1/quran/v2/verses?chapter=1&page=1` on `VITE_SUPABASE_URL`. Each verse page contains at most 20 verses. Previous/Next verses navigate pages; opening a saved verse restores its page. Chapter search uses the chapter list returned by the API.
 
 Create a Backend/server app in the [Quran Foundation Developer Console](https://api-docs.quran.foundation/request-access/). Save `QF_CLIENT_ID`, `QF_CLIENT_SECRET`, and `QF_ENV=prelive` directly in Supabase Edge Function secrets. Never expose these through Vite or GitHub Pages configuration. Testing access includes only Al-Fatihah and Al-Baqarah; complete Quran content requires production approval and production credentials. This is Quran Foundation’s access policy, not a Supabase or reader limitation. See [Production access](../../supabase/functions/quran/README.md#production-access) for the approval and environment-switch steps.
 
 The function is deployed and verified against real pre-live content. Desktop and mobile browser checks also passed against the live function. The Pages workflow publishes the frontend integration from `main`. Deploy future function updates from the complete repository root with the Supabase CLI, separately from the static website, so shared-contract imports are bundled. This frontend requires `/quran/v2/`; that backend was deployed as version 5 and verified against real pre-live content on 2026-10-30 before frontend publication. For local function development, copy `supabase/functions/.env.example` to the gitignored `.env`, populate the credentials, and configure the frontend public Supabase values for your local project. Explicitly configure `QF_ALLOWED_ORIGINS` for local browser origins; the hosted default only permits `https://usmaanalii.github.io`.
 
 See the [Quran function README](../../supabase/functions/quran/README.md) for the API contract, security controls, limitations, and deployment verification. Without configuration or during upstream failures, the reader shows a retryable error; it never substitutes sample verses. The translation is rendered as plain text with attribution; formatting and footnote markers are removed. Quranic text opts out of browser translation. Audio controls are disabled until playback is implemented, and the chapter shortcut does not claim saved reading progress.
+
+## Word meanings (#18)
+
+When the backend supplies validated word data, tap an Arabic word (or activate it
+with Enter/Space) to highlight it and open its English gloss, available
+transliteration and verse reference. A native `<dialog>` appears as a mobile
+bottom sheet or a centered desktop dialog. Previous/next stays within the verse;
+Close/Escape restores focus to the last selected word. Changing the chapter or
+verse page closes the details. Verse-end markers remain non-interactive.
+
+Words come with the verse page, so opening details needs no extra request.
+Occurrence identities use chapter, verse and provider position. Missing or
+invalid word records retain whole-verse Arabic; missing annotations have explicit
+unavailable labels. Word text is rendered inertly. The English word data is
+credited to Quran Foundation separately from the selected whole-verse translator;
+no authorship by that translator is implied. Grammar and dictionaries are outside
+this feature. See the [journey/state inventory](src/prototypes/quran/word-meaning-journeys.md).
+
+No new environment variables or dependencies are required. Backend version 6 was
+deployed on 2026-11-01 with the existing server-side credentials. Live checks
+verified all 7 Al-Fatihah verses and Al-Baqarah pages 1, 2 and 15, including word
+positions, English glosses, transliteration, translation attribution, legacy
+responses and CORS. Pages publishes the frontend through the approved push;
+the deployment smoke checks real word details after publication. An older
+backend remains usable but supplies whole-verse reading only. Full-Quran
+coverage still needs production access. See the [backend rollout checklist](../../supabase/functions/quran/README.md#word-data-addition-18).
 
 ## Linting
 
@@ -41,9 +67,10 @@ Keep detailed page behavior in Vitest with real application components and HTTP-
 `test:e2e` builds the production app and serves only its static files at `http://127.0.0.1:5173/personal-tools/`, without an SPA fallback. Playwright owns the server and refuses to reuse that port. Desktop and mobile Chromium smoke checks cover:
 
 - `tests/prototypes/quran/reader.e2e.ts`: homepage entry, reader refresh, visible content and overflow.
+- `tests/prototypes/quran/word-dialog.e2e.ts`: direct refresh, native modal focus/Escape, focus return, touch targets and a 320px bottom sheet. Screenshots are saved in the ignored test-results directory.
 - `tests/prototypes/supabase/demo.e2e.ts`: direct loading, refresh and navigation back to the homepage.
 
-There are two smoke journeys per viewport. The static-server fallback/404 contract runs once in Vitest's Node infrastructure project, not in a browser matrix.
+There are three focused journeys per viewport. The static-server fallback/404 contract runs once in Vitest's Node infrastructure project, not in a browser matrix. Word-data mapping and failure recovery are covered independently in backend-owned tests; reader annotation and context-change states are covered in Vitest/jsdom, which does not prove native focus or layout.
 
 Tests follow the same ownership as source code:
 
@@ -61,7 +88,7 @@ Quran content is supplied at the HTTP boundary solely to make these static-site/
 
 ## Deployment smoke
 
-Run against an existing deployed website, including its base prefix and trailing slash:
+Run against an existing deployed website, including its base prefix and trailing slash. The Quran smoke also opens a real word's English meaning and transliteration after refresh:
 
 ```sh
 PLAYWRIGHT_BASE_URL=https://usmaanalii.github.io/personal-tools/ pnpm --filter playground test:smoke

@@ -62,7 +62,51 @@ Quran v2 was deployed as function version 5 on 2026-10-30 using the Supabase con
 
 This release deployed the backend without changing credentials or upgrading provider access; the project remains in pre-live.
 
+## Word data addition (#18)
+
+Version 6, deployed 2026-11-01: v2 verse requests add `words=true`,
+`word_fields=text_uthmani`, and `language=en` to the existing chapter operation.
+Translation selection (85/131), authentication, token coordination, timeout,
+retry, origin/request restrictions and legacy upstream requests are unchanged.
+
+The provider adapter validates word text, type, position and annotations and
+publishes optional application-owned words with chapter/verse/position identity,
+Arabic, nullable English meaning and nullable transliteration. Records are
+ordered by provider position. Duplicate/missing positions, invalid text and
+unknown character types discard enrichment for that verse, preserving the whole
+verse. End markers are excluded; absent annotations produce null. English glosses
+are accepted only when their language is English. Source credit is Quran
+Foundation word data, independent of full-verse translation attribution.
+
+Backend fixtures in `../tests/quran/words.test.ts` cover request selectors,
+mapping, invalid/missing enrichment and legacy compatibility. Frontend fixtures
+prove display behaviour separately. Live HTTP checks on 2026-11-01 using current
+credentials verified 29 words across all 7 Al-Fatihah verses, 230 words on
+Al-Baqarah page 1, 370 on page 2 and 279 on page 15 (6 verses). Every sampled
+verse had sequential occurrence positions, Arabic, English glosses and
+transliteration. Translation 85, legacy responses, CORS/preflight, invalid input
+and disallowed origins also passed. These samples do not establish full-Quran
+coverage; the catalogue still contains only chapters 1 and 2 in pre-live.
+
+For future releases, deploy the complete compatible backend first. Using the existing
+credentials, check v2 Al-Fatihah page 1 and Al-Baqarah pages 1, 2 and 15 for real
+words, positions, English glosses, transliteration, non-selectable end markers and
+translation attribution. Verify legacy responses, CORS and invalid-input
+rejection. If enrichment is absent, inspect the actual provider schema before
+publishing the frontend; do not count whole-verse fallback as a word-data pass.
+Then publish the approved frontend commit/push and verify the live reader. No credential
+or environment change is required for this pre-live slice.
+
+References: [Word fields](https://api-docs.quran.foundation/docs/api/field-reference/),
+[Chapter operation](https://api-docs.quran.com/docs/content_apis_versioned/4.0.0/verses-by-chapter-number/),
+[Native dialog](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog).
+
 ## Deployment status
+
+Current deployment: function `quran` version 6, released on 2026-11-01 with the
+word-data addition and unchanged credentials/access environment. The deployed
+source bundle was checked against the repository files. See the live word-data
+verification above; frontend publication remains a separate Pages workflow.
 
 Function `quran` version 4 was deployed on 2026-10-30 with credentials configured. Live HTTP checks confirmed 2 pre-live chapters, all 7 Al-Fatihah verses, Al-Baqarah page 2 (2:21–2:40), and its final page (2:281–2:286), including Arabic text and translation 85. The resource catalogue confirmed that pre-live provides English translation 85 rather than 131; a temporary diagnostic was removed in version 4. Desktop and mobile browser checks passed against the live services with the local production build mounted at the website origin. The Pages workflow publishes the frontend integration when these changes are pushed to `main`; this backend deployment does not publish the static website.
 

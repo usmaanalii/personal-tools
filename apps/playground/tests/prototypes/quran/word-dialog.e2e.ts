@@ -1,0 +1,65 @@
+import { expect, test } from '@playwright/test'
+import { mockQuranContent } from './content-fixture'
+
+// Fixture content proves production routing, layout and native dialog behaviour;
+// it does not prove live Quran Foundation responses.
+test('word details fit the viewport and contain keyboard focus after direct loading', async ({ page }, testInfo) => {
+  await mockQuranContent(page)
+  if (testInfo.project.name === 'mobile') await page.setViewportSize({ width: 320, height: 640 })
+  await page.goto('./quran/')
+  await page.reload()
+  const first = page.getByRole('button', { name: 'بِسْمِ · 1:1:1' })
+  await expect(first).toBeVisible()
+  const target = await first.boundingBox()
+  expect(target?.height).toBeGreaterThanOrEqual(44)
+  expect(target?.width).toBeGreaterThanOrEqual(44)
+  await first.focus()
+  await page.keyboard.press('Enter')
+  const dialog = page.getByRole('dialog', { name: 'Word meaning' })
+  await expect(dialog).toBeVisible()
+  const close = dialog.getByRole('button', { name: 'Close word meaning' })
+  await expect(close).toBeFocused()
+  await expect(dialog.getByRole('button', { name: 'Previous word' })).toBeDisabled()
+  const next = dialog.getByRole('button', { name: 'Next word' })
+  await next.focus()
+  await page.keyboard.press('Tab')
+  // Browsers may visit their own chrome between the final and first control.
+  // Focus must never reach the inert reading page.
+  expect(await page.evaluate(() => document.activeElement === document.body || document.activeElement?.closest('dialog') !== null)).toBe(true)
+  await page.keyboard.press('Tab')
+  await expect(close).toBeFocused()
+  const bounds = await dialog.boundingBox()
+  const viewport = page.viewportSize()
+  if (!bounds || !viewport) throw new Error('Dialog geometry is unavailable')
+  expect(bounds.x).toBeGreaterThanOrEqual(0)
+  expect(bounds.y).toBeGreaterThanOrEqual(0)
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width)
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height)
+  if (testInfo.project.name === 'mobile') {
+    expect(bounds.y + bounds.height).toBeCloseTo(viewport.height, 0)
+    expect(bounds.width).toBe(viewport.width)
+  }
+  expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  expect(await dialog.getByText('English word data · Quran Foundation').evaluate(element => Number.parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16)
+  await page.screenshot({ path: testInfo.outputPath('word-dialog.png') })
+  if (testInfo.project.name === 'mobile') {
+    await page.setViewportSize({ width: 640, height: 320 })
+    await expect(dialog).toBeVisible()
+    const landscape = await dialog.boundingBox()
+    if (!landscape) throw new Error('Landscape dialog geometry is unavailable')
+    expect(landscape.y + landscape.height).toBeCloseTo(320, 0)
+    expect(landscape.height).toBeLessThanOrEqual(320)
+    await next.scrollIntoViewIfNeeded()
+    await expect(next).toBeInViewport()
+  }
+  await next.click()
+  await expect(dialog.getByText('of Allah', { exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  const second = page.getByRole('button', { name: 'اللَّهِ · 1:1:2' })
+  await expect(second).toBeFocused()
+  await page.keyboard.press('Space')
+  await expect(dialog).toBeVisible()
+  await close.click()
+  await expect(second).toBeFocused()
+})

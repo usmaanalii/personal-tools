@@ -51,3 +51,15 @@ it('preserves request cancellation', async () => {
   controller.abort()
   await expect(getChapters(controller.signal)).rejects.toMatchObject({ name: 'AbortError' })
 })
+
+it.each([
+  null, [], [{ position: 1 }],
+  [{ chapter: 2, verse: 1, position: 1, arabic: 'نص', meaning: null, transliteration: null }],
+  [{ chapter: 1, verse: 2, position: 1, arabic: 'نص', meaning: null, transliteration: null }],
+  [{ chapter: 1, verse: 1, position: 2, arabic: 'نص', meaning: null, transliteration: null }],
+])('retains whole-verse reading for invalid or mismatched word enrichment, case %#', async words => {
+  server.use(http.get('*/functions/v1/quran/v2/verses', () => HttpResponse.json({
+    verses: [{ number: 1, arabic: 'نص', translationHtml: 'Text', words }], translationName: 'Translator', nextPage: null,
+  })))
+  expect(await getVerses(1, 1, new AbortController().signal)).toEqual({ verses: [{ number: 1, arabic: 'نص', translation: 'Text' }], translationName: 'Translator', nextPage: null })
+})

@@ -19,8 +19,10 @@ The playground is a small collection of tools and experiments. Start at the [ind
 
 A phone-first reading prototype for exploring chapters and verses.
 
+
 - **Find a chapter:** Search the chapter list by name or English meaning.
 - **Read verses:** Open a chapter to see Arabic text with an English translation.
+- **Explore a word:** Tap an Arabic word for its English meaning and transliteration, then move between words in the verse.
 - **Save a verse:** Bookmark an ayah and find it again in My bookmarks.
 - **Explore the layout:** The chapter list and reader sit side by side on desktop and stack for mobile.
 
