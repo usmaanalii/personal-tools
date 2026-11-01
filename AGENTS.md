@@ -31,3 +31,16 @@
 - After each completed task or independently reviewable unit of work, show the user the changes and ask whether they want them committed and pushed.
 - Leave changes local until the user approves committing and pushing.
 - Push approved changes only to `main` unless the user explicitly specifies another branch. Do not ask which branch to use; `main` is the default.
+
+## Issue categorisation
+
+Apply these conventions when creating or triaging issues. Keep the vocabulary small; add labels only when they support a useful filter.
+
+- Choose exactly one work type: `type:feature` (new capability), `type:refactor` (restructure or standardise existing functionality), `type:design` (design exploration, specification or application), `type:bug` (correct a defect), or `type:maintenance` (routine upkeep).
+- Apply one or more relevant areas: `area:quran`, `area:design-system`, `area:playground`, and `area:next-app`. Use the shared area alone for repository-wide design-system work; add app areas when they identify concrete consumers affected by the issue.
+- `ready-for-agent` means the issue is sufficiently specified for an agent. It does not mean the issue is unblocked, approved for deployment, or exempt from repository commit/push rules. Check its blocking dependencies and explicit prerequisites before starting.
+- Apply `needs-decision` when a named owner must select or approve something. State the required decision in the issue. Do not also mark that issue `ready-for-agent` until the decision is resolved and its acceptance criteria are actionable.
+- Record dependencies through native blocking relationships when the available tool supports them; otherwise use explicit issue references under **Blocked by**. Avoid duplicating dependency state in a `blocked` label.
+- Use milestones to group delivery phases when needed, rather than adding phase labels. Do not introduce priority or size labels without a concrete workflow need.
+- Preserve existing Dependabot labels such as `dependencies`, `javascript`, and `github_actions`; these conventions do not require relabelling dependency PRs.
+- Add labels without removing unrelated existing labels. Check for duplicates before creating issues, preserve research and unresolved assumptions, and obtain approval of proposed ticket breakdowns before publication.
