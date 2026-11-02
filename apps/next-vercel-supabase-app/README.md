@@ -100,7 +100,7 @@ Require **Next.js quality and E2E** and **Biome lint** in branch protection. The
 
 GitHub keeps local test reports and coverage for seven days. It keeps release identifiers and step/status records for thirty days. Raw production build output, environment files, authentication state and hosted browser reports are excluded.
 
-The initial environment and credential setup, followed by the first automated hosted release, still need to be completed. A passing local build or test cannot confirm that CI has deployed the app.
+To confirm a release, check that its workflow completed successfully and its release artifact records `status: verified` for the intended commit. That result includes live checks before and after promotion and confirmation of the public domain's deployment ID. Release evidence and acceptance reviews are recorded on [#32](https://github.com/usmaanalii/personal-tools/issues/32).
 
 ## Shared API contract
 

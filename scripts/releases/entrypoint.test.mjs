@@ -132,7 +132,7 @@ test("the real runner requests structured CLI failures and keeps raw diagnostics
     assert.equal(evidence.failedPhase, "pulling-settings");
     assert.deepEqual(evidence.commandFailure, {
       exitCode: 1,
-      reason: "cli-forbidden",
+      reason: "command-failed",
       message: "Rejected credential [REDACTED]",
     });
     assert.doesNotMatch(

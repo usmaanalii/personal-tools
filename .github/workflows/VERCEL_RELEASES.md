@@ -64,9 +64,7 @@ Only the quality job writes the local build cache. GitHub's cache rules keep PR 
 
 All actions use fixed commit SHAs. The Vercel CLI is pinned to reviewed version 65.8.0, which was already in use for this project. Review tool updates with the lockfile and Node settings, and rerun the release simulations. Deployment tooling must not use a floating `latest` version.
 
-If a CLI command fails, the record also includes its exit code and a fixed error category, such as `cli-access-denied` or `invalid-token-format`. Unknown errors use `command-failed`; raw CLI output is still excluded. `pulling-settings` identifies a failure while downloading settings, while `building` identifies the actual build. This helps investigate failures without exposing credentials.
-
-The classifier checks both CLI output streams and parses structured JSON errors, allowing for a CLI version banner before the JSON. It retains only recognised reason codes from the pinned CLI, such as `cli-forbidden`, `cli-project_not_found` or `cli-network_error`. A `login_required` error becomes `cli-authentication-rejected`. Unknown reason codes remain `command-failed`. Hints and suggested commands are never copied into the release record or executed automatically.
+If a command fails, the record keeps its exit code and failed phase. A missing executable is reported as `executable-not-found`; other process failures use `command-failed`. `pulling-settings` identifies the settings download, while `building` identifies the production build. Hints and suggested commands are never copied into the release record or executed automatically.
 
 For a failed settings download only, the record also keeps one redacted error message, limited to 1,000 characters. It removes known credential environment values, bearer tokens, recognised key formats, private keys, URLs and email addresses before storing the message. It does not keep the full CLI output, build output or browser diagnostics. This preserves the error needed for investigation when a reason code alone is insufficient.
 
@@ -143,10 +141,10 @@ The runner accepts only a tested production deployment. Promoting a preview woul
 
 For reference, the inspection on 2026-11-02 found Node 22.x, app root `apps/next-vercel-supabase-app`, Git deployments and repository-dispatch events disabled, and deployment authentication enabled except on production domains. Production pointed to `dpl_ADPEzjvqfeL93PYYWvSRkejys9Y1` at commit `591fd9f55e943e9bf66a86160d111bf36eca4283`. GitHub had only a `github-pages` environment and no repository secrets. These are historical settings and must be rechecked before relying on them.
 
-## What has to be verified before closing #32
+## How to verify a release
 
 Run `node --experimental-strip-types --test scripts/releases/*.test.mjs`, `pnpm lint`, the Next `check` and `test:e2e` scripts, and actionlint for both workflows. The controlled simulations cover app selection and reuse, wrong deployment identities and URLs, old commits, competing deployment owners, staging/readiness/browser failures, production changes and alias failures. They check the release rules without changing production. Local browser tests check the assembled app; hosted browser tests check its connection to the real backend.
 
-The implementation stays local until commit/push approval under AGENTS.md. Before closing #32, we still need a successful automated release tied to an exact committed SHA, a real Vercel protection-cookie exchange, a check of the public domain's deployment ID, and an acceptance review on the issue. The workflow requires quality success before release, but we have not yet observed a deliberately failed quality run in GitHub. Local tests cannot confirm the account's feature entitlements, credentials or promotion permissions.
+A successful release ends with `status: verified` in its release artifact. Check that the recorded commit is the one intended for publication and that the public domain points to the recorded deployment ID. This result follows the production build, the protected deployment's live browser checks, promotion, and live checks on the public domain. A passing local build alone does not confirm deployment.
 
 Keep plans and acceptance records on #32 with exact commit and run links. Keep ongoing setup and recovery instructions here. The root Quick access links continue to point to existing public sites; do not add an undeployed URL there.
