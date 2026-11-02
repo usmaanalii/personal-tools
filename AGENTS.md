@@ -33,6 +33,7 @@
 - After each completed task or independently reviewable unit of work, show the user the changes and ask whether they want them committed and pushed.
 - Leave changes local until the user approves committing and pushing.
 - Push approved changes only to `main` unless the user explicitly specifies another branch. Do not ask which branch to use; `main` is the default.
+- After completing and committing issue work, assess every acceptance criterion against the committed implementation and verification evidence. Record the assessment on the issue with commit links and any evidence limits. Mark only satisfied criteria complete, and close the issue as completed only when all criteria are covered. Leave unmet criteria open with the remaining work stated.
 
 ## Issue categorisation
 
