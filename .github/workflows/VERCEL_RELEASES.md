@@ -66,7 +66,7 @@ All actions use fixed commit SHAs. The Vercel CLI is pinned to reviewed version 
 
 If a CLI command fails, the record also includes its exit code and a fixed error category, such as `cli-access-denied` or `invalid-token-format`. Unknown errors use `command-failed`; raw CLI output is still excluded. `pulling-settings` identifies a failure while downloading settings, while `building` identifies the actual build. This helps investigate failures without exposing credentials.
 
-The classifier checks both CLI output streams, including structured JSON errors. A `login_required` error becomes `cli-authentication-rejected`; the CLI's message, hints and other raw fields are never copied into the release record.
+The classifier checks both CLI output streams and parses structured JSON errors, allowing for a CLI version banner before the JSON. It retains only recognised reason codes from the pinned CLI, such as `cli-forbidden`, `cli-project_not_found` or `cli-network_error`. A `login_required` error becomes `cli-authentication-rejected`. Unknown reason codes remain `command-failed`; messages, hints and suggested commands are never copied into the release record or executed automatically.
 
 ## How credentials reach a protected deployment
 

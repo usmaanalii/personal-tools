@@ -62,3 +62,45 @@ test("distinguishes CLI setup failures and safely handles unknown errors", () =>
   ])
     assert.deepEqual(commandFailure(error), expected);
 });
+
+test("retains recognised structured CLI reasons without messages or follow-up commands", () => {
+  for (const reason of [
+    "forbidden",
+    "not_authorized",
+    "scope_not_accessible",
+    "project_not_found",
+    "api_error",
+    "network_error",
+    "classic_token_required",
+  ]) {
+    for (const stream of ["stdout", "stderr"]) {
+      assert.deepEqual(
+        commandFailure({
+          code: 1,
+          [stream]: `Vercel CLI 65.8.0\n${JSON.stringify({
+            status: "error",
+            reason,
+            message: "private-value",
+            hint: "private-value",
+            next: [{ command: "private-value" }],
+          })}`,
+        }),
+        { exitCode: 1, reason: `cli-${reason}` },
+      );
+    }
+  }
+});
+
+test("does not treat arbitrary output as a trusted CLI reason", () => {
+  for (const stdout of [
+    JSON.stringify({ status: "error", reason: "private-value" }),
+    JSON.stringify({ status: "ok", reason: "forbidden" }),
+    JSON.stringify({ message: { reason: "forbidden" } }),
+    'unstructured output with "reason": "forbidden"',
+  ]) {
+    assert.deepEqual(commandFailure({ code: 1, stdout }), {
+      exitCode: 1,
+      reason: "command-failed",
+    });
+  }
+});
