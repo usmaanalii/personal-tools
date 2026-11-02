@@ -64,6 +64,8 @@ Only the quality job writes the local build cache. GitHub's cache rules keep PR 
 
 All actions use fixed commit SHAs. The Vercel CLI is pinned to reviewed version 65.8.0, which was already in use for this project. Review tool updates with the lockfile and Node settings, and rerun the release simulations. Deployment tooling must not use a floating `latest` version.
 
+If a CLI command fails, the record also includes its exit code and a fixed error category, such as `cli-access-denied` or `invalid-token-format`. Unknown errors use `command-failed`; raw CLI output is still excluded. `pulling-settings` identifies a failure while downloading settings, while `building` identifies the actual build. This helps investigate failures without exposing credentials.
+
 ## How credentials reach a protected deployment
 
 The workflow's `GITHUB_TOKEN` has `contents: read`. The selection job also has `deployments: read` so it can find each project's last successful release. Checkout does not leave Git credentials behind, and the reusable workflow does not use `secrets: inherit`. This setup does not deploy PR previews. Each project gets separate GitHub environment deployment statuses.

@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import { setTimeout } from "node:timers/promises";
 import { project } from "./config.mjs";
 import { release } from "./release.mjs";
+import { commandFailure } from "./command-failure.mjs";
 
 const exec = promisify(execFile);
 const config = project(process.argv[2]);
@@ -81,10 +82,13 @@ async function command(
         maxBuffer: 30 * 1024 * 1024,
       })
     ).stdout.trim();
-  } catch {
+  } catch (error) {
     // CLI output and browser diagnostics can contain environment values/cookies.
     // Keep raw output runner-local; publish only phase and identity evidence.
-    throw new Error(`Release command failed in phase ${record.status}`);
+    record.commandFailure = commandFailure(error);
+    throw new Error(
+      `Release command failed in phase ${record.status}: ${record.commandFailure.reason}`,
+    );
   }
 }
 
@@ -125,7 +129,7 @@ try {
     current: alias,
     stage: async () => {
       record.previous = await alias();
-      record.status = "building";
+      record.status = "pulling-settings";
       save();
       await command([...cli, "pull", "--yes", "--environment=production"], {
         authenticated: true,
@@ -136,6 +140,8 @@ try {
         linked.orgId !== config.teamId
       )
         throw new Error("Pulled project identity mismatch");
+      record.status = "building";
+      save();
       await command([...cli, "build", "--prod"]);
       record.status = "staging";
       save();
