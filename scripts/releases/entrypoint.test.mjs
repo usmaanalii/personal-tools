@@ -88,7 +88,7 @@ test("the real runner requests structured CLI failures and keeps raw diagnostics
     childProcess.execFile = (file, args, options, callback) => {
       const error = Object.assign(new Error('CLI failed'), { code: 1 });
       const stdout = args.includes('--non-interactive')
-        ? JSON.stringify({ status: 'error', reason: 'forbidden', message: 'private-value' })
+        ? JSON.stringify({ status: 'error', reason: 'forbidden', message: 'Rejected credential fake-token', hint: 'private-value' })
         : '';
       const stderr = 'Unstructured CLI error: private-value';
       Object.assign(error, { stdout, stderr });
@@ -133,6 +133,7 @@ test("the real runner requests structured CLI failures and keeps raw diagnostics
     assert.deepEqual(evidence.commandFailure, {
       exitCode: 1,
       reason: "cli-forbidden",
+      message: "Rejected credential [REDACTED]",
     });
     assert.doesNotMatch(
       JSON.stringify(evidence),

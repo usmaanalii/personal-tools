@@ -9,7 +9,7 @@ import { promisify } from "node:util";
 import { setTimeout } from "node:timers/promises";
 import { project } from "./config.mjs";
 import { release } from "./release.mjs";
-import { commandFailure } from "./command-failure.mjs";
+import { commandFailure, settingsFailureMessage } from "./command-failure.mjs";
 
 const exec = promisify(execFile);
 const config = project(process.argv[2]);
@@ -84,8 +84,15 @@ async function command(
     ).stdout.trim();
   } catch (error) {
     // CLI output and browser diagnostics can contain environment values/cookies.
-    // Keep raw output runner-local; publish only phase and identity evidence.
+    // Keep raw output private. Only settings errors get a redacted message.
     record.commandFailure = commandFailure(error);
+    if (record.status === "pulling-settings") {
+      const secrets = Object.entries(baseEnv)
+        .filter(([name]) => /TOKEN|SECRET|PASSWORD|KEY|AUTH/i.test(name))
+        .map(([, value]) => value);
+      const message = settingsFailureMessage(error, secrets);
+      if (message) record.commandFailure.message = message;
+    }
     throw new Error(
       `Release command failed in phase ${record.status}: ${record.commandFailure.reason}`,
     );

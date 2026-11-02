@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { commandFailure } from "./command-failure.mjs";
+import { commandFailure, settingsFailureMessage } from "./command-failure.mjs";
 
 // CLI output can contain credentials or downloaded settings. These checks make
 // sure the release record gives us a useful reason without copying that output.
@@ -103,4 +103,35 @@ test("does not treat arbitrary output as a trusted CLI reason", () => {
       reason: "command-failed",
     });
   }
+});
+
+test("keeps the settings error while redacting credentials and discarding CLI hints", () => {
+  assert.equal(
+    settingsFailureMessage(
+      {
+        stdout: JSON.stringify({
+          status: "error",
+          message:
+            "Request rejected for fake-token at https://example.test/?secret=unknown",
+          hint: "private-hint",
+        }),
+      },
+      ["fake-token"],
+    ),
+    "Request rejected for [REDACTED] at [URL]",
+  );
+  assert.equal(
+    settingsFailureMessage(
+      {
+        stderr:
+          "Vercel CLI 65.8.0\nError: Cannot access project with Bearer unknown-token\nprivate-next-line",
+      },
+      [],
+    ),
+    "Error: Cannot access project with Bearer [REDACTED]",
+  );
+  assert.equal(
+    settingsFailureMessage({ stdout: "private arbitrary output" }, []),
+    null,
+  );
 });
