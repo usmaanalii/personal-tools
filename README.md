@@ -6,6 +6,7 @@
 - [Quran reader](https://usmaanalii.github.io/personal-tools/quran/)
 - [Supabase API demo](https://usmaanalii.github.io/personal-tools/supabase/)
 - [Next.js connection lab](https://next-vercel-supabase-app.vercel.app)
+- [Shared UI Storybook](https://usmaanalii.github.io/personal-tools/storybook/)
 
 A small monorepo for personal web app experiments.
 
@@ -90,7 +91,7 @@ The function at `supabase/functions/hello/index.ts` returns a public demo respon
 
 ## GitHub Pages
 
-GitHub Actions builds Playground and the shared UI Storybook into one GitHub Pages artifact, then checks its static routes and Storybook preview before publishing. See [Storybook setup and publishing](packages/ui/README.md). The Storybook URL is pending the first approved deployment for #33; add it to Quick access after hosted verification. The Vite base path defaults to `/personal-tools/`; set `VITE_BASE_PATH=/` when deploying the app at a domain root.
+GitHub Actions builds Playground and the shared UI Storybook into one GitHub Pages artifact, then checks its static routes and Storybook preview before publishing. See [Storybook setup and publishing](packages/ui/README.md). The shared UI catalogue is available through Quick access above. The Vite base path defaults to `/personal-tools/`; set `VITE_BASE_PATH=/` when deploying the app at a domain root.
 
 In repository settings, set **Pages > Build and deployment > Source** to **GitHub Actions**.
 

@@ -19,7 +19,7 @@ The catalogue exposes Controls/Button Default, Loading, Retry and Long Label. Pr
 
 ## Publishing and verification
 
-The configured destination is `https://usmaanalii.github.io/personal-tools/storybook/`. **First deployment and hosted verification are pending the approved commit/push for #33.** This is not yet a verified live link.
+The [live catalogue](https://usmaanalii.github.io/personal-tools/storybook/) was first published from [commit `8a5706d`](https://github.com/usmaanalii/personal-tools/commit/8a5706d987b10af7f6bbb2a31e05c13cd20cffc8) by [the successful Pages run](https://github.com/usmaanalii/personal-tools/actions/runs/41484993463) on 2026-11-02. All four hosted browser checks passed without interception, including the existing Playground routes.
 
 The [Pages workflow](../../.github/workflows/deploy-pages.yml) builds and checks the combined artifact on PRs. Approved relevant pushes to `main`, or manual dispatch on `main`, publish that same checked artifact. Keep a single Pages owner and preserve every existing page. See [workflow verification and recovery](../../.github/workflows/README.md#combined-pages-artifact-and-storybook).
 
@@ -29,6 +29,6 @@ After deployment, run from the root:
 PLAYWRIGHT_BASE_URL=https://usmaanalii.github.io/personal-tools/ pnpm test:pages
 ```
 
-This checks Storybook navigation and direct-link refresh plus existing page shells against the real host. It does not prove backend connectivity. Visually review the shared button styling in the preview. Record the commit, workflow run and hosted evidence on #33 before marking deployment complete, then add the verified catalogue URL to root Quick access and update these pending status notes.
+This checks Storybook navigation and direct-link refresh plus existing page shells against the real host. It does not prove backend connectivity. Visually review the shared button styling in the preview. Record the commit, workflow run and hosted evidence on the owning issue before marking a deployment complete. Keep root Quick access aligned with the verified live URL.
 
 For recovery, revert the faulty change through the approved workflow or rerun a known-good complete-site workflow, then repeat hosted verification. Never upload just the Storybook directory to this Pages site.
