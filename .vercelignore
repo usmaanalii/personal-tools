@@ -12,3 +12,4 @@
 **/*.tsbuildinfo
 **/.env
 **/.env.*
+release-evidence/

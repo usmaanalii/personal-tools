@@ -1,94 +1,63 @@
-name: Next.js app checks
+name: Vercel workspace apps
 
 on:
   pull_request:
   push:
     branches: [main]
-    paths:
-      - 'apps/next-vercel-supabase-app/**'
-      - 'packages/api-contracts/**'
-      - 'packages/design-tokens/**'
-      - 'packages/ui/**'
-      - 'biome.json'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - '.nvmrc'
-      - '.github/workflows/next-app.yml'
   workflow_dispatch:
-    inputs:
-      deployment_url:
-        description: 'Optional HTTPS deployment URL for a live Supabase browser smoke test'
-        required: false
-        type: string
 
 permissions:
   contents: read
 
 jobs:
   changes:
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
-      pull-requests: read
+      contents: read
+      deployments: read
     outputs:
-      next: ${{ steps.filter.outputs.next }}
+      matrix: ${{ steps.select.outputs.matrix }}
+      any: ${{ steps.select.outputs.any }}
     steps:
-      - uses: dorny/paths-filter@v4
-        id: filter
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          filters: |
-            next:
-              - 'apps/next-vercel-supabase-app/**'
-              - 'packages/api-contracts/**'
-              - 'packages/design-tokens/**'
-              - 'packages/ui/**'
-              - 'biome.json'
-              - 'package.json'
-              - 'pnpm-lock.yaml'
-              - 'pnpm-workspace.yaml'
-              - '.nvmrc'
-              - '.github/workflows/next-app.yml'
-
-  quality:
-    name: Next.js quality and E2E
-    needs: changes
-    if: always() && (github.event_name != 'pull_request' || needs.changes.result != 'success' || needs.changes.outputs.next == 'true')
-    runs-on: ubuntu-latest
-    env:
-      NEXT_TELEMETRY_DISABLED: '1'
-    steps:
-      - name: Require successful pull request change detection
-        if: github.event_name == 'pull_request' && needs.changes.result != 'success'
-        run: exit 1
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 9.5.0
-      - uses: actions/setup-node@v7
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Lint, formatting, strict types, and Vitest API/UI integration tests
-        run: pnpm --filter next-vercel-supabase-app check
-      - name: Build shared UI Storybook
-        run: pnpm --filter @scratch-pages/ui build:storybook
-      - name: Install Chromium and system dependencies
-        run: pnpm --filter next-vercel-supabase-app exec playwright install --with-deps chromium
-      - name: Production-build browser smoke against a local Supabase fixture
-        run: pnpm --filter next-vercel-supabase-app test:e2e
-      - name: Live deployment browser smoke test (no backend mocks)
-        if: github.event_name == 'workflow_dispatch' && inputs.deployment_url != ''
+      - name: Test release safety policies
+        run: node --experimental-strip-types --test scripts/releases/*.test.mjs
+      - id: select
+        name: Select affected projects (fail open to checks, never skip on uncertainty)
+        run: node scripts/releases/select.mjs
         env:
-          PLAYWRIGHT_BASE_URL: ${{ inputs.deployment_url }}
-        run: pnpm --filter next-vercel-supabase-app test:smoke
-      - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: next-app-test-evidence
-          path: |
-            apps/next-vercel-supabase-app/playwright-report/
-            apps/next-vercel-supabase-app/test-results/
-            apps/next-vercel-supabase-app/coverage/
-          retention-days: 7
+          GH_TOKEN: ${{ github.token }}
+
+  app:
+    needs: changes
+    if: needs.changes.outputs.any == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
+    uses: ./.github/workflows/vercel-app.yml
+    with:
+      project: ${{ matrix.key }}
+      environment: ${{ matrix.environment }}
+      node: ${{ matrix.node }}
+
+  required:
+    name: Next.js quality and E2E
+    needs: [changes, app]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require successful checks or an intentionally unaffected project set
+        env:
+          SELECTION_RESULT: ${{ needs.changes.result }}
+          APP_RESULT: ${{ needs.app.result }}
+        run: |
+          test "$SELECTION_RESULT" = success
+          test "$APP_RESULT" = success || test "$APP_RESULT" = skipped

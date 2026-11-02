@@ -1,0 +1,34 @@
+[
+  {
+    "key": "next",
+    "environment": "vercel-next-production",
+    "teamId": "team_MZ10t1hz7YShThLCkaopqpe6",
+    "projectId": "prj_JMebKnoQdyM6tIXkOSCbVNsMOSyc",
+    "root": "apps/next-vercel-supabase-app",
+    "node": "22.22.3",
+    "productionUrl": "https://next-vercel-supabase-app.vercel.app",
+    "requiresProtectionBypass": true,
+    "affected": [
+      "apps/next-vercel-supabase-app/",
+      "packages/api-contracts/",
+      "packages/design-tokens/",
+      "packages/ui/"
+    ],
+    "quality": [
+      ["pnpm", "--filter", "next-vercel-supabase-app", "check"],
+      ["pnpm", "--filter", "@scratch-pages/ui", "build:storybook"]
+    ],
+    "browserInstall": [
+      "pnpm",
+      "--filter",
+      "next-vercel-supabase-app",
+      "exec",
+      "playwright",
+      "install",
+      "--with-deps",
+      "chromium"
+    ],
+    "browser": ["pnpm", "--filter", "next-vercel-supabase-app", "test:e2e"],
+    "verify": ["pnpm", "--filter", "next-vercel-supabase-app", "test:smoke"]
+  }
+]

@@ -22,3 +22,4 @@ test-results/
 .next/
 .vercel/
 coverage/
+release-evidence/

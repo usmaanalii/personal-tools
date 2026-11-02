@@ -1,10 +1,10 @@
 # Next.js + Vercel + Supabase
 
-The connection page uses the workspace's shared light tokens and owned Button. Page/layout remain Server Components, while `ConnectionCheck` stays the client leaf; the server route retains Supabase configuration. Import shared styles through `src/app/globals.css`. See the [shared style guide](../../docs/style-guide/README.md). Run `pnpm --filter next-vercel-supabase-app check` and `build` after changing shared UI. Dark mode is planned for later.
+The connection page uses the [shared light style guide](../../docs/style-guide/README.md), including its design tokens and Button component. Shared styles enter through `src/app/globals.css`. The page and layout are Server Components; `ConnectionCheck` handles browser interactions, and the server route holds the Supabase configuration. After changing shared UI, run `pnpm --filter next-vercel-supabase-app check` and `build`. Dark mode is planned for later.
 
 **Live app:** https://next-vercel-supabase-app.vercel.app
 
-An independent App Router app alongside Playground. The home page checks the existing public Supabase `hello` Edge Function through `GET /api/supabase` on the Next.js server. It supports loading feedback, safe failure messages, and retry.
+This App Router app runs independently of Playground. Select Check connection on the home page to call the public Supabase `hello` Edge Function through the Next.js server at `GET /api/supabase`. The page shows progress, displays a safe error if the request fails, and lets you retry.
 
 ## Run locally
 
@@ -16,11 +16,11 @@ cp apps/next-vercel-supabase-app/.env.example apps/next-vercel-supabase-app/.env
 pnpm --filter next-vercel-supabase-app dev
 ```
 
-Fill in `.env.local` before checking the connection. Open http://localhost:3000. The page and build work without backend configuration; the API returns a safe 503 when configuration is absent or invalid.
+Fill in `.env.local`, then open http://localhost:3000 to check the connection. You can view and build the page without backend settings, but the API returns a safe 503 response until those settings are valid.
 
 Use `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from the existing Supabase project. These are server-only variables in this app. Do not use `NEXT_PUBLIC_`, secret keys, or service-role keys. Local environment files are ignored by Git. No new database tables or schema changes are needed.
 
-The server calls `/functions/v1/hello`, validates its JSON with Zod, and returns a safe 502 on upstream HTTP, network, timeout, or response-validation failures. Requests are uncached and have an eight-second upstream timeout. This server-side request also avoids changing the existing function's browser CORS configuration.
+The server calls `/functions/v1/hello` and checks the response JSON with Zod. It returns a safe 502 response if the upstream service returns an error, cannot be reached, takes more than eight seconds, or sends invalid JSON data. Requests are not cached. Calling from the server also avoids changing the function's browser CORS settings.
 
 ## Quality checks
 
@@ -31,13 +31,22 @@ pnpm --filter next-vercel-supabase-app check
 pnpm --filter next-vercel-supabase-app test:e2e
 ```
 
-`check` runs zero-warning Biome lint (shared recommended rules plus Next.js/React rules, explicit-any and `@ts-ignore` errors, and floating-promise checks), Prettier, Next route type generation, strict TypeScript, and Vitest API/UI integration tests with coverage. Coverage gates require 100% statements, branches, functions, and lines for the API route and shared response schema. A separate jsdom UI project renders the real home page and uses MSW only at the HTTP boundary. It covers greetings, failure/retry, Enter activation, loading feedback, and malformed responses; it does not prove native browser behavior, layout, or the served Next application. API coverage thresholds remain scoped to the route and shared schema.
+`check` runs Biome lint, Prettier, Next route type generation, strict TypeScript and Vitest integration tests with coverage. Lint warnings fail the check. The lint rules include the shared recommended rules, Next.js/React checks, explicit-any and `@ts-ignore` errors, and floating-promise checks. Coverage must reach 100% of statements, branches, functions and lines in the API route and shared response schema.
 
-The app’s `biome.json` extends the repository configuration. Biome replaces ESLint; its type inference and rules are not identical to typescript-eslint. The floating-promise rule is explicitly enabled at error level but remains an experimental nursery rule. Strict TypeScript remains a separate gate.
+The UI tests render the real home page in jsdom, with MSW supplying HTTP responses. They cover greetings, loading, errors and retries, Enter activation, and malformed responses. Browser behaviour and layout are checked separately by Playwright.
 
-`test:e2e` builds production Next.js and starts it on port 3100, plus a local HTTP Supabase fixture on port 54329. A short Playwright smoke journey checks desktop and mobile Chromium: direct loading, refresh, the greeting through the real Next route, and horizontal overflow. Detailed UI states belong in Vitest rather than being repeated here. No Supabase credentials or external backend are required. These tests prove the app-to-fixture path, not the hosted service.
+The app's `biome.json` extends the repository settings. Biome replaces ESLint, but its type inference and rules differ from typescript-eslint. The floating-promise rule is enabled as an error and is still an experimental nursery rule. Strict TypeScript runs as a separate check.
 
-Test ownership stays inside this app: `src/components/connection-check.test.tsx` covers page interactions, `src/app/api/supabase/route.test.ts` covers the HTTP handler, and `tests/connection/greeting.e2e.ts` owns the shared local/deployment smoke journey. Its upstream fixture lives in `tests/connection/fixtures/`. Failure screenshots and traces come from Playwright configuration; the journey does not take unconditional screenshots.
+`test:e2e` builds Next.js for production and starts it on port 3100. It also starts a local fake Supabase server on port 54329, so no Supabase credentials or external backend are needed. Desktop and mobile Chromium tests open and refresh the page, request the greeting through the real Next route, and check for horizontal overflow. Detailed UI states stay in Vitest. These browser tests check the local app and fake backend; use the hosted check below to test the real service.
+
+The test files are:
+
+- `src/components/connection-check.test.tsx` for page interactions.
+- `src/app/api/supabase/route.test.ts` for the HTTP handler.
+- `tests/connection/greeting.e2e.ts` for the browser journey used locally and on deployments.
+- `tests/connection/fixtures/` for the local upstream server.
+
+Local browser tests save screenshots and traces when they fail. The journey itself takes no unconditional screenshots. Hosted checks disable recordings to avoid saving authentication data.
 
 Useful individual commands:
 
@@ -56,43 +65,43 @@ For the first browser run on a fresh machine, install Chromium:
 pnpm --filter next-vercel-supabase-app exec playwright install chromium
 ```
 
-Playwright owns and shuts down its fixture and app processes; it refuses to reuse a server already on those test ports. Avoid running a production build and development server against the same `.next` directory simultaneously.
+Playwright starts and stops the local app and fake backend. It refuses to reuse a server already running on those test ports. Avoid running a production build and development server against the same `.next` directory simultaneously.
 
 ## Deploy to Vercel
 
-1. Import the existing `personal-tools` Git repository into a **new Vercel project**.
-2. Set **Root Directory** to `apps/next-vercel-supabase-app` and use the Next.js framework preset.
-3. Use the repository's Node major version (22.x) and set `ENABLE_EXPERIMENTAL_COREPACK=1` to honor the root `packageManager` pin (`pnpm@9.5.0`). The app's `vercel.json` installs with the frozen workspace lockfile and runs `pnpm check && pnpm build`.
-4. Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in the Vercel project's Preview and Production environments.
-5. Deploy. Playground keeps its independent GitHub Pages deployment.
+Use the existing project `prj_JMebKnoQdyM6tIXkOSCbVNsMOSyc` in team `team_MZ10t1hz7YShThLCkaopqpe6` (`usyyys-projects`). Keep its Root Directory set to `apps/next-vercel-supabase-app`, use Node 22.x, and allow access to workspace files outside that folder. Configure production `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` on the server. This app does not need another Vercel project.
 
-Alternatively, after `pnpm dlx vercel login`, run these commands from the **repository root**:
+Complete the one-time setup in [the shared release runbook](../../.github/workflows/VERCEL_RELEASES.md) before enabling automatic releases. It explains the GitHub environment and credentials, adding another app, and recovering from a failed release. This app's settings are in `scripts/releases/projects.json`. GitHub Actions handles deployment, so Vercel Git deployments stay disabled in both project settings and `vercel.json`.
 
-```sh
-pnpm dlx vercel link --project next-vercel-supabase-app --scope usyyys-projects
-pnpm dlx vercel deploy --prod --scope usyyys-projects
-```
+After setup, an approved relevant push to `main` does the following:
 
-The Vercel project Root Directory must remain `apps/next-vercel-supabase-app`. CLI uploads start at the workspace root so the shared lockfile and workspace configuration are available. `.vercelignore` excludes local environment files, agent tooling, and generated artifacts. Root development/build scripts intentionally still default to Playground.
+1. Runs quality checks and the desktop/mobile tests against the local fake backend.
+2. Builds with production settings and uploads to a new Vercel URL while the public website stays on the previous version.
+3. Tests that new URL against the real Supabase service.
+4. Points the public domain at the tested build, checks its deployment ID, and tests the public website too.
 
-Connect the Vercel project to the GitHub repository once this app is committed and pushed to enable automatic Git deployments and pull-request previews. This CLI deployment does not commit or push local changes.
+The release job can run only after quality checks pass. Vercel's build command is therefore `pnpm build`, without another quality run. CLI builds and uploads start at the workspace root so shared packages are available. Production output and downloaded environment files stay on the temporary runner; GitHub does not cache or save them as artifacts.
 
-After deployment, verify the actual hosted connection:
+For an already accessible deployment:
 
 ```sh
-PLAYWRIGHT_BASE_URL=https://your-app.vercel.app pnpm --filter next-vercel-supabase-app test:smoke
+PLAYWRIGHT_BASE_URL=https://next-vercel-supabase-app.vercel.app pnpm --filter next-vercel-supabase-app test:smoke
 ```
 
-This desktop/mobile smoke test reuses the same greeting journey and clicks the real UI and requires `Hello from Supabase!` without mocks or a local fixture. It does not provision a deployment. The target must be reachable by the test runner; an authentication-protected Vercel preview needs the appropriate access setup. For checking a locally started production app against the real backend, loopback HTTP URLs are also accepted.
+This command opens the deployed app in desktop and mobile browsers and checks the greeting through the real Next route and Supabase service. It starts no local server or fake backend.
+
+Protected deployment URLs need extra setup. Before providing the automation-bypass secret, the release runner checks Vercel's metadata for the expected team, project, production environment, commit SHA and URL. It then supplies `VERCEL_VERIFIED_ORIGIN` and exchanges the secret for a secure cookie limited to that host. That setup request cannot follow redirects, and later requests use the cookie. Hosted checks save no traces, screenshots, videos or browser login state. Local browser tests keep their usual failure recordings.
 
 ## CI and merge protection
 
-`.github/workflows/next-app.yml` runs `check` and production-build E2E tests on relevant pull requests, main-branch pushes, and manual dispatch. Unaffected pull requests skip the expensive job; change-detection errors fail the quality check. Test reports, traces on failure, screenshots, and coverage are retained for seven days.
+`.github/workflows/next-app.yml` chooses which projects need checks and calls `vercel-app.yml` for each one. PR jobs have no production credentials. Main pushes compare against this project's last successful GitHub environment deployment, so changes from failed or superseded releases still get picked up after a later unrelated push. If CI cannot work out what changed, it runs all the project's checks and release steps. A manual run on `main` also runs them all and finds the deployment URL automatically.
 
-Configure **Next.js quality and E2E** as a required branch-protection check in GitHub to enforce it before merging. Committing the workflow alone does not change branch protection. Vercel's own build runs the quality gate; browser E2E runs in GitHub Actions.
+Require **Next.js quality and E2E** and **Biome lint** in branch protection. The first check keeps a result visible even when a PR does not affect this app: it passes an intentional skip and fails a selection or app-job error. The workflow also requires app quality to pass before release. Coverage keeps `NODE_ENV=test` so the tests use React's test build.
 
-A manual workflow run can additionally accept a deployed URL to run the live smoke test. A local successful build or fixture test must not be reported as a successful Vercel deployment.
+GitHub keeps local test reports and coverage for seven days. It keeps release identifiers and step/status records for thirty days. Raw production build output, environment files, authentication state and hosted browser reports are excluded.
+
+The initial environment and credential setup, followed by the first automated hosted release, still need to be completed. A passing local build or test cannot confirm that CI has deployed the app.
 
 ## Shared API contract
 
-The app’s `greetingSchema` re-exports the hello schema from [`@scratch-pages/api-contracts`](../../packages/api-contracts/README.md), shared with Playground and the Edge Function. The existing server route and environment variables are unchanged. Install dependencies from the repository root; Vercel must include workspace files outside the app Root Directory when building this app. The current hosted hello response already satisfies this schema.
+The app uses the shared hello schema through `greetingSchema`, which re-exports it from [`@scratch-pages/api-contracts`](../../packages/api-contracts/README.md), also used by Playground and the Edge Function. The server route and environment variables stay the same. Install dependencies from the repository root; Vercel must include workspace files outside the app Root Directory when building this app. The current hosted hello response already satisfies this schema.

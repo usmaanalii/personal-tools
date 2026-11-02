@@ -1,15 +1,15 @@
 # Personal Tools
 
-A small monorepo for personal web app experiments.
-
-The two connection demos adopt the [shared light style guide](docs/style-guide/README.md), implemented in `packages/design-tokens` and `packages/ui`. Their existing URLs remain the live links below. Dark mode is future work.
-
 ## Quick access
 
 - [Playground index](https://usmaanalii.github.io/personal-tools/)
 - [Quran reader](https://usmaanalii.github.io/personal-tools/quran/)
 - [Supabase API demo](https://usmaanalii.github.io/personal-tools/supabase/)
 - [Next.js connection lab](https://next-vercel-supabase-app.vercel.app)
+
+A small monorepo for personal web app experiments.
+
+The two connection demos use the [shared light style guide](docs/style-guide/README.md) from `packages/design-tokens` and `packages/ui`. The links above open the live sites. Dark mode is planned for later.
 
 ## Playground
 
@@ -19,30 +19,29 @@ The playground is a small collection of tools and experiments. Start at the [ind
 
 **Page:** [Open the Quran reader](https://usmaanalii.github.io/personal-tools/quran/)
 
-A phone-first reading prototype for exploring chapters and verses.
+A reading prototype designed for phones, with a wider layout on desktop.
 
+- Search for a chapter by name or English meaning.
+- Open a chapter to read Arabic text with an English translation.
+- Tap an Arabic word for its English meaning and transliteration, then move between words in the verse.
+- Bookmark an ayah and find it again in My bookmarks.
+- View the chapter list beside the reader on desktop, or stacked on mobile.
 
-- **Find a chapter:** Search the chapter list by name or English meaning.
-- **Read verses:** Open a chapter to see Arabic text with an English translation.
-- **Explore a word:** Tap an Arabic word for its English meaning and transliteration, then move between words in the verse.
-- **Save a verse:** Bookmark an ayah and find it again in My bookmarks.
-- **Explore the layout:** The chapter list and reader sit side by side on desktop and stack for mobile.
-
-The reader loads Quran Foundation content through a Supabase Edge Function, with paginated verses, translation attribution, and retry states. The current API environment is pre-live, so only Al-Fatihah and Al-Baqarah are available. All 114 chapters require Quran Foundation production approval; see [Production access](supabase/functions/quran/README.md#production-access). Frontend changes are published by the Pages workflow after a push to `main`. Audio playback and reading progress remain unconnected. See the [Playground setup](apps/playground/README.md#quran-api-setup) and [function setup](supabase/functions/quran/README.md).
+The reader loads Quran Foundation content through a Supabase Edge Function. It loads verses in pages, credits the translation source, and lets you retry failed requests. The current API environment is pre-live, so only Al-Fatihah and Al-Baqarah are available. All 114 chapters require Quran Foundation production approval; see [Production access](supabase/functions/quran/README.md#production-access). Frontend changes are published by the Pages workflow after a push to `main`. Audio playback and reading progress are not connected yet. See the [Playground setup](apps/playground/README.md#quran-api-setup) and [function setup](supabase/functions/quran/README.md).
 
 ## Shared API contracts
 
-[`packages/api-contracts`](packages/api-contracts/README.md) contains browser-safe Zod schemas and inferred types consumed by both frontends and the Edge Functions. Native fetch adapters validate responses; provider formats stay behind the Quran backend adapter. No code generation is required.
+[`packages/api-contracts`](packages/api-contracts/README.md) holds the Zod schemas and inferred types shared by both frontends and the Edge Functions. They are safe to use in browser code. Fetch adapters check responses against these schemas, while the Quran backend adapter handles provider-specific data formats. No code generation is needed.
 
-The owned Quran `/v2/` routes were deployed and verified on 2026-10-30 as backend version 5. The Pages workflow publishes the corresponding frontend after push; legacy routes remain available during migration. See [release order](supabase/functions/quran/README.md#owned-v2-contract-and-migration).
+Our Quran `/v2/` routes were deployed and checked on 2026-10-30 as backend version 5. The Pages workflow publishes the corresponding frontend after push; legacy routes remain available during migration. See [release order](supabase/functions/quran/README.md#owned-v2-contract-and-migration).
 
 ## Test strategy
 
-Use Vitest for detailed page and handler integration tests, keeping application code real and mocking only necessary HTTP boundaries. Keep Playwright to short production-build smoke journeys and browser-specific risks such as direct routing, refresh and layout. A repeated assertion must protect a distinct integration risk.
+Use Vitest to test detailed page and handler behaviour. Run the real application code and supply fake HTTP responses only where needed. Use Playwright for short journeys through a production build and for browser behaviour such as direct routing, refresh and layout. Repeat an assertion across the suites only when the browser test catches a separate integration risk.
 
-Edge Function API-contract tests live under `supabase/functions/tests/` in an independent workspace. Run `pnpm test:functions` or `pnpm --filter edge-functions test:coverage`; see [backend test ownership and setup](supabase/functions/README.md).
+The Edge Function API-contract tests have their own workspace under `supabase/functions/tests/`. Run `pnpm test:functions` or `pnpm --filter edge-functions test:coverage`; see [backend test ownership and setup](supabase/functions/README.md).
 
-Both apps expose `test:smoke` for an existing deployment via `PLAYWRIGHT_BASE_URL`. These checks use the deployed assets and real backend responses; local fixture-backed smoke checks do not prove hosted connectivity. See each app README for commands and exact evidence boundaries.
+Both apps have a `test:smoke` command that opens an existing deployment using `PLAYWRIGHT_BASE_URL` and calls its real backend. Local tests use a fake backend, so they cannot confirm the hosted service works. Each app README explains the commands and what they check.
 
 ## Local setup
 
@@ -69,7 +68,7 @@ pnpm build
 pnpm test:e2e
 ```
 
-Biome provides repository-wide linting for supported source and configuration files, including future apps. It uses recommended rules, respects `.gitignore`, and excludes generated Next.js declarations and the pnpm lockfile. Formatting and import organization are disabled to avoid rewriting existing code; the Next.js app extends the shared Biome config with Next.js/React and floating-promise rules and retains Prettier for formatting. A few documented inline exceptions preserve existing Quran reader focus and CSS cascade behavior.
+Biome lints supported source and configuration files across the repository, including new apps. It uses the recommended rules, follows `.gitignore`, and excludes generated Next.js declarations and the pnpm lockfile. Formatting and import organisation are disabled so linting does not rewrite existing code. The Next.js app adds Next.js/React and floating-promise rules and uses Prettier for formatting. Documented inline exceptions preserve the Quran reader's focus and CSS cascade behaviour.
 
 The **Biome lint** GitHub Actions check runs on every pull request and push to `main`. Add it as a required check in branch protection to enforce it before merge.
 
@@ -87,7 +86,7 @@ For local work on the Supabase example, copy `apps/playground/.env.example` to `
 
 Values prefixed with `VITE_` are included in the browser build. Use only the Supabase publishable key there; it is intentionally public and must be paired with appropriate Row Level Security policies. Never put a Supabase secret or service-role key in a `VITE_` variable or frontend code.
 
-The function lives at `supabase/functions/hello/index.ts`. It returns a public demo response and does not read or write private data. Add database changes as Supabase migrations and enable Row Level Security for tables accessed by client apps.
+The function at `supabase/functions/hello/index.ts` returns a public demo response. It does not read or write private data. Add database changes as Supabase migrations and enable Row Level Security for tables accessed by client apps.
 
 ## GitHub Pages
 
@@ -109,6 +108,6 @@ pnpm check:next
 pnpm --filter next-vercel-supabase-app test:e2e
 ```
 
-Root commands such as `pnpm dev`, `pnpm test`, and `pnpm build` still target Playground. Use `pnpm test:all`, `pnpm typecheck:all`, `pnpm build:all`, or `pnpm test:e2e:all` to run the corresponding scripts across the workspace; `test:all` also includes the Edge Function tests.
+Root commands such as `pnpm dev`, `pnpm test`, and `pnpm build` run Playground. Use `pnpm test:all`, `pnpm typecheck:all`, `pnpm build:all`, or `pnpm test:e2e:all` to run the corresponding scripts across the workspace; `test:all` also includes the Edge Function tests.
 
-See the app README for server-only environment variables, production-build browser tests, Vercel deployment, and the live backend smoke check.
+See the app README for server-only environment variables and browser checks. After the one-time environment and credential setup, the [shared Vercel release workflow](.github/workflows/VERCEL_RELEASES.md) tests each new production build at its own URL before pointing the public domain at it. The live URLs above stay the same.
