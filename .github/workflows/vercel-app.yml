@@ -2,6 +2,11 @@ name: Verify and release one Vercel app
 
 on:
   workflow_call:
+    secrets:
+      VERCEL_TOKEN:
+        required: true
+      VERCEL_AUTOMATION_BYPASS_SECRET:
+        required: true
     inputs:
       project:
         required: true

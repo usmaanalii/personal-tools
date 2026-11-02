@@ -43,6 +43,11 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
     uses: ./.github/workflows/vercel-app.yml
+    # Name the two secrets here so the release job can read their values from
+    # its GitHub environment. This does not pass every repository secret.
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     with:
       project: ${{ matrix.key }}
       environment: ${{ matrix.environment }}

@@ -18,6 +18,8 @@ The release job uses Vercel CLI 65.8.0 to build with production settings and upl
 
 Complete the setup in [the Vercel release runbook](VERCEL_RELEASES.md) before enabling releases. The Next app needs a GitHub environment named `vercel-next-production` and credentials configured there; source changes alone do not set them up. The runbook also covers adding another app and recovering from failures.
 
+The caller passes the two deployment secret names explicitly, and the reusable workflow requires them. Their values come from the release job's GitHub environment. Keep this forwarding when adding another caller; GitHub otherwise supplies empty values even when the environment secrets exist.
+
 Require **Next.js quality and E2E** and **Biome lint** in branch protection. The first check passes an intentional skip for unaffected apps and fails selection or app-job errors. Coverage keeps `NODE_ENV=test`. Production build output, environment files and browser login state are never cached or uploaded as artifacts.
 
 ## Repository lint
