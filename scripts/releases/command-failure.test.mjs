@@ -14,6 +14,24 @@ test("reports a known CLI failure without exposing its raw output", () => {
   assert.deepEqual(failure, { exitCode: 1, reason: "cli-access-denied" });
 });
 
+test("recognises the pinned CLI's structured authentication error on either output stream", () => {
+  for (const stream of ["stdout", "stderr"]) {
+    const failure = commandFailure({
+      code: 1,
+      [stream]: JSON.stringify({
+        status: "error",
+        reason: "login_required",
+        message: "The token in VERCEL_TOKEN is not valid.",
+        hint: "private-value",
+      }),
+    });
+    assert.deepEqual(failure, {
+      exitCode: 1,
+      reason: "cli-authentication-rejected",
+    });
+  }
+});
+
 test("distinguishes CLI setup failures and safely handles unknown errors", () => {
   for (const [error, expected] of [
     [
