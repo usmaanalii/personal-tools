@@ -12,4 +12,6 @@
 **/*.tsbuildinfo
 **/.env
 **/.env.*
+# The public template is referenced by the prebuilt Next.js function bundle.
+!apps/next-vercel-supabase-app/.env.example
 release-evidence/

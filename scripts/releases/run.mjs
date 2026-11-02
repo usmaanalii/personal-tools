@@ -10,6 +10,7 @@ import { setTimeout } from "node:timers/promises";
 import { project } from "./config.mjs";
 import { release } from "./release.mjs";
 import { commandFailure, settingsFailureMessage } from "./command-failure.mjs";
+import { deploymentOutput } from "./deployment-output.mjs";
 
 const exec = promisify(execFile);
 const config = project(process.argv[2]);
@@ -168,9 +169,12 @@ try {
         ],
         { authenticated: true },
       );
-      if (!/^https:\/\/[a-z0-9][a-z0-9-]*\.vercel\.app$/.test(output))
-        throw new Error("Invalid deployment origin returned by CLI");
-      const data = await api(`/v13/deployments/${new URL(output).hostname}`);
+      const candidate = deploymentOutput(output);
+      const data = await api(`/v13/deployments/${candidate.id}`);
+      if (data.id !== candidate.id || `https://${data.url}` !== candidate.url)
+        throw new Error(
+          "CLI deployment identity does not match platform metadata",
+        );
       record.deployment = data.id;
       // Do not publish unverified metadata in the evidence.
       record.status = "waiting";

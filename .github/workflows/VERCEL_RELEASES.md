@@ -72,6 +72,10 @@ For a failed settings download only, the record also keeps one redacted error me
 
 Every release CLI command explicitly uses `--non-interactive`. Setting `CI=1` alone does not enable structured errors in this CLI version; the flag prevents prompts and makes recognised failures available to the classifier.
 
+Deployment success also arrives as JSON in this mode. The runner reads only the deployment ID and URL, validates their format and production target, then checks them against platform metadata before continuing. It ignores suggested commands in the response.
+
+The upload rules exclude credential files. The Next app's tracked `.env.example` is an explicit exception because the prebuilt function bundle references that public placeholder template. Real `.env`, `.env.local` and production environment files remain excluded.
+
 ## How credentials reach a protected deployment
 
 The workflow's `GITHUB_TOKEN` has `contents: read`. The selection job also has `deployments: read` so it can find each project's last successful release. Checkout does not leave Git credentials behind, and the reusable workflow does not use `secrets: inherit`. This setup does not deploy PR previews. Each project gets separate GitHub environment deployment statuses.
