@@ -7,6 +7,8 @@ on:
     paths:
       - 'apps/playground/**'
       - 'packages/api-contracts/**'
+      - 'packages/design-tokens/**'
+      - 'packages/ui/**'
       - 'supabase/functions/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -39,6 +41,8 @@ jobs:
             e2e:
               - 'apps/playground/**'
               - 'packages/api-contracts/**'
+              - 'packages/design-tokens/**'
+              - 'packages/ui/**'
               - 'supabase/functions/**'
               - 'package.json'
               - 'pnpm-lock.yaml'

@@ -1,5 +1,7 @@
 # Playground
 
+The Supabase connection page adopts the workspace's shared light tokens and owned Button. Its direct public Edge Function call, JSON response, local loading/error states and retry action remain app-owned. The shared guide is in [`docs/style-guide`](../../docs/style-guide/README.md). The Vite integration scans shared UI sources; `pnpm --filter playground build` verifies its production CSS. No private credentials belong in `VITE_*` variables.
+
 A React and Vite app with separately addressable pages: the homepage (`/`), Quran reader (`/quran/`), and Supabase demo (`/supabase/`). The reader loads chapters and paginated Arabic verses with an English translation (M.A.S. Abdel Haleem in pre-live; The Clear Quran in production) through the Supabase `quran` Edge Function. Bookmarks last for the current session; audio and reading progress are not connected. The Pages workflow publishes frontend changes from `main`.
 
 ## Development

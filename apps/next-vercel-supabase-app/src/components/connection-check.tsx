@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@scratch-pages/ui'
 import { greetingSchema } from '../lib/greeting'
 
 type ConnectionState =
@@ -33,7 +34,7 @@ export function ConnectionCheck() {
         The request travels through this app’s Next.js server to a public
         Supabase function.
       </p>
-      <button
+      <Button
         type="button"
         disabled={state.status === 'loading'}
         onClick={() => {
@@ -47,7 +48,7 @@ export function ConnectionCheck() {
             : state.status === 'error'
               ? 'Try again'
               : 'Check again'}
-      </button>
+      </Button>
       {state.status === 'error' && (
         <p className="error" role="alert">
           The connection check failed. Please try again.

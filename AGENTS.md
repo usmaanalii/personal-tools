@@ -11,6 +11,7 @@
 ## Development principles
 
 - For behavior changes, use TDD: write a behavior-focused test, run it and confirm it fails for the intended reason, implement the smallest change that makes it pass, then run the relevant regression checks. Keep the regression test with the behavior change.
+- For each Playwright assertion, identify a served-app, browser, or live integration risk that the real app in Vitest with MSW cannot prove. Keep detailed UI states and copy in Vitest, audit assertions inside existing browser tests, use accessible selectors for user-facing outcomes, and avoid CSS property assertions in behavior tests.
 - Before implementation, check the available skills and read the ones whose guidance applies to the task. Follow their workflows for relevant frameworks, design, accessibility, and testing. Apply skills selectively; user requests and repository instructions take precedence.
 
 ## Documentation

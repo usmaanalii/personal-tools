@@ -1,0 +1,19 @@
+# Shared light style guide
+
+`packages/design-tokens` owns foundation values (`--scale-*`) and their semantic light mappings (`--theme-*`). `packages/ui` owns reusable React controls and their styles. Apps own page composition, wording, requests and state. The default is light; dark mode is future work. Quran content fonts, glyphs and canonical line layout remain source-specific.
+
+Import `@scratch-pages/ui/styles.css` in the app stylesheet and `Button` from `@scratch-pages/ui` in the connection view. The stylesheet supplies CSS variables and Tailwind utilities without Tailwind preflight. Vite uses `@tailwindcss/vite`; Next uses `@tailwindcss/postcss`. Both production builds must contain the complete shared `bg-ui-primary`, `text-ui-on-primary` and focus utility rules. Use literal utility class names so Tailwind finds them.
+
+The adopted Button uses a native button. It has a visible focus outline, a disabled state and a 44px minimum height. Keep a text label on every connection action. Feedback belongs to each app: Playground exposes its JSON response and polite status; Next exposes an alert on failure and a status on progress/success. Preserve long-text wrapping. Reduced motion sets the shared transition duration to zero.
+
+State inventory: each connection begins idle, disables its action while loading, then displays a complete success or failure with another action available. The payload is atomic, so a partial-data state does not apply. Long returned content wraps within its region. Decorative icons, if added to owned controls later, should use `currentColor` and be hidden from assistive technology when a text label already names the action; icon-only actions need an accessible name. Do not add an icon dependency for the current text actions.
+
+Storybook documents the default, loading/disabled, retry and long-label states: `pnpm --filter @scratch-pages/ui storybook` for development or `build:storybook` for a static build. The stories have autodocs and prop descriptions. No Storybook URL is deployed. The app smoke tests run axe and fail on violations. Desktop/mobile journeys check responsive fit. Review visible focus and reduced motion in a browser when changing those styles; the tests do not assert CSS properties.
+
+## Dependency ownership
+
+The workspace owner updates the shared packages and both app consumers together. Versions selected on 2026-11-02: Tailwind CSS, `@tailwindcss/vite`, and `@tailwindcss/postcss` 4.3.3 (MIT); Storybook and `@storybook/react-vite` 10.6.5 (MIT); `@axe-core/playwright` 4.14.0 (MPL-2.0, test-only); and `@types/react` 19.3.0 (MIT, type-only). These licences are from exact-version npm registry metadata and package manifests. Storybook 10.6.5 declares Vite 8 and React 19 compatible peer ranges. The native connection action needs no headless primitive; add Radix only when an adopted control needs it. Repeat independent builds on upgrades. The lockfile pins transitive versions.
+
+## Bundle impact
+
+Measured on 2026-11-02 by building the unchanged `95a935d` archive and the local #24 tree with the same pnpm 9.5.0, Vite 8.3.5 and Next 16.4.3 versions. The initial comparison, before removing the unused Radix Slot API, found Playground's `/supabase/` CSS grew from 0.38 to 0.86 kB gzip (+0.48 kB); its route JS grew from 1.03 to 2.40 kB gzip (+1.37 kB). The shared entry JS grew from 69.99 to 70.24 kB gzip (+0.25 kB). Next's complete `.next/static` CSS grew from 808 to 1129 bytes gzip (+321 bytes), and its complete static JS from 206095 to 207342 bytes gzip (+1247 bytes). After the cleanup, Playground's route CSS is 0.88 kB gzip, route JS 1.11 kB gzip, and shared entry JS 69.98 kB gzip. The final Next webpack build contains 1125 bytes gzip of CSS and 205245 bytes gzip of JS; those totals are not directly comparable with the earlier Turbopack build totals. These are build-asset totals, not per-visit transfer measurements; Storybook and axe are not part of the shipped app bundles.

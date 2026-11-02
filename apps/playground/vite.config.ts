@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -7,7 +8,7 @@ const appRoot = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
   base: process.env.VITE_BASE_PATH ?? '/personal-tools/',
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   build: {
     rollupOptions: {
       input: {

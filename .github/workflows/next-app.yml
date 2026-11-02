@@ -7,6 +7,8 @@ on:
     paths:
       - 'apps/next-vercel-supabase-app/**'
       - 'packages/api-contracts/**'
+      - 'packages/design-tokens/**'
+      - 'packages/ui/**'
       - 'biome.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -39,6 +41,8 @@ jobs:
             next:
               - 'apps/next-vercel-supabase-app/**'
               - 'packages/api-contracts/**'
+              - 'packages/design-tokens/**'
+              - 'packages/ui/**'
               - 'biome.json'
               - 'package.json'
               - 'pnpm-lock.yaml'
@@ -68,6 +72,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Lint, formatting, strict types, and Vitest API/UI integration tests
         run: pnpm --filter next-vercel-supabase-app check
+      - name: Build shared UI Storybook
+        run: pnpm --filter @scratch-pages/ui build:storybook
       - name: Install Chromium and system dependencies
         run: pnpm --filter next-vercel-supabase-app exec playwright install --with-deps chromium
       - name: Production-build browser smoke against a local Supabase fixture

@@ -8,7 +8,6 @@ test('opens the Quran reader when its homepage link is selected', async ({ page 
   await expect(page.getByRole('heading', { name: 'Playground' })).toBeVisible()
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Playground' })).toBeVisible()
-  await expect(page.getByRole('link', { name: /Supabase API demo/i })).toBeVisible()
   await page.getByRole('link', { name: /Quran reader/i }).click()
   await expect(page.getByRole('heading', { name: 'A moment with the Quran.' })).toBeVisible()
   await expect(page).toHaveURL(/\/quran\/$/)

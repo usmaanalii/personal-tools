@@ -2,6 +2,8 @@
 
 A small monorepo for personal web app experiments.
 
+The two connection demos adopt the [shared light style guide](docs/style-guide/README.md), implemented in `packages/design-tokens` and `packages/ui`. Their existing URLs remain the live links below. Dark mode is future work.
+
 ## Quick access
 
 - [Playground index](https://usmaanalii.github.io/personal-tools/)

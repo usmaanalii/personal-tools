@@ -1,0 +1,31 @@
+/* Foundation values remain separate from the light theme's semantic mapping. */
+:root {
+  color-scheme: light;
+  --scale-space-1: .25rem;
+  --scale-space-2: .5rem;
+  --scale-space-3: .75rem;
+  --scale-space-4: 1rem;
+  --scale-space-6: 1.5rem;
+  --scale-radius-sm: .5rem;
+  --scale-radius-lg: 1rem;
+  --scale-shadow-card: 0 8px 24px #24312d14;
+  --theme-background: #f7f8f5;
+  --theme-surface: #fbfcf9;
+  --theme-foreground: #24312d;
+  --theme-muted: #526158;
+  --theme-border: #c6d4c7;
+  --theme-primary: #355c48;
+  --theme-primary-hover: #294a39;
+  --theme-on-primary: #fff;
+  --theme-focus: #355c48;
+  --theme-error: #8c2f32;
+  --theme-radius-control: var(--scale-radius-sm);
+  --theme-radius-card: var(--scale-radius-lg);
+  --theme-shadow-card: var(--scale-shadow-card);
+  --theme-font-body: system-ui, sans-serif;
+  --theme-font-heading: system-ui, sans-serif;
+  --theme-motion-fast: 150ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --theme-motion-fast: 0ms; }
+}

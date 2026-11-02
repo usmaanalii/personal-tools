@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 
 test('shows the greeting when Check connection is selected', async ({
   page,
@@ -14,6 +15,7 @@ test('shows the greeting when Check connection is selected', async ({
     .getByRole('button', { name: 'Check connection', exact: true })
     .click()
   await expect(page.getByRole('status')).toHaveText('Hello from Supabase!')
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
     content: document.documentElement.scrollWidth,

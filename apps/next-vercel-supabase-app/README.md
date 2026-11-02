@@ -1,5 +1,7 @@
 # Next.js + Vercel + Supabase
 
+The connection page uses the workspace's shared light tokens and owned Button. Page/layout remain Server Components, while `ConnectionCheck` stays the client leaf; the server route retains Supabase configuration. Import shared styles through `src/app/globals.css`. See the [shared style guide](../../docs/style-guide/README.md). Run `pnpm --filter next-vercel-supabase-app check` and `build` after changing shared UI. Dark mode is planned for later.
+
 **Live app:** https://next-vercel-supabase-app.vercel.app
 
 An independent App Router app alongside Playground. The home page checks the existing public Supabase `hello` Edge Function through `GET /api/supabase` on the Next.js server. It supports loading feedback, safe failure messages, and retry.

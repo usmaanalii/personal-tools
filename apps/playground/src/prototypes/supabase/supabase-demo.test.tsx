@@ -17,8 +17,10 @@ describe('Supabase demo', () => {
     renderAtPath('/supabase/')
     await userEvent.click(await screen.findByRole('button', { name: 'Call the API' }))
 
-    expect(await screen.findByText('API request succeeded.')).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'API response' })).toHaveTextContent('"Hello from Supabase!"')
+    expect(await screen.findByText('API request succeeded.')).toBeVisible()
+    const response = screen.getByRole('region', { name: 'API response' })
+    expect(response).toBeVisible()
+    expect(response).toHaveTextContent('"Hello from Supabase!"')
   })
 
   it('shows an error and re-enables Call the API when the greeting cannot be loaded', async () => {
@@ -31,16 +33,16 @@ describe('Supabase demo', () => {
     const button = await screen.findByRole('button', { name: 'Call the API' })
     await userEvent.click(button)
 
-    expect(await screen.findByText('API request failed: Network unavailable')).toBeInTheDocument()
+    expect(await screen.findByText('API request failed: Network unavailable')).toBeVisible()
     expect(button).toBeEnabled()
   })
 })
 
 
-it('rejects a greeting that contradicts the success contract', async () => {
+it('shows an error when Call the API receives an invalid greeting', async () => {
   server.use(http.get(helloEndpoint, () => HttpResponse.json({ ok: false, message: 'Not a success' })))
   renderAtPath('/supabase/')
   await userEvent.click(await screen.findByRole('button', { name: 'Call the API' }))
-  expect(await screen.findByText('API request failed: The API returned an unexpected response.')).toBeInTheDocument()
+  expect(await screen.findByText('API request failed: The API returned an unexpected response.')).toBeVisible()
   expect(screen.queryByText('API request succeeded.')).not.toBeInTheDocument()
 })

@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Button } from '@scratch-pages/ui'
+import '@scratch-pages/ui/styles.css'
 import { getHello, type HelloResponse } from './hello-api'
 import './supabase-demo.css'
 
@@ -47,9 +49,9 @@ export default function SupabaseDemo() {
       <a className="back-home" href={import.meta.env.BASE_URL}>← All playground pages</a>
       <h1>Hello from GitHub Pages</h1>
       <p>This page calls a Supabase Edge Function with a GET request.</p>
-      <button type="button" onClick={handleCallApi} disabled={apiState.status === 'loading'}>
+      <Button onClick={handleCallApi} disabled={apiState.status === 'loading'}>
         Call the API
-      </button>
+      </Button>
       <section aria-label="API response" aria-live="polite"><pre>{messageForState(apiState)}</pre></section>
       <p className="hint" role="status" aria-live="polite">{statusForState(apiState)}</p>
     </main>

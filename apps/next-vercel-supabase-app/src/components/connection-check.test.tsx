@@ -23,6 +23,7 @@ it('shows the greeting after checking the connection', async () => {
     await screen.findByRole('button', { name: 'Check again' }),
   ).toBeEnabled()
   expect(screen.getByRole('status')).toHaveTextContent('Hello from Supabase!')
+  expect(screen.getByRole('status')).toBeVisible()
 })
 
 it('recovers when Try again is selected after a failed connection check', async () => {
@@ -36,6 +37,7 @@ it('recovers when Try again is selected after a failed connection check', async 
   expect(await screen.findByRole('alert')).toHaveTextContent(
     'The connection check failed. Please try again.',
   )
+  expect(screen.getByRole('alert')).toBeVisible()
   server.use(
     http.get('/api/supabase', () =>
       HttpResponse.json({ ok: true, message: 'Hello from Supabase!' }),
@@ -44,6 +46,7 @@ it('recovers when Try again is selected after a failed connection check', async 
   await user.click(screen.getByRole('button', { name: 'Try again' }))
   await screen.findByRole('button', { name: 'Check again' })
   expect(screen.getByRole('status')).toHaveTextContent('Hello from Supabase!')
+  expect(screen.getByRole('status')).toBeVisible()
   expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 })
 
@@ -66,6 +69,7 @@ it('shows progress and disables repeated submission when Enter activates Check c
     expect(screen.getByRole('status')).toHaveTextContent(
       'Waiting for Supabase…',
     )
+    expect(screen.getByRole('status')).toBeVisible()
   } finally {
     pending.resolve()
   }
@@ -73,9 +77,10 @@ it('shows progress and disables repeated submission when Enter activates Check c
     await screen.findByRole('button', { name: 'Check again' }),
   ).toBeEnabled()
   expect(screen.getByRole('status')).toHaveTextContent('Hello from Supabase!')
+  expect(screen.getByRole('status')).toBeVisible()
 })
 
-it('offers a retry when the connection response has an invalid greeting', async () => {
+it('offers Try again when Check connection cannot read the greeting', async () => {
   server.use(
     http.get('/api/supabase', () =>
       HttpResponse.json({ ok: true, message: 42 }),
@@ -86,5 +91,6 @@ it('offers a retry when the connection response has an invalid greeting', async 
   expect(await screen.findByRole('alert')).toHaveTextContent(
     'The connection check failed. Please try again.',
   )
+  expect(screen.getByRole('alert')).toBeVisible()
   expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled()
 })

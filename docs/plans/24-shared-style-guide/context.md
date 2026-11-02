@@ -1,0 +1,9 @@
+# Existing contracts
+
+- Playground selects `/supabase/` and lazy-loads the demo in `apps/playground/src/app/app.tsx:43`. The action and its local idle/loading/success/error state are in `apps/playground/src/prototypes/supabase/supabase-demo.tsx:5`. It renders JSON and polite status feedback. `hello-api.ts:5` calls the public Edge Function directly and validates its response. `supabase-demo.test.tsx:15` covers success, failure and malformed success through the real app with MSW.
+- Next renders `ConnectionCheck` from the Server Component in `apps/next-vercel-supabase-app/src/app/page.tsx:1`. The client leaf owns idle/loading/success/error and retries in `src/components/connection-check.tsx:1`; `connection-check.test.tsx:14` covers success, retry, pending keyboard activation and malformed greeting. `src/app/api/supabase/route.ts:4` owns the server-only configuration and upstream request.
+- Existing visual systems differ: `apps/playground/src/prototypes/supabase/supabase-demo.css:1` is light and locally scoped; `apps/next-vercel-supabase-app/src/app/globals.css:1` defines a dark page. Quran CSS has global selectors (`apps/playground/src/prototypes/quran/styles.css:3`), so a new global reset could affect unrelated pages.
+- Shared UI and token packages, Tailwind and Storybook are not yet installed. The workspace already includes `packages/*` (`pnpm-workspace.yaml:1`). Both connection journeys are tested; use those tests as the baseline before rewiring.
+- Shared-package edits need new change-detection paths in `.github/workflows/deploy-pages.yml:6`, `e2e.yml:7` and `next-app.yml:7`, including their pull-request job filters. Follow `.github/workflows/README.md:3`.
+
+Current checks: Playground uses Node 24 for tests/build; Next uses Node 22 and requires `check` plus production browser smoke. Existing browser tests are short served-app journeys, while detailed states belong in Vitest. Fixture-backed runs do not prove hosted Supabase connectivity.
