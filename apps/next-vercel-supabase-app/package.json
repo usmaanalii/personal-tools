@@ -13,7 +13,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "NODE_ENV=test vitest run --coverage",
     "test:e2e": "playwright test",
     "test:smoke": "playwright test --config playwright.smoke.config.ts",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:coverage"
