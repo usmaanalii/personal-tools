@@ -28,7 +28,7 @@ const baseEnv = {
   VERCEL_PROJECT_ID: config.projectId,
   CI: "1",
 };
-const cli = ["vercel", "--scope", config.teamId];
+const cli = ["vercel", "--non-interactive", "--scope", config.teamId];
 const record = {
   project: config.key,
   sha,

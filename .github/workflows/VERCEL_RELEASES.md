@@ -68,6 +68,8 @@ If a CLI command fails, the record also includes its exit code and a fixed error
 
 The classifier checks both CLI output streams and parses structured JSON errors, allowing for a CLI version banner before the JSON. It retains only recognised reason codes from the pinned CLI, such as `cli-forbidden`, `cli-project_not_found` or `cli-network_error`. A `login_required` error becomes `cli-authentication-rejected`. Unknown reason codes remain `command-failed`; messages, hints and suggested commands are never copied into the release record or executed automatically.
 
+Every release CLI command explicitly uses `--non-interactive`. Setting `CI=1` alone does not enable structured errors in this CLI version; the flag prevents prompts and makes recognised failures available to the classifier.
+
 ## How credentials reach a protected deployment
 
 The workflow's `GITHUB_TOKEN` has `contents: read`. The selection job also has `deployments: read` so it can find each project's last successful release. Checkout does not leave Git credentials behind, and the reusable workflow does not use `secrets: inherit`. This setup does not deploy PR previews. Each project gets separate GitHub environment deployment statuses.
