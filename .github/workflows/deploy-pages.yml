@@ -1,6 +1,7 @@
 name: Deploy to GitHub Pages
 
 on:
+  pull_request:
   push:
     branches: [main]
     paths:
@@ -18,15 +19,14 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
+    name: Pages quality and routing
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -40,15 +40,25 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
       - run: pnpm test:functions
-      - run: pnpm build
+      - name: Build the complete Pages artifact
+        run: pnpm build:pages
         env:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      - name: Install Chromium
+        run: pnpm --filter playground exec playwright install --with-deps chromium
+      - name: Verify the complete artifact under the deployment prefix
+        run: pnpm test:pages
       - uses: actions/upload-pages-artifact@v5
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:
           path: apps/playground/dist
 
   deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

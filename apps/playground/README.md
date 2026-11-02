@@ -121,7 +121,7 @@ The `*-deployment.e2e.ts` files alongside each prototype’s E2E tests open the 
 
 ## Deployment
 
-The Pages workflow uses Node 24 for Playground tests and builds. GitHub Actions builds and deploys this app to GitHub Pages. The default base is `/personal-tools/`; use `VITE_BASE_PATH=/` for hosting at a domain root. Each route has an HTML entry point configured in `vite.config.ts`.
+The Pages workflow uses Node 24 for Playground tests and builds. GitHub Actions builds and deploys this app together with the shared UI Storybook in one GitHub Pages artifact. From the repository root, use `pnpm build:pages` followed by `pnpm test:pages` to verify that complete artifact; `pnpm build` remains the standalone Playground build. See [Storybook publishing and recovery](../../packages/ui/README.md#publishing-and-verification). The default base is `/personal-tools/`; use `VITE_BASE_PATH=/` for hosting at a domain root. Each route has an HTML entry point configured in `vite.config.ts`.
 
 See the [root README](../../README.md) for live links, repository variables, and GitHub Pages setup.
 

@@ -40,7 +40,7 @@ The Supabase `quran` function is deployed separately from Pages. Its credentials
 
 ## Shared style guide
 
-Changes in `packages/design-tokens/**` or `packages/ui/**` cause Pages, Playground E2E and Next checks to run, including the PR change-detection steps. The Next quality job also builds the shared UI Storybook catalogue. The workflow builds the Storybook catalogue without publishing a website.
+Changes in `packages/design-tokens/**` or `packages/ui/**` cause Pages, Playground E2E and Next checks to run, including the PR change-detection steps. The Next quality job also builds the shared UI Storybook catalogue. The Next workflow builds the Storybook catalogue without publishing it. The Pages workflow publishes the catalogue as part of the combined Playground artifact; see below.
 
 The connection browser journeys run axe accessibility scans alongside their short route and action checks.
 
@@ -49,3 +49,15 @@ The connection browser journeys run axe accessibility scans alongside their shor
 Changes to `packages/api-contracts/**` cause Pages, Playground E2E and Next verification to run, including PR change detection. Function changes also trigger Pages.
 
 Playground E2E installs Deno 2.9.6 and runs `pnpm --filter edge-functions check:deno` on both actual function entry points with frozen function lockfiles. It also runs the Node/MSW handler tests. Deno checks imports and types; it cannot confirm a hosted deployment or provider credentials. Deploy and verify the Quran v2 backend before publishing the frontend that uses it.
+
+## Combined Pages artifact and Storybook
+
+`deploy-pages.yml` is the only Pages deployment owner. On every PR it runs the existing frontend and function tests, then `pnpm build:pages` and `pnpm test:pages` on Node 24 with frozen workspace installation. The named **Pages quality and routing** check always runs, so an unrelated PR does not leave it pending. It can be made a required check in branch protection. PR jobs have only read access and do not upload or deploy Pages artifacts.
+
+Relevant pushes to `main` and manual dispatch on `main` run the same checks, upload `apps/playground/dist`, and publish that exact artifact. The build first cleans/rebuilds Playground, then builds Storybook and copies its complete output to `dist/storybook/`. UI, token, workspace/lockfile and Pages-workflow changes are covered by the main push paths. PR concurrency is separate from main; a PR cannot cancel the production run. Deploy permissions are scoped to the main-only deployment job. Existing public Playground Supabase variables are unchanged; Storybook needs no credentials.
+
+The prefix-aware static server has no SPA fallback. Browser checks load every existing page shell directly and after refresh, and load the Storybook index/manager/preview through nested URLs. The local Quran check uses the existing HTTP fixture because the page waits for chapter data; no Storybook assets are intercepted. They do not prove backend connectivity. The prepublication check consumes the built artifact without rebuilding it. A failed test or build prevents upload/deployment.
+
+Before publishing: install Chromium with `pnpm --filter playground exec playwright install --with-deps chromium`, run `pnpm build:pages`, then `pnpm test:pages`. For an existing public deployment, run `PLAYWRIGHT_BASE_URL=https://usmaanalii.github.io/personal-tools/ pnpm test:pages` (no local server or backend/asset mocks). Record the commit SHA, Pages run and hosted result on #33. Only after the first successful hosted check, add Storybook to root Quick access and update the pending status in the UI/style-guide docs.
+
+To recover, revert the faulty change through the normal approved commit/push workflow and let Pages rebuild, test and redeploy the complete site. Alternatively, rerun a known-good workflow run whose source builds the complete artifact. Keep Playground and Storybook together; publishing Storybook alone would replace the other pages. Verify all public routes again after recovery. A failed prepublication run leaves the previous deployment serving; a failure during deployment requires checking the Pages run and public routes before claiming recovery.
