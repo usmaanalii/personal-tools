@@ -24,9 +24,12 @@ export function VerseWords({ verse, chapterName, restoreReadingFocus }: {
       </span>) : verse.arabic}
       <span className="ayah-mark">۝{verse.number}</span>
     </p>
-    {word && <WordDialog dismiss={dismiss} onUnmount={restoreReadingFocus}>
+    {word && <WordDialog dismiss={dismiss} onUnmount={restoreReadingFocus} returnFocus={() => {
+      const target = buttons.current.get(word.position)
+      if (target?.isConnected) target.focus()
+    }}>
       <WordContent word={word} chapterName={chapterName}/>
-      <nav className="word-navigation" aria-label="Words in this verse">
+      <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t border-ui-border pt-5 max-[760px]:grid-cols-2 max-[760px]:[&>span]:col-span-2 max-[760px]:[&>span]:row-start-2" aria-label="Words in this verse">
         <button type="button" disabled={!selection.previous} onClick={selection.movePrevious}>Previous word</button>
         <span>Word {selection.index + 1} of {verse.words?.length}</span>
         <button type="button" disabled={!selection.next} onClick={selection.moveNext}>Next word</button>

@@ -4,7 +4,7 @@ The Supabase connection page adopts the workspace's shared light tokens and owne
 
 A React and Vite app with separately addressable pages: the homepage (`/`), Quran reader (`/quran/`), and Supabase demo (`/supabase/`). The reader loads chapters and paginated Arabic verses with an English translation (M.A.S. Abdel Haleem in pre-live; The Clear Quran in production) through the Supabase `quran` Edge Function. Bookmarks last for the current session; audio and reading progress are not connected. The Pages workflow publishes frontend changes from `main`.
 
-Chapter browsing and surrounding reader chrome use shared tokens, owned Button/Input/ViewSwitcher controls and Tailwind utilities. Reader owns chapter requests, search, selection, bookmarks and verse loading; app-local views receive data, actions and composition slots. Search and bookmarks remain local to the mounted reader and do not modify URL state. See the [chapter browsing state inventory](src/prototypes/quran/chapter-browsing-journeys.md) for responsive examples, intentional visual/accessibility changes and verification limits. Quran text, verse presentation and word-dialog CSS remain separate from the migrated chrome.
+Chapter browsing and surrounding reader chrome use shared tokens, owned Button/Input/ViewSwitcher controls and Tailwind utilities. Reader owns chapter requests, search, selection, bookmarks and verse loading; app-local views receive data, actions and composition slots. Search and bookmarks remain local to the mounted reader and do not modify URL state. See the [chapter browsing state inventory](src/prototypes/quran/chapter-browsing-journeys.md) for responsive examples, intentional visual/accessibility changes and verification limits. Quran text and verse presentation remain separate from the migrated chrome; the word dialog uses Tailwind utilities.
 
 `pnpm --filter @scratch-pages/ui storybook` opens the shared catalogue, including Playground's twelve chapter examples (six states at mobile and desktop widths). Playground declares the same pinned Storybook renderer as a development dependency so its colocated stories are included in normal TypeScript checks; it adds no production dependency. The combined Pages workflow will publish these additions after an approved push.
 
@@ -36,7 +36,7 @@ See the [Quran function README](../../supabase/functions/quran/README.md) for th
 
 When the backend supplies validated word data, tap an Arabic word (or activate it
 with Enter/Space) to highlight it and open its English gloss, available
-transliteration and verse reference. A native `<dialog>` appears as a mobile
+transliteration and verse reference. The owned shared Dialog appears as a mobile
 bottom sheet or a centered desktop dialog. Previous/next stays within the verse;
 Close/Escape restores focus to the last selected word. Changing the chapter or
 verse page closes the details. Verse-end markers remain non-interactive.
@@ -49,7 +49,10 @@ credited to Quran Foundation separately from the selected whole-verse translator
 no authorship by that translator is implied. Grammar and dictionaries are outside
 this feature. See the [journey/state inventory](src/prototypes/quran/word-meaning-journeys.md).
 
-No new environment variables or dependencies are required. Backend version 6 was
+No new environment variables or backend dependencies are required. The dialog
+migration adds the exact `@radix-ui/react-dialog` 1.1.23 runtime dependency to
+`@scratch-pages/ui`; see the [#26 verification record](src/prototypes/quran/word-dialog-verification.md)
+for compatibility, bundle impact and revert details. Backend version 6 was
 deployed on 2026-11-01 with the existing server-side credentials. Live checks
 verified all 7 Al-Fatihah verses and Al-Baqarah pages 1, 2 and 15, including word
 positions, English glosses, transliteration, translation attribution, legacy
@@ -62,8 +65,10 @@ coverage still needs production access. See the [backend rollout checklist](../.
 
 The Quran modules remain app-local. `use-word-selection.ts` owns selected
 position and verse-bounded navigation; `word-content.tsx` renders the existing
-word fields independently from fixture data; `word-dialog.tsx` owns native modal
-lifecycle and naming. `verse-words.tsx` composes them and owns occurrence button
+word fields independently from fixture data; `word-dialog.tsx` owns Quran modal
+lifecycle and names it through the shared Dialog title. `packages/ui/src/dialog.tsx`
+contains the Radix imports and owns the shared accessible primitive wrappers and
+Tailwind-styled surface. `verse-words.tsx` composes them and owns occurrence button
 refs, highlighting and focus return. Reader's existing chapter/page/retry keys
 discard stale selection along with the old verses.
 
@@ -71,7 +76,11 @@ Close/Escape returns focus to the latest connected occurrence. When context
 invalidation removes the details, focus stays on a surviving focused control;
 if focus was lost, Reader focuses its current chapter heading, which is outside
 the normal Tab order. The fallback runs after old DOM targets have been removed.
-The dialog markup, CSS and dependencies retain their existing appearance.
+The shared primitive traps modal focus and handles Escape; the feature prevents
+outside dismissal and returns focus to the most recently selected connected word.
+The app composes Tailwind utilities on a single dialog primitive for its centered
+desktop surface and bottom-aligned mobile sheet, using safe-area padding and
+shared theme tokens.
 
 See the [#23 verification record](src/prototypes/quran/word-selection-verification.md)
 for checks and evidence limits. The existing Pages workflow publishes the
@@ -95,9 +104,9 @@ Keep detailed page behavior in Vitest with real application components and HTTP-
 - `tests/prototypes/quran/word-dialog.e2e.ts`: opens the reader directly, refreshes it, selects a word, shows its meaning and closes the details to resume reading.
 - `tests/prototypes/supabase/demo.e2e.ts`: direct loading, refresh and navigation back to the homepage.
 
-There are three high-level smoke journeys per viewport. E2E does not repeat detailed word navigation, unavailable-label, focus, typography, rotation or modal lifecycle cases. Detailed word behavior belongs in Vitest; `quran-words.test.tsx` covers the real page composition with HTTP fixtures, and `word-content.test.tsx` proves independent rendering with visible content. The shared typed word factory avoids copied records; fixtures reject unsupported chapter/page requests, and pagination uses Al-Baqarah rather than inventing a second page for seven-verse Al-Fatihah.
+There are three high-level smoke journeys per viewport plus two focused browser checks for the word dialog. E2E does not repeat detailed word navigation or unavailable-label states. Detailed feature behavior belongs in Vitest; `quran-words.test.tsx` covers the real page composition with HTTP fixtures, and `word-content.test.tsx` proves independent rendering with visible content. `word-dialog-browser.e2e.ts` separately verifies browser focus containment, Escape, accessible naming/axe, focus return, narrow and landscape geometry, long content and 200%-equivalent reflow width. The shared typed word factory avoids copied records; fixtures reject unsupported chapter/page requests, and pagination uses Al-Baqarah rather than inventing a second page for seven-verse Al-Fatihah.
 
-The static-server fallback/404 contract runs once in Vitest's Node infrastructure project, not in a browser matrix. Word-data mapping and failure recovery are covered independently in backend-owned tests. Vitest/jsdom models modal visibility and the application's dismissal/focus callbacks; it does not prove native focus containment, browser Escape dispatch or rendered geometry. The smoke suite does not replace a browser component or scoped manual check for those details. See the [verification record](src/prototypes/quran/word-selection-verification.md) for current evidence and limitations.
+The static-server fallback/404 contract runs once in Vitest's Node infrastructure project, not in a browser matrix. Word-data mapping and failure recovery are covered independently in backend-owned tests. Vitest/jsdom verifies real composition, word behavior and context teardown; it does not prove browser focus containment or rendered geometry. The separate browser check covers those integration risks with fixture content and does not prove live backend connectivity. See the [#23 verification record](src/prototypes/quran/word-selection-verification.md) and [#26 dialog record](src/prototypes/quran/word-dialog-verification.md) for evidence and limits.
 
 Tests follow the same ownership as source code:
 

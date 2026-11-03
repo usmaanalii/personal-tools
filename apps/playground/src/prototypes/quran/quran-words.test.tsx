@@ -7,12 +7,6 @@ import App from '../../app/app'
 import { server, quranEndpoint } from '../../test-server'
 import { buildWord } from './quran-fixtures.test-data'
 
-// jsdom models dialog visibility, not native focus containment or Escape dispatch.
-Object.defineProperties(HTMLDialogElement.prototype, {
-  showModal: { configurable: true, value() { this.setAttribute('open', '') } },
-  close: { configurable: true, value() { this.removeAttribute('open') } },
-})
-
 function words() {
   return [buildWord(), buildWord({ position: 2, arabic: 'ٱللَّهِ', meaning: 'of Allah', transliteration: 'l-lahi' })]
 }
@@ -62,7 +56,7 @@ it('shows adjacent words in the same verse when Previous or Next is selected', a
   await user.click(details.getByRole('button', { name: 'Next word' }))
   expect(details.getByText('of Allah')).toBeVisible()
   expect(word).toHaveAttribute('aria-pressed', 'false')
-  expect(screen.getByRole('button', { name: 'ٱللَّهِ · 1:1:2' })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByRole('button', { name: 'ٱللَّهِ · 1:1:2', hidden: true })).toHaveAttribute('aria-pressed', 'true')
   expect(details.queryByText('In (the) name')).not.toBeInTheDocument()
   expect(details.getByRole('button', { name: 'Next word' })).toBeDisabled()
   await user.click(details.getByRole('button', { name: 'Previous word' }))
@@ -83,14 +77,10 @@ it('returns to the last selected word when word details are closed', async () =>
   expect(word).toHaveAttribute('aria-pressed', 'false')
 })
 
-it('returns to the selected word when word details are dismissed', async () => {
+it('returns to the selected word when Escape dismisses its details', async () => {
   const { user, word } = await renderWords()
   await user.click(word)
-  const details = screen.getByRole('dialog')
-  // The visibility-only shim does not move focus into the dialog on opening.
-  within(details).getByRole('button', { name: 'Close word meaning' }).focus()
-  // Escape produces a native cancel event in browsers; jsdom does not dispatch it.
-  fireEvent(details, new Event('cancel', { cancelable: true }))
+  await user.keyboard('{Escape}')
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   expect(word).toHaveFocus()
   expect(word).toHaveAttribute('aria-pressed', 'false')
@@ -102,7 +92,7 @@ it('focuses the new chapter heading when the selected word disappears', async ()
   screen.getByRole('button', { name: 'Close word meaning' }).focus()
   // Inject external context invalidation without moving focus to a background
   // control. This proves reader wiring, not a user clicking through modal inertness.
-  fireEvent.click(screen.getByRole('button', { name: /^NEXT/ }))
+  fireEvent.click(screen.getByRole('button', { name: /^NEXT/, hidden: true }))
   await screen.findByText('2:1')
   expect(word).not.toBeInTheDocument()
   await waitFor(() => expect(screen.getByRole('heading', { name: 'Al-Baqarah' })).toHaveFocus())
@@ -111,14 +101,13 @@ it('focuses the new chapter heading when the selected word disappears', async ()
 it.each(['chapter', 'page'])('closes word details when another %s is opened', async change => {
   const { user, word } = await renderWords({ chapter: change === 'page' ? 2 : 1 })
   await user.click(word)
-  // The visibility-only shim lets this model Reader's context/focus wiring.
-  // Native modality prevents this background interaction in a real browser.
-  const control = screen.getByRole('button', { name: change === 'chapter' ? /^NEXT/ : 'Next verses' })
-  await user.click(control)
+  // Model reader context invalidation, which is not a user action while modal.
+  const control = screen.getByRole('button', { name: change === 'chapter' ? /^NEXT/ : 'Next verses', hidden: true })
+  fireEvent.click(control)
   await screen.findByText(change === 'chapter' ? '2:1' : 'Page 2')
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   expect(word).not.toBeInTheDocument()
-  expect(control).toHaveFocus()
+  await waitFor(() => expect(screen.getByRole('heading', { name: 'Al-Baqarah' })).toHaveFocus())
 })
 
 it('disables Previous and Next when a verse contains one word', async () => {
