@@ -17,6 +17,15 @@ async function renderReader() {
 afterEach(() => window.history.pushState({}, '', '/'))
 
 describe('Quran reader bookmarks', () => {
+  it('announces which chapter view is selected when switching to My bookmarks', async () => {
+    const { user } = await renderReader()
+    expect(screen.getByRole('button', { name: 'All chapters', pressed: true })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /My bookmarks/, pressed: false }))
+    expect(screen.getByRole('button', { name: /My bookmarks/, pressed: true })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'All chapters', pressed: false })).toBeInTheDocument()
+    expect(screen.getByText('Your saved verses will find a home here.')).toBeInTheDocument()
+  })
+
   it('shows the saved verse’s chapter and number when My bookmarks is selected', async () => {
     const { user } = await renderReader()
 
@@ -37,6 +46,31 @@ describe('Quran reader bookmarks', () => {
 })
 
 describe('Quran reader chapter search', () => {
+  it('announces no matching chapters and retains the query when changing views', async () => {
+    const { user } = await renderReader()
+    const url = window.location.href
+    await user.click(screen.getByRole('button', { name: 'Search chapters' }))
+    await user.type(screen.getByRole('textbox', { name: 'Search chapters' }), 'unknown chapter')
+    expect(screen.getByRole('status')).toHaveTextContent('No chapters match this search.')
+    await user.click(screen.getByRole('button', { name: /My bookmarks/ }))
+    await user.click(screen.getByRole('button', { name: 'All chapters' }))
+    expect(screen.getByRole('textbox', { name: 'Search chapters' })).toHaveValue('unknown chapter')
+    expect(window.location.href).toBe(url)
+  })
+
+  it('returns focus to Search chapters and clears the query when search is closed', async () => {
+    const { user } = await renderReader()
+    const toggle = screen.getByRole('button', { name: 'Search chapters' })
+    await user.click(toggle)
+    await user.type(screen.getByRole('textbox', { name: 'Search chapters' }), 'Yūnus')
+    await user.click(screen.getByRole('button', { name: 'Close search' }))
+
+    expect(toggle).toHaveFocus()
+    await user.click(toggle)
+    expect(screen.getByRole('textbox', { name: 'Search chapters' })).toHaveValue('')
+    expect(screen.getByRole('button', { name: /Al-Fātiḥah/ })).toBeInTheDocument()
+  })
+
   it('shows matching chapters when a chapter name is entered in Search chapters', async () => {
     const { user } = await renderReader()
 

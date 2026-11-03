@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 import { mockQuranContent } from './content-fixture'
 
 test('opens the Quran reader when its homepage link is selected', async ({ page }) => {
@@ -20,4 +21,14 @@ test('opens the Quran reader when its homepage link is selected', async ({ page 
     content: document.documentElement.scrollWidth,
   }))
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport)
+
+  // Browser risk: generated Tailwind styles must keep migrated chrome accessible.
+  // Verse typography and word details belong to their separate migration slice.
+  const accessibility = await new AxeBuilder({ page })
+    .include('header')
+    .include('[aria-label="Chapter browsing"]')
+    .include('[aria-label="Reader navigation"]')
+    .include('[aria-label="Reader shortcuts"]')
+    .analyze()
+  expect(accessibility.violations).toEqual([])
 })

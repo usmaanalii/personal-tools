@@ -15,7 +15,11 @@ Install the browser first with `pnpm --filter playground exec playwright install
 
 Standalone output is `packages/ui/storybook-static/`. The combined build creates `apps/playground/dist/storybook/` alongside Playground's index, Quran and Supabase pages. Both outputs are ignored by Git. Storybook's generated asset URLs are relative, so no extra base-path override is required. Run `pnpm build:pages` again after changes; `pnpm build` alone creates only Playground output.
 
-The catalogue exposes Controls/Button Default, Loading, Retry and Long Label. Prop descriptions and autodocs tags exist in source, but no Docs addon is installed and no generated Docs page is exposed. Storybook needs no environment variables or backend services. Playground's existing public `VITE_*` configuration still applies to the combined build; never add secrets to stories or browser builds.
+The catalogue exposes Button action/size/pressed states, labelled Input examples and an interactive ViewSwitcher. It also discovers app-owned Quran chapter stories in Playground: populated, loading, failed/retry, no search results, empty bookmarks and long names at mobile/desktop widths. App stories stay with their feature; generic controls import no app code or APIs. These are local additions until an approved push publishes them.
+
+Import controls from `@scratch-pages/ui` and import `@scratch-pages/ui/styles.css` in the consuming stylesheet. When composing with app-local Tailwind classes, register the app sources with `@source` in that stylesheet; shared control classes are scanned by the package. Styling uses tokens and complete literal utility strings. Button accepts `variant="primary" | "outline" | "ghost"` and `size="default" | "icon" | "compact"`; give icon-only actions an accessible name. Input needs a visible label; ViewSwitcher owns native grouped button semantics while its caller owns the selected value. These controls need no vendor primitive or runtime dependency beyond React.
+
+Prop descriptions and autodocs tags exist in source, but no Docs addon is installed and no generated Docs page is exposed. Storybook needs no environment variables or backend services. Playground's existing public `VITE_*` configuration still applies to the combined build; never add secrets to stories or browser builds. The app's renderer development dependency uses the same MIT-licensed 10.6.5 version already selected by the catalogue; see the [dependency record](../../docs/style-guide/README.md#dependency-ownership).
 
 ## Publishing and verification
 

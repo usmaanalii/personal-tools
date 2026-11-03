@@ -4,6 +4,10 @@ The Supabase connection page adopts the workspace's shared light tokens and owne
 
 A React and Vite app with separately addressable pages: the homepage (`/`), Quran reader (`/quran/`), and Supabase demo (`/supabase/`). The reader loads chapters and paginated Arabic verses with an English translation (M.A.S. Abdel Haleem in pre-live; The Clear Quran in production) through the Supabase `quran` Edge Function. Bookmarks last for the current session; audio and reading progress are not connected. The Pages workflow publishes frontend changes from `main`.
 
+Chapter browsing and surrounding reader chrome use shared tokens, owned Button/Input/ViewSwitcher controls and Tailwind utilities. Reader owns chapter requests, search, selection, bookmarks and verse loading; app-local views receive data, actions and composition slots. Search and bookmarks remain local to the mounted reader and do not modify URL state. See the [chapter browsing state inventory](src/prototypes/quran/chapter-browsing-journeys.md) for responsive examples, intentional visual/accessibility changes and verification limits. Quran text, verse presentation and word-dialog CSS remain separate from the migrated chrome.
+
+`pnpm --filter @scratch-pages/ui storybook` opens the shared catalogue, including Playground's twelve chapter examples (six states at mobile and desktop widths). Playground declares the same pinned Storybook renderer as a development dependency so its colocated stories are included in normal TypeScript checks; it adds no production dependency. The combined Pages workflow will publish these additions after an approved push.
+
 ## Development
 
 Use Node 24 for Playground checks (the current jsdom/Undici test dependencies fail to load on Node 22.22.3). The separate Next.js app retains its own Node requirements. Install dependencies from the repository root with `pnpm install`.

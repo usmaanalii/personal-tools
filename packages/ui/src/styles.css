@@ -10,24 +10,15 @@
   --color-ui-muted: var(--theme-muted);
   --color-ui-border: var(--theme-border);
   --color-ui-primary: var(--theme-primary);
+  --color-ui-primary-hover: var(--theme-primary-hover);
   --color-ui-on-primary: var(--theme-on-primary);
   --color-ui-focus: var(--theme-focus);
   --color-ui-error: var(--theme-error);
+  --font-ui-body: var(--theme-font-body);
+  --font-ui-heading: var(--theme-font-heading);
+  --radius-ui-control: var(--theme-radius-control);
+  --radius-ui-card: var(--theme-radius-card);
+  --shadow-ui-card: var(--theme-shadow-card);
+  --spacing: var(--scale-space-1);
+  --default-transition-duration: var(--theme-motion-fast);
 }
-
-.ui-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: var(--scale-space-3) var(--scale-space-4);
-  border: 0;
-  border-radius: var(--theme-radius-control);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color var(--theme-motion-fast);
-}
-.ui-button:hover:not(:disabled) { background: var(--theme-primary-hover); }
-.ui-button:focus-visible { outline-style: solid; outline-width: 3px; outline-offset: 3px; }
-.ui-button:disabled { opacity: .6; cursor: wait; }
