@@ -1,7 +1,8 @@
 # Owned word dialog migration (#26)
 
-Implementation and local verification recorded on 3 November 2026. This is an
-uncommitted working-tree change based on `281b2e6e0323770d4dce632d34d86abc192ccb79`.
+Implementation and local verification recorded on 3 November 2026 for commit
+[`95d99b6`](https://github.com/usmaanalii/personal-tools/commit/95d99b62236a6b54e142e214fad776f39c552729),
+based on `281b2e6e0323770d4dce632d34d86abc192ccb79`.
 Issues #23 and #24 were closed before this slice began. This record supersedes
 only their earlier native-dialog description and browser-evidence boundary;
 selection ownership and the default shared guide remain as approved.
