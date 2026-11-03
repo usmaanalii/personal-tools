@@ -21,11 +21,6 @@ body:has(.quran-reader) { margin:0;min-width:320px; }
 .arabic-text { font:500 27px/1.9 'Noto Naskh Arabic',serif;text-align:right;color:#2e4436;margin:4px 0 0;word-spacing:2px }
 .ayah-mark { font-size:15px;color:#87a18b;white-space:nowrap;margin-right:7px }
 .translation { font:400 11px/1.7 'DM Sans',sans-serif;color:#68756c;margin:1px 0 0;max-width:94% }
-.verse-list { max-height:none }
-.arabic-text { font-size:28px;line-height:1.9 }
-.translation { font-size:11px }
-.verse-list { max-height:450px }
-
 .tiny-action { font:inherit;cursor:pointer; }
 .tiny-action:hover { background:#edf2ec; }
 .tiny-action:focus-visible { outline:3px solid var(--theme-focus);outline-offset:3px; }

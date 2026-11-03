@@ -8,7 +8,7 @@ type ButtonProps = ComponentPropsWithRef<'button'> & {
 const variants = {
   primary: 'border-0 bg-ui-primary text-ui-on-primary hover:enabled:bg-ui-primary-hover',
   outline: 'border border-solid border-ui-border bg-ui-surface text-ui-foreground hover:enabled:bg-ui-background',
-  ghost: 'border-0 bg-transparent text-ui-muted hover:enabled:bg-ui-background aria-pressed:bg-ui-primary aria-pressed:text-ui-on-primary',
+  ghost: 'border-0 bg-transparent text-ui-muted hover:enabled:bg-ui-background aria-pressed:bg-ui-primary aria-pressed:text-ui-on-primary aria-pressed:hover:enabled:bg-ui-primary-hover',
 }
 
 const sizes = {

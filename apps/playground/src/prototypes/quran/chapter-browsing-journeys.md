@@ -32,4 +32,6 @@ Vitest uses the real reader route with HTTP-level MSW to cover chapter selection
 
 Storybook demonstrates six visual states at mobile and desktop widths with real app views and demonstration data/actions. Component browser audits can check the rendered geometry and native keyboard focus; they do not substitute for request recovery tests. Shared UI changes must also pass the existing connection demos' checks and independent builds. Keep execution/acceptance records on issue #25 with commit references once committed.
 
+The focused `reader-presentation.e2e.ts` checks generated styles separately from reader behavior: axe checks selected chapter-view text contrast while hovered, and a presentation-only check preserves desktop Arabic text at 27px (28px on phones) and verse viewport limits at 540px on tall desktops, 450px at desktop heights up to 900px, and no limit below 761px. These browser checks use content fixtures and do not prove live API connectivity.
+
 The source stylesheet decreased from roughly 16 KB to 5 KB by removing migrated rules; generated Tailwind CSS is a separate build artifact, so this is not a network-transfer claim. Fixture-backed checks do not prove live backend connectivity. Existing public routes and Quick access links are unchanged; publishing follows an approved commit/push through Pages.
