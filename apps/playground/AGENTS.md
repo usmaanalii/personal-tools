@@ -10,15 +10,9 @@
 
 ## Test allocation
 
-- Keep detailed page behavior in Vitest integration tests using real application components and MSW at HTTP boundaries.
-- Keep E2E high-level and smoke-only: production static files, the deployment prefix, direct loading/refresh, navigation, basic responsive fit and a short primary user journey. Keep detailed states, navigation boundaries, annotations and focus callback behavior in Vitest. Do not expand E2E into a second behavioral suite or inject synthetic application transitions there.
-- jsdom does not prove native dialog focus containment, browser Escape dispatch or rendered geometry. When those details need verification, use a separately justified browser component check or record a scoped manual check; do not claim the smoke suite proves them.
-- UI test descriptions name the user's action and observable outcome. Keep harness terms such as fixture, native, programmatic invalidation and independent rendering in setup comments or verification notes.
-- Content fixtures in smoke checks do not prove backend connectivity.
-- `test:smoke` targets an actual deployment with no asset replacement or backend interception. Do not maintain a second detailed behavioral suite under a live/mocked split.
+Follow the root test-allocation policy, with these Playground-specific requirements:
 
+- jsdom does not prove native dialog focus containment, browser Escape dispatch or rendered geometry. When those details need verification, use a separately justified browser component check or record a scoped manual check; do not claim the smoke suite proves them.
 - Colocate Vitest page tests with their owning prototype under `src/prototypes/<domain>/`; shared routing tests belong in `src/app/`. Group browser journeys and domain fixtures under `tests/prototypes/<domain>/`. Keep domain-neutral harness code and HTTP checks under `tests/infrastructure/`.
 - Test the static-server HTTP contract in Vitest’s Node project, not once per browser viewport.
-
-- Edge Function API-contract tests belong to `supabase/functions/tests/<function>/`, not frontend prototype directories. Run them with `pnpm test:functions`.
 - Use `.e2e.ts` consistently for browser tests; deployment-only cases use `*-deployment.e2e.ts` and are selected by configuration.

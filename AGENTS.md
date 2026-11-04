@@ -1,5 +1,7 @@
 # Repository guidance
 
+This file owns rules shared by the personal-tools workspace. App-specific additions live in `apps/<name>/AGENTS.md`. Shared personal workflow and skill guidance belongs in the global agent instructions; host-specific workflows belong in that agent's local configuration.
+
 - This repository is a pnpm workspace. Install dependencies from the repository root with `pnpm install`.
 - Keep each app independently buildable, testable, and documented in its own `apps/<name>` directory.
 - Run an app with `pnpm --filter <app-name> dev`; use the root scripts for the current default app.
@@ -8,11 +10,12 @@
 - Keep Supabase schema changes in migrations and require Row Level Security for tables exposed to client applications.
 - See `.github/workflows/README.md` for CI-specific workflow conventions.
 
-## Development principles
+## Test allocation
 
-- For behavior changes, use TDD: write a behavior-focused test, run it and confirm it fails for the intended reason, implement the smallest change that makes it pass, then run the relevant regression checks. Keep the regression test with the behavior change.
-- For each Playwright assertion, identify a served-app, browser, or live integration risk that the real app in Vitest with MSW cannot prove. Keep detailed UI states and copy in Vitest, audit assertions inside existing browser tests, use accessible selectors for user-facing outcomes, and avoid CSS property assertions in behavior tests.
-- Before implementation, check the available skills and read the ones whose guidance applies to the task. Follow their workflows for relevant frameworks, design, accessibility, and testing. Apply skills selectively; user requests and repository instructions take precedence.
+- Put detailed UI behavior, states and copy in Vitest integration tests with real application components and MSW at HTTP boundaries.
+- Keep Playwright to short journeys through production assets: navigation, direct loading/refresh, basic responsive fit and distinct browser integration risks. Identify what each browser assertion adds beyond Vitest, including assertions inside existing tests. Use accessible selectors for user-facing outcomes; avoid CSS property assertions and synthetic application transitions in behavior tests.
+- `test:smoke` targets an actual deployment without asset replacement or backend interception. Fixture-backed checks do not prove live backend connectivity. Do not maintain a second detailed behavioral suite under a live/mocked split.
+- Supabase Edge Function API-contract tests belong to `supabase/functions/tests/<function>/`, not frontend app directories. Run them with `pnpm test:functions`.
 
 ## Documentation
 
@@ -30,8 +33,7 @@
 
 ## Git workflow
 
-- After each completed task or independently reviewable unit of work, show the user the changes and ask whether they want them committed and pushed.
-- Leave changes local until the user approves committing and pushing.
+- After each completed task or independently reviewable unit of work, show the user the changes and ask whether they want them committed and pushed. Leave changes local until that approval.
 - Push approved changes only to `main` unless the user explicitly specifies another branch. Do not ask which branch to use; `main` is the default.
 - After completing and committing issue work, assess every acceptance criterion against the committed implementation and verification evidence. Record the assessment on the issue with commit links and any evidence limits. Mark only satisfied criteria complete, and close the issue as completed only when all criteria are covered. Leave unmet criteria open with the remaining work stated.
 
