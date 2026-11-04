@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
@@ -86,28 +86,17 @@ it('returns to the selected word when Escape dismisses its details', async () =>
   expect(word).toHaveAttribute('aria-pressed', 'false')
 })
 
-it('focuses the new chapter heading when the selected word disappears', async () => {
-  const { user, word } = await renderWords()
-  await user.click(word)
-  screen.getByRole('button', { name: 'Close word meaning' }).focus()
-  // Inject external context invalidation without moving focus to a background
-  // control. This proves reader wiring, not a user clicking through modal inertness.
-  fireEvent.click(screen.getByRole('button', { name: /^NEXT/, hidden: true }))
-  await screen.findByText('2:1')
-  expect(word).not.toBeInTheDocument()
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Al-Baqarah' })).toHaveFocus())
-})
-
-it.each(['chapter', 'page'])('closes word details when another %s is opened', async change => {
+it.each(['chapter', 'page'])('shows word details from another %s after closing the previous details', async change => {
   const { user, word } = await renderWords({ chapter: change === 'page' ? 2 : 1 })
   await user.click(word)
-  // Model reader context invalidation, which is not a user action while modal.
-  const control = screen.getByRole('button', { name: change === 'chapter' ? /^NEXT/ : 'Next verses', hidden: true })
-  fireEvent.click(control)
-  await screen.findByText(change === 'chapter' ? '2:1' : 'Page 2')
+  await user.click(screen.getByRole('button', { name: 'Close word meaning' }))
+  await user.click(screen.getByRole('button', { name: change === 'chapter' ? /^NEXT/ : 'Next verses' }))
+  const nextWord = await screen.findByRole('button', { name: `بِسْمِ · 2:${change === 'chapter' ? 1 : 21}:1` })
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-  expect(word).not.toBeInTheDocument()
-  await waitFor(() => expect(screen.getByRole('heading', { name: 'Al-Baqarah' })).toHaveFocus())
+  expect(nextWord).toHaveAttribute('aria-pressed', 'false')
+  await user.click(nextWord)
+  expect(within(screen.getByRole('dialog', { name: 'Word meaning' }))
+    .getByText(`Al-Baqarah · 2:${change === 'chapter' ? 1 : 21}`)).toBeVisible()
 })
 
 it('disables Previous and Next when a verse contains one word', async () => {

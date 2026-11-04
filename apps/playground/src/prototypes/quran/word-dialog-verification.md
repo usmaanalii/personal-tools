@@ -1,5 +1,7 @@
 # Owned word dialog migration (#26)
 
+Historical verification snapshot. The subsequent #27 test review trims exact CSS and positioning assertions, redundant dialog smoke coverage and the 640px zoom approximation. Current browser checks cover focus, contrast, viewport fit and usable controls with long content. Current Vitest journeys close word details before changing chapters or pages. See the [current test allocation](../../../README.md#tests).
+
 Implementation and local verification recorded on 3 November 2026 for commit
 [`95d99b6`](https://github.com/usmaanalii/personal-tools/commit/95d99b62236a6b54e142e214fad776f39c552729),
 based on `281b2e6e0323770d4dce632d34d86abc192ccb79`.

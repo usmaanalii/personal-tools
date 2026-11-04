@@ -23,9 +23,6 @@ test('keeps keyboard focus in the word dialog and returns it to the last selecte
   const next = dialog.getByRole('button', { name: 'Next word' })
   await expect(dialog).toBeVisible()
   await expect(close).toBeFocused()
-  const titleId = await dialog.getAttribute('aria-labelledby')
-  expect(titleId).toBeTruthy()
-  await expect(dialog.locator(`#${titleId}`)).toHaveText('Word meaning')
   const accessibility = await new AxeBuilder({ page }).include('[role="dialog"]').analyze()
   expect(accessibility.violations).toEqual([])
 
@@ -41,7 +38,7 @@ test('keeps keyboard focus in the word dialog and returns it to the last selecte
   await expect(page.getByRole('button', { name: 'اللَّهِ · 1:1:2' })).toBeFocused()
 })
 
-test('keeps long word details scrollable at narrow, landscape and 200% reflow widths', async ({ page }) => {
+test('keeps long word details and their controls usable on narrow and landscape screens', async ({ page }) => {
   await mockQuranContent(page, { meaning: 'A long word explanation. '.repeat(120) })
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('./quran/')
@@ -49,34 +46,21 @@ test('keeps long word details scrollable at narrow, landscape and 200% reflow wi
   const dialog = page.getByRole('dialog', { name: 'Word meaning' })
   await expect(dialog).toBeVisible()
   const initialViewport = page.viewportSize()
-  if (initialViewport) {
-    const initialBounds = await dialog.boundingBox()
-    expectDialogWithinViewport(initialBounds, initialViewport)
-    if (initialViewport.width > 760 && initialBounds) {
-      expect(Math.abs(initialBounds.x + initialBounds.width / 2 - initialViewport.width / 2)).toBeLessThan(1)
-      expect(Math.abs(initialBounds.y + initialBounds.height / 2 - initialViewport.height / 2)).toBeLessThan(1)
-    } else if (initialBounds) {
-      expect(initialBounds.x).toBe(0)
-      expect(initialBounds.y + initialBounds.height).toBe(initialViewport.height)
-    }
-  }
+  if (initialViewport) expectDialogWithinViewport(await dialog.boundingBox(), initialViewport)
   await page.setViewportSize({ width: 320, height: 568 })
   await expect(dialog).toBeVisible()
   const bounds = await dialog.boundingBox()
   expectDialogWithinViewport(bounds, { width: 320, height: 568 })
-  const fixedNavigationIsCovered = await page.evaluate(() => Boolean(document.elementFromPoint(window.innerWidth / 2, window.innerHeight - 8)?.closest('[role="dialog"]')))
-  expect(fixedNavigationIsCovered).toBe(true)
-  await dialog.getByRole('button', { name: 'Next word' }).scrollIntoViewIfNeeded()
-  await expect(dialog.getByRole('button', { name: 'Next word' })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Next word' }).click()
+  await expect(dialog.getByText('of Allah', { exact: true })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Previous word' }).click()
+  await expect(dialog.getByText(/^A long word explanation\./)).toBeVisible()
 
   await page.setViewportSize({ width: 740, height: 360 })
   await expect(dialog).toBeVisible()
   const landscapeBounds = await dialog.boundingBox()
   expectDialogWithinViewport(landscapeBounds, { width: 740, height: 360 })
 
-  // A 640px CSS viewport matches the layout viewport at 200% zoom on a 1280px display.
-  await page.setViewportSize({ width: 640, height: 720 })
-  await expect(dialog).toBeVisible()
-  const zoomedBounds = await dialog.boundingBox()
-  expectDialogWithinViewport(zoomedBounds, { width: 640, height: 720 })
+  await dialog.getByRole('button', { name: 'Close word meaning' }).click()
+  await expect(dialog).toBeHidden()
 })

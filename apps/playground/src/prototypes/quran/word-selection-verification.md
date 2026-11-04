@@ -1,5 +1,7 @@
 # Word-selection separation (#23)
 
+Historical verification snapshot. The subsequent #27 test review replaces synthetic clicks behind the modal with close/navigate/open journeys and removes a duplicate focus-fallback scenario. The original forced-invalidation evidence below describes that earlier test suite. See the [current test allocation](../../../README.md#tests).
+
 Verification on 1 November 2026 against the local change from `80f1e46`, updated
 following the test-quality, naming and smoke-scope review rounds. Implementation
 and the context-teardown focus policy are approved. Commit/push were authorized

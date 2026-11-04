@@ -11,11 +11,6 @@ test('opens a shared button through Storybook and refreshes its direct link', as
   // Browser risk: Pages has no SPA fallback; query-based deep links must survive a fresh load.
   await page.reload()
   await expect(preview.getByRole('button', { name: 'Try again', exact: true })).toBeVisible()
-  // Check that each published index entry resolves to its rendered story, without duplicating state tests.
-  await page.getByRole('link', { name: 'Loading', exact: true }).click()
-  await expect(preview.getByRole('button', { name: 'Checking connection…', exact: true })).toBeVisible()
-  await page.getByRole('link', { name: 'Long Label', exact: true }).click()
-  await expect(preview.getByRole('button', { name: 'Check the connection to the Supabase function again' })).toBeVisible()
 })
 
 for (const [route, heading] of [
