@@ -10,6 +10,21 @@ function renderAtPath(path: string) {
 afterEach(() => window.history.pushState({}, '', '/'))
 
 describe('Playground navigation', () => {
+  it.each([
+    ['quran', 'Quran reader', 'Loading Quran reader…'],
+    ['supabase', 'Supabase API demo', 'Loading Supabase demo…'],
+  ])('offers a way home while %s loads', async (route, title, message) => {
+    renderAtPath(`/personal-tools/${route}/`)
+
+    expect(screen.getByRole('status')).toHaveTextContent(message)
+    expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /All playground pages/i })).toHaveAttribute('href', import.meta.env.BASE_URL)
+    expect(await screen.findByRole('heading', {
+      name: route === 'quran' ? 'Al-Fātiḥah' : 'Hello from GitHub Pages',
+    })).toBeInTheDocument()
+    expect(screen.queryByText(message)).not.toBeInTheDocument()
+  })
+
   it('offers separate destinations for the Quran reader and Supabase demo', () => {
     renderAtPath('/')
 
@@ -18,9 +33,4 @@ describe('Playground navigation', () => {
     expect(screen.getByRole('link', { name: /Supabase API demo/i }).getAttribute('href')).toMatch(/supabase\/$/)
   })
 
-  it('shows the Quran reader when the current path is /quran/', async () => {
-    renderAtPath('/quran/')
-
-    expect(await screen.findByRole('heading', { name: 'Al-Fātiḥah' })).toBeInTheDocument()
-  })
 })

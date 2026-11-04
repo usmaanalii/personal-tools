@@ -1,48 +1,22 @@
 import { lazy, Suspense } from 'react'
-import './home.css'
+import { PlaygroundHome } from './playground-home'
+import { RouteLoading } from './route-loading'
 
 const QuranReader = lazy(() => import('../prototypes/quran/quran-reader'))
 const SupabaseDemo = lazy(() => import('../prototypes/supabase/supabase-demo'))
-
-const basePath = import.meta.env.BASE_URL
-
-function PlaygroundHome() {
-  return (
-    <main className="playground-home">
-      <div className="home-content">
-        <p className="home-eyebrow">PERSONAL TOOLS</p>
-        <h1>Playground</h1>
-        <p className="home-intro">A small collection of ideas and experiments. Choose a page to explore.</p>
-        <nav className="playground-links" aria-label="Playground pages">
-          <a href={`${basePath}quran/`}>
-            <span className="page-icon" aria-hidden="true">۞</span>
-            <span><strong>Quran reader</strong><small>Explore chapters and read verses in a calm, phone-first layout.</small></span>
-            <span className="page-arrow" aria-hidden="true">→</span>
-          </a>
-          <a href={`${basePath}supabase/`}>
-            <span className="page-icon api-icon" aria-hidden="true">↗</span>
-            <span><strong>Supabase API demo</strong><small>Send a request to a public Edge Function and inspect its response.</small></span>
-            <span className="page-arrow" aria-hidden="true">→</span>
-          </a>
-        </nav>
-      </div>
-    </main>
-  )
-}
-
 export default function App() {
   const route = window.location.pathname.split('/').filter(Boolean).at(-1)
 
   if (route === 'quran') {
     return (
-      <Suspense fallback={<main><p role="status">Loading Quran reader…</p></main>}>
+      <Suspense fallback={<RouteLoading title="Quran reader" message="Loading Quran reader…" />}>
         <QuranReader />
       </Suspense>
     )
   }
   if (route === 'supabase') {
     return (
-      <Suspense fallback={<main><p role="status">Loading Supabase demo…</p></main>}>
+      <Suspense fallback={<RouteLoading title="Supabase API demo" message="Loading Supabase demo…" />}>
         <SupabaseDemo />
       </Suspense>
     )

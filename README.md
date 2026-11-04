@@ -10,7 +10,7 @@
 
 A small monorepo for personal web app experiments.
 
-The two connection demos use the [shared light style guide](docs/style-guide/README.md) from `packages/design-tokens` and `packages/ui`. The links above open the live sites. Dark mode is planned for later.
+The Playground homepage, route-loading shells and two connection demos use the [shared light style guide](docs/style-guide/README.md) from `packages/design-tokens` and `packages/ui`. The links above open the live sites. Local changes reach them only after an approved push and successful deployment. Dark mode is planned for later.
 
 ## Playground
 

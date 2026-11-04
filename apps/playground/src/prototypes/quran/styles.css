@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap');
 @import '@scratch-pages/ui/styles.css';
-@source './';
+/* Match the home stylesheet's app-wide scan when both chunks are present. */
+@source '../../';
 
 /* Page layout and generic controls use Tailwind. These rules retain Quran content rendering. */
 body:has(.quran-reader) { margin:0;min-width:320px; }

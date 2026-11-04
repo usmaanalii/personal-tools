@@ -10,4 +10,11 @@ test('opens the homepage when All playground pages is selected from the Supabase
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
   await page.getByRole('link', { name: /All playground pages/i }).click()
   await expect(page.getByRole('heading', { name: 'Playground' })).toBeVisible()
+  // Browser risk: the second static destination is reachable using native keyboard navigation.
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('link', { name: /Supabase API demo/i })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/\/personal-tools\/supabase\/$/)
+  await expect(page.getByRole('heading', { name: 'Hello from GitHub Pages' })).toBeVisible()
 })
