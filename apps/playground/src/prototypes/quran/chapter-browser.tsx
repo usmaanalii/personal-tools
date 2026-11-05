@@ -1,9 +1,9 @@
 import { useId, type ReactNode } from 'react'
 import { Button, Input, ViewSwitcher } from '@scratch-pages/ui'
 import { ChapterChoice } from './chapter-list'
-import type { Ayah, Chapter } from './quran-api'
+import type { Chapter } from './quran-api'
+import type { SavedVerse } from './use-reader'
 
-export type SavedVerse = { chapterId: number; verse: Ayah }
 export type ChapterView = 'chapters' | 'bookmarks'
 
 export function ChapterBrowser({ total, tab, onTabChange, bookmarkCount, search, children }: {

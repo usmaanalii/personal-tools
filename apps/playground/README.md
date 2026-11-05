@@ -8,7 +8,7 @@ The homepage and lazy-route loading shells use shared typography, surfaces, focu
 
 Storybook includes the homepage and both route-loading shells under Playground. Use these and the existing chapter stories for visual review of typography, spacing, focus indicators and style isolation. These examples remain local until an approved push publishes the combined Pages artifact.
 
-Chapter browsing and surrounding reader chrome use shared tokens, owned Button/Input/ViewSwitcher controls and Tailwind utilities. Reader owns chapter requests, search, selection, bookmarks and verse loading; app-local views receive data, actions and composition slots. Search and bookmarks remain local to the mounted reader and do not modify URL state. See the [chapter browsing state inventory](src/prototypes/quran/chapter-browsing-journeys.md) for responsive examples, intentional visual/accessibility changes and verification limits. Quran text and verse presentation remain separate from the migrated chrome; the word dialog uses Tailwind utilities.
+Chapter browsing and surrounding reader chrome use shared tokens, owned Button/Input/ViewSwitcher controls and Tailwind utilities. `use-reader.ts` owns chapter requests, selection, bookmarks, verse loading, retries and pagination. It exposes reading state, bookmarks and reading actions without importing screen modules. `quran-reader.tsx` composes the screen and owns search visibility, the chapter-view tab and DOM focus targets. App-local views receive data, actions and composition slots. Search and bookmarks remain local to the mounted reader and do not modify URL state. See the [chapter browsing state inventory](src/prototypes/quran/chapter-browsing-journeys.md) for responsive examples, intentional visual/accessibility changes and verification limits. Quran text and verse presentation remain separate from the migrated chrome; the word dialog uses Tailwind utilities.
 
 `pnpm --filter @scratch-pages/ui storybook` opens the shared catalogue, including Playground's twelve chapter examples (six states at mobile and desktop widths). Playground declares the same pinned Storybook renderer as a development dependency so its colocated stories are included in normal TypeScript checks; it adds no production dependency. The combined Pages workflow will publish these additions after an approved push.
 
@@ -73,12 +73,14 @@ word fields independently from fixture data; `word-dialog.tsx` owns Quran modal
 lifecycle and names it through the shared Dialog title. `packages/ui/src/dialog.tsx`
 contains the Radix imports and owns the shared accessible primitive wrappers and
 Tailwind-styled surface. `verse-words.tsx` composes them and owns occurrence button
-refs, highlighting and focus return. Reader's existing chapter/page/retry keys
+refs and highlighting. It supplies a target lookup to `word-dialog.tsx`, which
+owns focus return and the deferred fallback to the reader's chapter heading.
+Callers provide DOM targets without coordinating focus timing. Reader's chapter/page/retry keys
 discard stale selection along with the old verses.
 
 Close/Escape returns focus to the latest connected occurrence. When context
 invalidation removes the details, focus stays on a surviving focused control;
-if focus was lost, Reader focuses its current chapter heading, which is outside
+if focus was lost, the word dialog focuses the current chapter heading, which is outside
 the normal Tab order. The fallback runs after old DOM targets have been removed.
 The shared primitive traps modal focus and handles Escape; the feature prevents
 outside dismissal and returns focus to the most recently selected connected word.
@@ -107,7 +109,7 @@ Keep detailed page behavior in Vitest with real application components and HTTP-
 - `tests/prototypes/quran/reader.e2e.ts`: homepage keyboard entry, homepage axe/overflow, reader refresh, visible content and overflow.
 - `tests/prototypes/supabase/demo.e2e.ts`: direct loading, refresh, navigation back to the homepage and keyboard entry through its second destination.
 
-There are two high-level smoke journeys per viewport plus two focused browser checks for the word dialog. Detailed feature behavior belongs in Vitest; `quran-words.test.tsx` covers the real page composition with HTTP fixtures, and `word-content.test.tsx` checks word content and Arabic language metadata. The word journeys close the dialog before navigating to another chapter or verse page. `word-dialog-browser.e2e.ts` verifies browser focus containment, Escape, accessible naming/axe and focus return. Its long-content case checks viewport fit and uses the word controls on a narrow screen, then closes the dialog in landscape. `reader-presentation.e2e.ts` checks selected-button hover contrast on desktop. Typography and precise positioning are reviewed visually. The shared typed word factory avoids copied records; fixtures reject unsupported chapter/page requests, and pagination uses Al-Baqarah rather than inventing a second page for seven-verse Al-Fatihah.
+There are two high-level smoke journeys per viewport plus two focused browser checks for the word dialog. Detailed feature behavior belongs in Vitest; `quran-words.test.tsx` covers real page composition, word content, Arabic language metadata and attribution with HTTP fixtures. Content assertions share that integration surface rather than repeating them in an isolated word-content suite. `quran-reader.test.tsx` also checks cancellation of a pending verse request when another chapter is opened. The word journeys close the dialog before navigating to another chapter or verse page. `word-dialog-browser.e2e.ts` verifies browser focus containment, Escape, accessible naming/axe and focus return. Its long-content case checks viewport fit and uses the word controls on a narrow screen, then closes the dialog in landscape. `reader-presentation.e2e.ts` checks selected-button hover contrast on desktop. Typography and precise positioning are reviewed visually. The shared typed word factory avoids copied records; fixtures reject unsupported chapter/page requests, and pagination uses Al-Baqarah rather than inventing a second page for seven-verse Al-Fatihah.
 
 The static-server fallback/404 contract runs once in Vitest's Node infrastructure project, not in a browser matrix. Word-data mapping and failure recovery are covered independently in backend-owned tests. Vitest/jsdom verifies real composition and word behavior; it does not prove browser focus containment or rendered geometry. The focused browser checks use fixture content and do not prove live backend connectivity, physical safe areas or browser zoom. See the historical [#23 verification record](src/prototypes/quran/word-selection-verification.md) and [#26 dialog record](src/prototypes/quran/word-dialog-verification.md) for their original evidence and limits.
 
@@ -152,7 +154,7 @@ The v2 backend was deployed and verified on 2026-10-30; frontend publication fol
 
 ## Default-guide adoption (#28)
 
-Home, route-loading shells, the connection demo and the Quran interface use the shared default guide. Verse toolbar and word-dialog actions use the owned Button, including its 44px action size and focus treatment. Latin translations use the shared 16px body font. Quran text retains Noto Naskh Arabic, shaping and its existing line layout. `VerseView` owns app-local verse presentation; the reader retains chapter requests, bookmarks, pagination and focus fallback.
+Home, route-loading shells, the connection demo and the Quran interface use the shared default guide. Verse toolbar and word-dialog actions use the owned Button, including its 44px action size and focus treatment. Latin translations use the shared 16px body font. Quran text retains Noto Naskh Arabic, shaping and its existing line layout. `VerseView` owns app-local verse presentation. The reading module owns chapter requests, bookmarks and pagination; the word-dialog module owns focus restoration.
 
 Storybook shows that same verse view stacked and with a parallel translation on wider canvases. The examples share data and actions; they introduce no production layout switcher. The catalogue also demonstrates an optional semantic theme without changing the production default. These #28 changes need an approved push before publication. There are no new environment variables or dependencies.
 

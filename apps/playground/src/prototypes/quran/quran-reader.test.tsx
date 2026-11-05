@@ -136,6 +136,32 @@ describe('Quran API content', () => {
 })
 
 describe('Quran request recovery and pagination', () => {
+  it('cancels the previous verse request when another chapter is opened', async () => {
+    const olderRequest = new Promise<AbortSignal>(started => {
+      server.use(http.get(`${quranEndpoint}/verses`, async ({ request }) => {
+        const chapter = new URL(request.url).searchParams.get('chapter')
+        if (chapter === '1') {
+          started(request.signal)
+          await new Promise<void>(resolve => request.signal.addEventListener('abort', () => resolve(), { once: true }))
+        }
+        return HttpResponse.json({
+          verses: [{ number: 1, arabic: 'نص للاختبار', translationHtml: `Translation for chapter ${chapter}.` }],
+          translationName: 'Verse translator', nextPage: null,
+        })
+      }))
+    })
+    const user = userEvent.setup()
+    window.history.pushState({}, '', '/quran/')
+    render(<App />)
+    const signal = await olderRequest
+
+    await user.click(screen.getByRole('button', { name: /^Open Al-Baqarah/ }))
+
+    expect(await screen.findByText('Translation for chapter 2.')).toBeInTheDocument()
+    expect(signal.aborted).toBe(true)
+    expect(screen.queryByText('Translation for chapter 1.')).not.toBeInTheDocument()
+  })
+
   it('lets readers retry chapter loading after an unavailable response', async () => {
     server.use(http.get(`${quranEndpoint}/chapters`, () => HttpResponse.json({ error: 'private server detail' }, { status: 503 })))
     window.history.pushState({}, '', '/quran/')

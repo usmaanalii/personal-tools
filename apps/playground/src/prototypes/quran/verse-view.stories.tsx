@@ -13,7 +13,7 @@ function VerseReadingExample({ layout = 'stacked' }: Pick<ComponentProps<typeof 
     <p className="text-sm text-ui-muted">Dr. Mustafa Khattab, The Clear Quran · Quran Foundation</p>
     <div className="verse-list rounded-ui-card bg-ui-surface p-4">
       <VerseView verse={buildOpeningVerse()} chapter={chapters[0]} saved={saved} active={active} layout={layout}
-        onBookmark={() => setSaved(value => !value)} onActivate={() => setActive(true)} restoreReadingFocus={() => heading.current?.focus()}/>
+        onBookmark={() => setSaved(value => !value)} onActivate={() => setActive(true)} readingFocusRef={heading}/>
     </div>
   </main>
 }

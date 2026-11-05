@@ -1,79 +1,32 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from '@scratch-pages/ui'
 import './styles.css'
 import { VerseView } from './verse-view'
 import { ChapterList } from './chapter-list'
-import { BookmarkList, ChapterBrowser, ChapterRequestStatus, ChapterSearch, type ChapterView, type SavedVerse } from './chapter-browser'
+import { BookmarkList, ChapterBrowser, ChapterRequestStatus, ChapterSearch, type ChapterView } from './chapter-browser'
 import { ReaderSidebar, ReaderTopbar, ReaderWelcome, ChapterShortcut, ReaderMobileNav } from './reader-chrome'
 import { Icon } from './reader-icon'
-import { getChapters, getVerses, type Chapter, type Ayah, type VersePage } from './quran-api'
-
-type ChaptersState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready'; chapters: [Chapter, ...Chapter[]] }
+import type { Chapter } from './quran-api'
+import { useChapters, useReader } from './use-reader'
 
 export default function App() {
-  const [attempt, setAttempt] = useState(0)
-  return <ChapterLoader key={attempt} retry={() => setAttempt(value => value + 1)}/>
-}
-
-function ChapterLoader({ retry }: { retry: () => void }) {
-  const [state, setState] = useState<ChaptersState>({ status: 'loading' })
-  useEffect(() => {
-    const controller = new AbortController()
-    setState({ status: 'loading' })
-    getChapters(controller.signal).then(chapters => { if (!controller.signal.aborted) setState({ status: 'ready', chapters }) }).catch((error: unknown) => {
-      if (!controller.signal.aborted) setState({ status: 'error', message: error instanceof Error ? error.message : 'Unable to load Quran content.' })
-    })
-    return () => controller.abort()
-  }, [])
+  const { state, retry } = useChapters()
   if (state.status === 'loading') return <main className="quran-reader min-h-screen bg-ui-background font-ui-body text-ui-foreground"><ChapterRequestStatus message="Loading chapters…"/></main>
   if (state.status === 'error') return <main className="quran-reader min-h-screen bg-ui-background font-ui-body text-ui-foreground"><ChapterRequestStatus failed message={state.message} onRetry={retry}/></main>
   return <Reader chapters={state.chapters}/>
 }
 
-type VersesState = { key: string; status: 'loading' } | { key: string; status: 'error'; message: string } | { key: string; status: 'ready'; data: VersePage }
 function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
   const searchToggle = useRef<HTMLButtonElement>(null)
   const readingHeading = useRef<HTMLHeadingElement>(null)
-  const restoreReadingFocus = useCallback(() => {
-    const active = document.activeElement
-    if (!active || active === document.body || !active.isConnected) readingHeading.current?.focus()
-  }, [])
-  const [selected, setSelected] = useState(chapters[0].id)
+  const { reading, bookmarks, actions } = useReader(chapters)
+  const { selected, chapter, previousChapter, nextChapter, page, current, verses, key, activeVerse } = reading
+  const { bookmarked, savedVerses, isVerseSaved } = bookmarks
+  const { openChapter, openSavedVerse, toggleSavedVerse, toggleChapterBookmark, activateVerse, previousPage, nextPage, retryVerses } = actions
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
-  const [bookmarked, setBookmarked] = useState(false)
-  const [savedVerses, setSavedVerses] = useState<SavedVerse[]>([])
-  const [page, setPage] = useState(1)
-  const [attempt, setAttempt] = useState(0)
-  const key = `${selected}:${page}:${attempt}`
-  const [verseState, setVerseState] = useState<VersesState>({ key, status: 'loading' })
-  useEffect(() => {
-    const controller = new AbortController()
-    setVerseState({ key, status: 'loading' })
-    getVerses(selected, page, controller.signal).then(data => { if (!controller.signal.aborted) setVerseState({ key, status: 'ready', data }) }).catch((error: unknown) => {
-      if (!controller.signal.aborted) setVerseState({ key, status: 'error', message: error instanceof Error ? error.message : 'Unable to load Quran content.' })
-    })
-    return () => controller.abort()
-  }, [selected, page, key])
-  const current: VersesState = verseState.key === key ? verseState : { key, status: 'loading' }
-  const verses = current.status === 'ready' ? current.data.verses : []
   const [tab, setTab] = useState<ChapterView>('chapters')
-  const [activeVerse, setActiveVerse] = useState<number | null>(null)
-  const chapterIndex = chapters.findIndex(item => item.id === selected)
-  const chapter = chapters[chapterIndex] ?? chapters[0]
-  const previousChapter = chapters[Math.max(0, chapterIndex - 1)] ?? chapter
-  const nextChapter = chapters[Math.min(chapters.length - 1, chapterIndex + 1)] ?? chapter
   const visibleChapters = chapters.filter(item => `${item.name} ${item.meaning} ${item.id}`.toLowerCase().includes(query.toLowerCase()))
-  const openChapter = (id: number, verse = 1) => { setSelected(id); setPage(Math.ceil(verse / 20)); setActiveVerse(null) }
-  const isVerseSaved = (verse: Ayah) => savedVerses.some(item => item.chapterId === selected && item.verse.number === verse.number)
-  const toggleSavedVerse = (verse: Ayah) => {
-    setSavedVerses(current => {
-      const exists = current.some(item => item.chapterId === selected && item.verse.number === verse.number)
-      return exists
-        ? current.filter(item => item.chapterId !== selected || item.verse.number !== verse.number)
-        : [...current, { chapterId: selected, verse }]
-    })
-  }
 
   return <main className="quran-reader grid min-h-screen bg-ui-background font-ui-body text-ui-foreground lg:grid-cols-[14rem_minmax(0,1fr)] [&_button]:scroll-mb-28">
     <ReaderSidebar onBookmarks={() => setTab('bookmarks')}/>
@@ -83,13 +36,13 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
         <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
           <ReaderWelcome/>
           <ChapterShortcut onOpen={() => openChapter(2)}/>
-          <ChapterBrowser total={chapters.length} tab={tab} onTabChange={setTab} bookmarkCount={savedVerses.length + (bookmarked ? 1 : 0)}
+          <ChapterBrowser total={chapters.length} tab={tab} onTabChange={setTab} bookmarkCount={bookmarks.count}
             search={searchOpen && <ChapterSearch query={query} onQueryChange={setQuery} onClose={() => { setSearchOpen(false); setQuery(''); searchToggle.current?.focus() }}/>}
           >
             {tab === 'chapters'
               ? <ChapterList chapters={visibleChapters} selectedId={selected} onSelect={openChapter}/>
               : <BookmarkList chapters={chapters} bookmarkedChapter={bookmarked ? chapter : null} savedVerses={savedVerses} onOpenChapter={openChapter}
-                  onOpenVerse={(chapterId, verseNumber) => { openChapter(chapterId, verseNumber); setActiveVerse(verseNumber) }}/>
+                  onOpenVerse={openSavedVerse}/>
             }
           </ChapterBrowser>
         </div>
@@ -100,21 +53,21 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
               <h2 ref={readingHeading} tabIndex={-1} className="m-0 font-ui-heading text-xl font-semibold">{chapter.name}</h2>
               <p className="mt-2 mb-0 text-sm leading-relaxed text-ui-muted">{chapter.meaning} · {chapter.place} · {chapter.verses} verses</p>
             </div>
-            <Button variant="ghost" size="icon" aria-label="Bookmark this chapter" aria-pressed={bookmarked} onClick={() => setBookmarked(!bookmarked)}><Icon name="bookmark"/></Button>
+            <Button variant="ghost" size="icon" aria-label="Bookmark this chapter" aria-pressed={bookmarked} onClick={toggleChapterBookmark}><Icon name="bookmark"/></Button>
           </div>
           <div className="surah-heading mt-[18px] mb-[11px] flex items-center gap-3 whitespace-nowrap text-ui-muted"><div className="h-px flex-1 bg-ui-border"/><span translate="no" lang="ar" dir="rtl">سُورَةُ {chapter.arabic}</span><div className="h-px flex-1 bg-ui-border"/></div>{selected !== 1 && selected !== 9 && page === 1 && <div className="bismillah" translate="no" lang="ar" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>}<div className="verse-list max-h-[540px] overflow-auto [scrollbar-color:var(--theme-border)_transparent] [scrollbar-width:thin] max-[760px]:max-h-none min-[761px]:[@media(max-height:900px)]:max-h-[450px]" aria-busy={current.status === 'loading'}>
           {current.status === 'loading' && <p role="status">Loading verses…</p>}
-          {current.status === 'error' && <div><p role="alert">{current.message}</p><Button onClick={() => setAttempt(value => value + 1)}>Retry verses</Button></div>}
+          {current.status === 'error' && <div><p role="alert">{current.message}</p><Button onClick={retryVerses}>Retry verses</Button></div>}
           {current.status === 'ready' && <p className="px-4 text-[.85rem] leading-[1.5]">{current.data.translationName} · Quran Foundation</p>}
           {verses.map(verse => <VerseView key={`${key}-${verse.number}`} verse={verse} chapter={chapter} active={activeVerse === verse.number} saved={isVerseSaved(verse)}
-            onBookmark={() => toggleSavedVerse(verse)} onActivate={() => setActiveVerse(verse.number)} restoreReadingFocus={restoreReadingFocus}/>)}</div><div className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
-          <Button variant="outline" disabled={page === 1} onClick={() => setPage(value => value - 1)}>Previous verses</Button>
+            onBookmark={() => toggleSavedVerse(verse)} onActivate={() => activateVerse(verse.number)} readingFocusRef={readingHeading}/>)}</div><div className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
+          <Button variant="outline" disabled={page === 1} onClick={previousPage}>Previous verses</Button>
           <span>Page {page}</span>
-          <Button variant="outline" disabled={current.status !== 'ready' || current.data.nextPage === null} onClick={() => { if (current.status === 'ready' && current.data.nextPage) setPage(current.data.nextPage) }}>Next verses</Button>
+          <Button variant="outline" disabled={current.status !== 'ready' || current.data.nextPage === null} onClick={nextPage}>Next verses</Button>
         </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-0 border-t border-solid border-ui-border pt-4">
-            <Button variant="ghost" className="min-w-0 flex-1 basis-40" disabled={chapterIndex === 0} onClick={() => openChapter(previousChapter.id)}><Icon name="back" size={17}/><span className="min-w-0 text-left wrap-anywhere"><span className="block text-xs whitespace-nowrap">PREVIOUS</span>{chapterIndex > 0 ? previousChapter.name : 'Beginning'}</span></Button>
-            <Button variant="ghost" className="min-w-0 flex-1 basis-40" disabled={chapterIndex === chapters.length - 1} onClick={() => openChapter(nextChapter.id)}><span className="min-w-0 text-right wrap-anywhere"><span className="block text-xs whitespace-nowrap">NEXT</span>{chapterIndex < chapters.length - 1 ? nextChapter.name : 'End of Quran'}</span><Icon name="next" size={17}/></Button>
+            <Button variant="ghost" className="min-w-0 flex-1 basis-40" disabled={!previousChapter} onClick={() => { if (previousChapter) openChapter(previousChapter.id) }}><Icon name="back" size={17}/><span className="min-w-0 text-left wrap-anywhere"><span className="block text-xs whitespace-nowrap">PREVIOUS</span>{previousChapter?.name ?? 'Beginning'}</span></Button>
+            <Button variant="ghost" className="min-w-0 flex-1 basis-40" disabled={!nextChapter} onClick={() => { if (nextChapter) openChapter(nextChapter.id) }}><span className="min-w-0 text-right wrap-anywhere"><span className="block text-xs whitespace-nowrap">NEXT</span>{nextChapter?.name ?? 'End of Quran'}</span><Icon name="next" size={17}/></Button>
           </div>
         </aside>
       </div>

@@ -1,21 +1,16 @@
-import { useRef } from 'react'
+import { useRef, type RefObject } from 'react'
 import { Button } from '@scratch-pages/ui'
 import type { Ayah } from './quran-api'
 import { useWordSelection } from './use-word-selection'
 import { WordContent } from './word-content'
 import { WordDialog } from './word-dialog'
 
-export function VerseWords({ verse, chapterName, restoreReadingFocus, className = '' }: {
-  verse: Ayah; chapterName: string; restoreReadingFocus: () => void; readonly className?: string
+export function VerseWords({ verse, chapterName, readingFocusRef, className = '' }: {
+  verse: Ayah; chapterName: string; readingFocusRef: RefObject<HTMLElement | null>; readonly className?: string
 }) {
   const selection = useWordSelection(verse.words)
   const buttons = useRef(new Map<number, HTMLButtonElement>())
   const { word } = selection
-  const dismiss = () => {
-    selection.clear()
-    const target = word && buttons.current.get(word.position)
-    if (target?.isConnected) target.focus()
-  }
   return <>
     <p className={`arabic-text ${className}`} translate="no" lang="ar" dir="rtl">
       {verse.words ? verse.words.map(item => <span key={item.position}>
@@ -25,10 +20,7 @@ export function VerseWords({ verse, chapterName, restoreReadingFocus, className 
       </span>) : verse.arabic}
       <span className="ayah-mark">۝{verse.number}</span>
     </p>
-    {word && <WordDialog dismiss={dismiss} onUnmount={restoreReadingFocus} returnFocus={() => {
-      const target = buttons.current.get(word.position)
-      if (target?.isConnected) target.focus()
-    }}>
+    {word && <WordDialog dismiss={selection.clear} getReturnFocusTarget={() => buttons.current.get(word.position)} fallbackFocusRef={readingFocusRef}>
       <WordContent word={word} chapterName={chapterName}/>
       <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t border-ui-border pt-5 max-[760px]:grid-cols-2 max-[760px]:[&>span]:col-span-2 max-[760px]:[&>span]:row-start-2" aria-label="Words in this verse">
         <Button variant="outline" size="compact" disabled={!selection.previous} onClick={selection.movePrevious}>Previous word</Button>
