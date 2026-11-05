@@ -7,6 +7,7 @@
     "build": "pnpm --filter playground build",
     "build:pages": "pnpm build && pnpm --filter @scratch-pages/ui build:storybook && cp -R packages/ui/storybook-static apps/playground/dist/storybook",
     "test:pages": "pnpm --filter playground exec playwright test --config playwright.pages.config.ts",
+    "test:catalogue": "pnpm --filter playground exec playwright test --config playwright.catalogue.config.ts",
     "test": "pnpm --filter playground test",
     "test:e2e": "pnpm --filter playground test:e2e",
     "typecheck": "pnpm --filter playground typecheck",

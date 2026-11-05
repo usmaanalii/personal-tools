@@ -1,11 +1,12 @@
 import { useRef } from 'react'
+import { Button } from '@scratch-pages/ui'
 import type { Ayah } from './quran-api'
 import { useWordSelection } from './use-word-selection'
 import { WordContent } from './word-content'
 import { WordDialog } from './word-dialog'
 
-export function VerseWords({ verse, chapterName, restoreReadingFocus }: {
-  verse: Ayah; chapterName: string; restoreReadingFocus: () => void
+export function VerseWords({ verse, chapterName, restoreReadingFocus, className = '' }: {
+  verse: Ayah; chapterName: string; restoreReadingFocus: () => void; readonly className?: string
 }) {
   const selection = useWordSelection(verse.words)
   const buttons = useRef(new Map<number, HTMLButtonElement>())
@@ -16,7 +17,7 @@ export function VerseWords({ verse, chapterName, restoreReadingFocus }: {
     if (target?.isConnected) target.focus()
   }
   return <>
-    <p className="arabic-text" translate="no" lang="ar" dir="rtl">
+    <p className={`arabic-text ${className}`} translate="no" lang="ar" dir="rtl">
       {verse.words ? verse.words.map(item => <span key={item.position}>
         <button type="button" className="quran-word" aria-label={`${item.arabic} · ${item.chapter}:${item.verse}:${item.position}`} aria-haspopup="dialog" aria-pressed={word?.position === item.position}
           ref={button => { if (button) buttons.current.set(item.position, button); else buttons.current.delete(item.position) }}
@@ -30,9 +31,9 @@ export function VerseWords({ verse, chapterName, restoreReadingFocus }: {
     }}>
       <WordContent word={word} chapterName={chapterName}/>
       <nav className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t border-ui-border pt-5 max-[760px]:grid-cols-2 max-[760px]:[&>span]:col-span-2 max-[760px]:[&>span]:row-start-2" aria-label="Words in this verse">
-        <button type="button" disabled={!selection.previous} onClick={selection.movePrevious}>Previous word</button>
+        <Button variant="outline" size="compact" disabled={!selection.previous} onClick={selection.movePrevious}>Previous word</Button>
         <span>Word {selection.index + 1} of {verse.words?.length}</span>
-        <button type="button" disabled={!selection.next} onClick={selection.moveNext}>Next word</button>
+        <Button variant="outline" size="compact" disabled={!selection.next} onClick={selection.moveNext}>Next word</Button>
       </nav>
     </WordDialog>}
   </>

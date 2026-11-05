@@ -1,0 +1,22 @@
+@import '@scratch-pages/design-tokens/styles.css';
+@import 'tailwindcss/theme.css';
+
+@theme inline {
+  --color-ui-background: var(--theme-background);
+  --color-ui-surface: var(--theme-surface);
+  --color-ui-foreground: var(--theme-foreground);
+  --color-ui-muted: var(--theme-muted);
+  --color-ui-border: var(--theme-border);
+  --color-ui-primary: var(--theme-primary);
+  --color-ui-primary-hover: var(--theme-primary-hover);
+  --color-ui-on-primary: var(--theme-on-primary);
+  --color-ui-focus: var(--theme-focus);
+  --color-ui-error: var(--theme-error);
+  --font-ui-body: var(--theme-font-body);
+  --font-ui-heading: var(--theme-font-heading);
+  --radius-ui-control: var(--theme-radius-control);
+  --radius-ui-card: var(--theme-radius-card);
+  --shadow-ui-card: var(--theme-shadow-card);
+  --spacing: var(--scale-space-1);
+  --default-transition-duration: var(--theme-motion-fast);
+}

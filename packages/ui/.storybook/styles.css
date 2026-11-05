@@ -1,0 +1,6 @@
+@import '../src/theme.css';
+@import 'tailwindcss/utilities.css' source(none);
+@source '../src/';
+@source '../../../apps/playground/src/';
+@source not '../src/**/*.test.*';
+@source not '../../../apps/playground/src/**/*.test.*';

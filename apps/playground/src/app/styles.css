@@ -1,0 +1,5 @@
+@import '@scratch-pages/ui/styles.css';
+@source '../';
+@source not '../**/*.stories.*';
+@source not '../**/*.test.*';
+@source not '../**/*.test-data.*';

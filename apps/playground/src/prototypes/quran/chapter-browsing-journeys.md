@@ -28,7 +28,7 @@ No Quran-specific branding decision is made. Existing prototype wording and iden
 
 ## Verification responsibilities and limits
 
-Vitest uses the real reader route with HTTP-level MSW to cover chapter selection/search, pressed bookmark state, saved verse pagination, request retry, query retention, focus return and unchanged URL state. Existing production smoke journeys exercise static routes, refresh, basic responsive fit and word details. The reader smoke runs axe only on migrated navigation, chapter browsing and header regions; remaining verse/word presentation is outside that scope.
+Vitest uses the real reader route with HTTP-level MSW to cover chapter selection/search, pressed bookmark state, saved verse pagination, request retry, query retention, focus return and unchanged URL state. Existing production smoke journeys exercise static routes, refresh, basic responsive fit and word details. Issue #28 expands the reader smoke's axe scan from migrated chrome to the whole loaded reader, including verse presentation. The open word dialog retains its scoped audit. See the [current adoption inventory](../../../../../docs/style-guide/adoption.md) for evidence limits and the retired generic verse styles.
 
 Storybook demonstrates six visual states at mobile and desktop widths with real app views and demonstration data/actions. Component browser audits can check the rendered geometry and native keyboard focus; they do not substitute for request recovery tests. Shared UI changes must also pass the existing connection demos' checks and independent builds. Keep execution/acceptance records on issue #25 with commit references once committed.
 

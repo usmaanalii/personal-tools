@@ -1,5 +1,7 @@
 # Word meaning journeys (#18)
 
+Historical #18 design and verification snapshot. The #26 migration replaces the native dialog with the owned shared Radix Dialog. Issue #28 adopts shared action controls and semantic colours throughout the remaining verse/word interface. Use the [current adoption inventory](../../../../../docs/style-guide/adoption.md) for maintained status and evidence limits.
+
 No Figma design was supplied for any of these states. The implementation uses
 the existing reader's green palette and Arabic font, with a native modal dialog
 styled as a bottom sheet at mobile widths. No new dependency is required.

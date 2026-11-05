@@ -31,3 +31,14 @@ export const alFatihah: Ayah[] = [
 export function buildWord(overrides: Partial<QuranWord> = {}): QuranWord {
   return { chapter: 1, verse: 1, position: 1, arabic: 'بِسْمِ', meaning: 'In (the) name', transliteration: "bis'mi", ...overrides }
 }
+
+export function buildOpeningVerse(meaning = 'In (the) name'): Ayah {
+  const verse = alFatihah[0]
+  if (!verse) throw new Error('Expected the opening verse fixture')
+  return { ...verse, words: [
+    buildWord({ meaning }),
+    buildWord({ position: 2, arabic: 'اللَّهِ', meaning: 'of Allah', transliteration: 'l-lahi' }),
+    buildWord({ position: 3, arabic: 'الرَّحْمَٰنِ', meaning: 'the Most Gracious', transliteration: 'l-rahmani' }),
+    buildWord({ position: 4, arabic: 'الرَّحِيمِ', meaning: 'the Most Merciful', transliteration: 'l-rahimi' }),
+  ] }
+}

@@ -15,8 +15,7 @@
       "packages/ui/"
     ],
     "quality": [
-      ["pnpm", "--filter", "next-vercel-supabase-app", "check"],
-      ["pnpm", "--filter", "@scratch-pages/ui", "build:storybook"]
+      ["pnpm", "--filter", "next-vercel-supabase-app", "check"]
     ],
     "browserInstall": [
       "pnpm",

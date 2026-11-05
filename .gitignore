@@ -8,6 +8,7 @@ storybook-static/
 .e2e/
 playwright-report/
 test-results/
+catalogue-test-results/
 
 # Local environment files; keep the template tracked.
 .env

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Button } from '@scratch-pages/ui'
-import '@scratch-pages/ui/styles.css'
 import { getHello, type HelloResponse } from './hello-api'
 import './supabase-demo.css'
 
@@ -45,15 +44,15 @@ export default function SupabaseDemo() {
   }
 
   return (
-    <main className="page supabase-demo">
-      <a className="back-home" href={import.meta.env.BASE_URL}>← All playground pages</a>
-      <h1>Hello from GitHub Pages</h1>
+    <main className="supabase-demo mx-auto my-[12vh] max-w-[46rem] px-6 font-ui-body leading-[1.6] text-ui-foreground">
+      <a className="mb-[18px] inline-block text-[.9rem] text-ui-primary" href={import.meta.env.BASE_URL}>← All playground pages</a>
+      <h1 className="leading-[1.15]">Hello from GitHub Pages</h1>
       <p>This page calls a Supabase Edge Function with a GET request.</p>
-      <Button onClick={handleCallApi} disabled={apiState.status === 'loading'}>
+      <Button className="mt-4" onClick={handleCallApi} disabled={apiState.status === 'loading'}>
         Call the API
       </Button>
-      <section aria-label="API response" aria-live="polite"><pre>{messageForState(apiState)}</pre></section>
-      <p className="hint" role="status" aria-live="polite">{statusForState(apiState)}</p>
+      <section aria-label="API response" aria-live="polite"><pre className="min-h-12 overflow-x-auto rounded-ui-control border border-solid border-ui-border bg-ui-surface p-4 whitespace-pre-wrap wrap-anywhere">{messageForState(apiState)}</pre></section>
+      <p className="text-ui-muted" role="status" aria-live="polite">{statusForState(apiState)}</p>
     </main>
   )
 }

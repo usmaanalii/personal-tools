@@ -10,7 +10,7 @@
 
 A small monorepo for personal web app experiments.
 
-The Playground homepage, route-loading shells and two connection demos use the [shared light style guide](docs/style-guide/README.md) from `packages/design-tokens` and `packages/ui`. The links above open the live sites. Local changes reach them only after an approved push and successful deployment. Dark mode is planned for later.
+The Playground homepage, route-loading shells, Quran interface and two connection demos use the [shared light style guide](docs/style-guide/README.md) from `packages/design-tokens` and `packages/ui`. The [adoption inventory](docs/style-guide/adoption.md) records states, content exceptions and verification limits. The links above open the live sites. Local changes reach them only after an approved push and successful deployment. Production dark mode is planned for later; an alternate semantic mapping is demonstrated only in the local #28 catalogue additions.
 
 ## Playground
 

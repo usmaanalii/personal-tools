@@ -1,0 +1,13 @@
+/* Optional catalogue demonstration. Production apps import only styles.css. */
+[data-theme="catalogue-slate"] {
+  --theme-background: #eef2f6;
+  --theme-surface: #fff;
+  --theme-foreground: #172b4d;
+  --theme-muted: #425571;
+  --theme-border: #a6b5c8;
+  --theme-primary: #234e82;
+  --theme-primary-hover: #17385f;
+  --theme-on-primary: #fff;
+  --theme-focus: #234e82;
+  --theme-error: #8c2f32;
+}

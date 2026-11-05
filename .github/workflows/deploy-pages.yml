@@ -49,6 +49,8 @@ jobs:
         run: pnpm --filter playground exec playwright install --with-deps chromium
       - name: Verify the complete artifact under the deployment prefix
         run: pnpm test:pages
+      - name: Verify catalogue component presentation
+        run: pnpm test:catalogue
       - uses: actions/upload-pages-artifact@v5
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         with:

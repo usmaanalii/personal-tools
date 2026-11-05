@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 import type { VersesResponse } from '@scratch-pages/api-contracts/quran'
-import { chapters, alFatihah, buildWord } from '../../../src/prototypes/quran/quran-fixtures.test-data'
+import { chapters, alFatihah, buildOpeningVerse } from '../../../src/prototypes/quran/quran-fixtures.test-data'
 
 // Browser UI fixture: this does not exercise the hosted Edge Function or Quran API.
 export async function mockQuranContent(page: Page, options: { meaning?: string } = {}) {
@@ -12,12 +12,7 @@ export async function mockQuranContent(page: Page, options: { meaning?: string }
     }
     const response: VersesResponse = {
       verses: alFatihah.map(verse => ({ number: verse.number, arabic: verse.arabic, translationHtml: verse.translation,
-        ...(verse.number === 1 ? { words: [
-          buildWord(options.meaning ? { meaning: options.meaning } : {}),
-          buildWord({ position: 2, arabic: 'اللَّهِ', meaning: 'of Allah', transliteration: 'l-lahi' }),
-          buildWord({ position: 3, arabic: 'الرَّحْمَٰنِ', meaning: 'the Most Gracious', transliteration: 'l-rahmani' }),
-          buildWord({ position: 4, arabic: 'الرَّحِيمِ', meaning: 'the Most Merciful', transliteration: 'l-rahimi' }),
-        ] } : {}),
+        ...(verse.number === 1 ? { words: buildOpeningVerse(options.meaning).words } : {}),
       })), translationName: 'Dr. Mustafa Khattab, The Clear Quran', nextPage: null,
     }
     return route.fulfill({ json: response })

@@ -27,13 +27,8 @@ test('opens the Quran reader when its homepage link is selected', async ({ page 
   }))
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport)
 
-  // Browser risk: generated Tailwind styles must keep migrated chrome accessible.
-  // Verse typography and word details belong to their separate migration slice.
-  const accessibility = await new AxeBuilder({ page })
-    .include('header')
-    .include('[aria-label="Chapter browsing"]')
-    .include('[aria-label="Reader navigation"]')
-    .include('[aria-label="Reader shortcuts"]')
-    .analyze()
+  // Browser risk: generated styles must keep the whole reader, including verse content, accessible.
+  // Open word details retain their separate modal lifecycle and accessibility check.
+  const accessibility = await new AxeBuilder({ page }).analyze()
   expect(accessibility.violations).toEqual([])
 })

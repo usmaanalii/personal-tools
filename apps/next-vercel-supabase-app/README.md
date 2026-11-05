@@ -1,6 +1,6 @@
 # Next.js + Vercel + Supabase
 
-The connection page uses the [shared light style guide](../../docs/style-guide/README.md), including its design tokens and Button component. Shared styles enter through `src/app/globals.css`. The page and layout are Server Components; `ConnectionCheck` handles browser interactions, and the server route holds the Supabase configuration. After changing shared UI, run `pnpm --filter next-vercel-supabase-app check` and `build`. Dark mode is planned for later.
+The connection page uses the [shared light style guide](../../docs/style-guide/README.md), including its design tokens and Button component. Shared styles enter through `src/app/globals.css`, which registers production sources and excludes tests. Page presentation uses Tailwind; global CSS retains the document baseline. The page and layout are Server Components; `ConnectionCheck` handles browser interactions, and the server route holds the Supabase configuration. After changing shared UI, run `pnpm --filter next-vercel-supabase-app check` and `test:e2e`. Dark mode is planned for later.
 
 **Live app:** https://next-vercel-supabase-app.vercel.app
 
@@ -105,3 +105,9 @@ To confirm a release, check that its workflow completed successfully and its rel
 ## Shared API contract
 
 The app uses the shared hello schema through `greetingSchema`, which re-exports it from [`@scratch-pages/api-contracts`](../../packages/api-contracts/README.md), also used by Playground and the Edge Function. The server route and environment variables stay the same. Install dependencies from the repository root; Vercel must include workspace files outside the app Root Directory when building this app. The current hosted hello response already satisfies this schema.
+
+## Shared default guide
+
+The app imports the owned Button and consumes the shared `--theme-*` mappings directly. Its page composition and technical monospace labels remain app-local. The temporary colour aliases are removed in #28 without changing rendered values or behaviour. The [adoption inventory](../../docs/style-guide/adoption.md) records state coverage and verification limits.
+
+Shared UI/token edits continue to select this app's quality and production-browser checks. Pages owns the catalogue build; the Next release no longer repeats it. The app remains independently buildable with its existing commands and server-only configuration. The alternate catalogue theme does not add a production theme switcher.

@@ -12,7 +12,7 @@ The Vercel workflow uses a project list and an always-running summary check for 
 
 `next-app.yml` reads `scripts/releases/projects.json`, chooses the affected apps, and calls `vercel-app.yml` for each one. PRs compare the base and proposed changes and receive no production credentials. Main pushes compare against each project's last successful GitHub environment deployment. This picks up changes left behind by a failed or superseded release, even after an unrelated push. If CI cannot find a starting commit or work out what changed, it runs the project's checks and release steps. A manual run on `main` runs all configured projects and needs no deployment URL.
 
-Each app first runs dependency installation with the frozen lockfile, its quality and coverage checks, the Storybook catalogue build, and browser tests against a production build with a fake local backend. The release job can access the project's protected environment only after those checks pass, and only on main.
+Each app first runs dependency installation with the frozen lockfile, its quality and coverage checks, and browser tests against a production build with a fake local backend. Pages owns the Storybook catalogue build and its browser checks. The release job can access the project's protected environment only after that app's checks pass, and only on main.
 
 The release job uses Vercel CLI 65.8.0 to build with production settings and upload to a new URL without changing the public domain. It tests that deployment against the real backend, points the public domain at the same build, checks the domain's deployment ID, then tests the public website. Action versions are pinned to commit SHAs. Each project's releases run one at a time, and a newer run cannot automatically cancel a release in progress.
 
@@ -40,7 +40,9 @@ The Supabase `quran` function is deployed separately from Pages. Its credentials
 
 ## Shared style guide
 
-Changes in `packages/design-tokens/**` or `packages/ui/**` cause Pages, Playground E2E and Next checks to run, including the PR change-detection steps. The Next quality job also builds the shared UI Storybook catalogue. The Next workflow builds the Storybook catalogue without publishing it. The Pages workflow publishes the catalogue as part of the combined Playground artifact; see below.
+Changes in `packages/design-tokens/**` or `packages/ui/**` cause Pages, Playground E2E and Next checks to run, including the PR change-detection steps. Pages builds and checks the shared UI Storybook catalogue as part of its combined artifact. Next independently builds and checks its consumer; it does not repeat the catalogue build.
+
+The short frontend/function Vitest suites remain in Pages to prevent publication on failure and in Playground E2E for independently dispatched verification. Pages browser checks cover artifact assembly, nested catalogue assets and route refresh. Its separate `test:catalogue` step checks browser-only component presentation: semantic control mapping, portal typography and responsive composition. Both use the catalogue built once for that workflow. Playground's browser suite covers app routing, focus and responsive integration. Detailed state behaviour belongs in Vitest.
 
 The connection browser journeys run axe accessibility scans alongside their short route and action checks.
 

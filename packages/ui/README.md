@@ -9,6 +9,7 @@ pnpm --filter @scratch-pages/ui storybook        # Local catalogue on port 6006
 pnpm --filter @scratch-pages/ui build:storybook  # Standalone static output
 pnpm build:pages                                # Playground plus Storybook
 pnpm test:pages                                 # Check the combined artifact in Chromium
+pnpm test:catalogue                             # Check built component presentation
 ```
 
 Install the browser first with `pnpm --filter playground exec playwright install --with-deps chromium`. `test:pages` uses the existing Playground browser dependency and static server; it does not rebuild. The local Quran route check reuses its existing HTTP fixture; Storybook assets are never intercepted. Avoid running the other Playground browser suite at the same time because both use port 5173.
@@ -19,7 +20,11 @@ The catalogue exposes Button action/size/pressed states, labelled Input examples
 
 Playground's app-level stories add its homepage and Quran/Supabase route-loading shells for visual review. `test:pages` checks catalogue navigation and direct-link refresh under the publication prefix. Component state variations remain documented by stories; the browser smoke does not enumerate them.
 
+Issue #28 adds `Foundations / Semantic themes / Comparison` and `Playground / Quran / Verse reading / Stacked` and `Parallel Translation`. The theme example imports the optional `@scratch-pages/design-tokens/catalogue.css`; production apps keep the default mapping. The reading examples render the app-owned production `VerseView` with the same fixture data and callbacks through its layout variant. These #28 additions remain local until an approved push. `test:catalogue` checks rendered control colours, portal font inheritance, responsive composition, pointer targets and axe results. It serves standalone Storybook on port 5174 without a backend; build Storybook first. Feature behaviour remains in Vitest, and `test:pages` covers catalogue navigation/assets and route refresh. See the [adoption inventory](../../docs/style-guide/adoption.md) and [extension rules](../../docs/style-guide/README.md#extending-the-guide).
+
 Import controls from `@scratch-pages/ui` and import `@scratch-pages/ui/styles.css` in the consuming stylesheet. When composing with app-local Tailwind classes, register the app sources with `@source` in that stylesheet; shared control classes are scanned by the package. Styling uses tokens and complete literal utility strings. Button accepts `variant="primary" | "outline" | "ghost"` and `size="default" | "icon" | "compact"`; give icon-only actions an accessible name. Input needs a visible label; ViewSwitcher owns native grouped button semantics while its caller owns the selected value. Dialog owns the Radix integration, modal semantics and shared overlay/surface styles; consumers own responsive dimensions, naming through `DialogTitle`, and dismissal behavior.
+
+Production source scans exclude stories and tests. The catalogue entry imports the same theme definitions and explicitly scans UI and app stories. Keep one utility entry per app so lazy route stylesheets cannot emit competing utility rules. Ordinary presentation uses Tailwind; token/theme definitions, scoped document baselines and source-specific Quran rendering remain CSS.
 
 Prop descriptions and autodocs tags exist in source, but no Docs addon is installed and no generated Docs page is exposed. Storybook needs no environment variables or backend services. Playground's existing public `VITE_*` configuration still applies to the combined build; never add secrets to stories or browser builds. The app's renderer development dependency uses the same MIT-licensed 10.6.5 version already selected by the catalogue; see the [dependency record](../../docs/style-guide/README.md#dependency-ownership).
 

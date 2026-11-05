@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@scratch-pages/ui'
 import './styles.css'
-import { VerseWords } from './verse-words'
+import { VerseView } from './verse-view'
 import { ChapterList } from './chapter-list'
 import { BookmarkList, ChapterBrowser, ChapterRequestStatus, ChapterSearch, type ChapterView, type SavedVerse } from './chapter-browser'
 import { ReaderSidebar, ReaderTopbar, ReaderWelcome, ChapterShortcut, ReaderMobileNav } from './reader-chrome'
@@ -102,10 +102,12 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
             </div>
             <Button variant="ghost" size="icon" aria-label="Bookmark this chapter" aria-pressed={bookmarked} onClick={() => setBookmarked(!bookmarked)}><Icon name="bookmark"/></Button>
           </div>
-          <div className="surah-heading"><div className="surah-line"/><span translate="no" lang="ar" dir="rtl">سُورَةُ {chapter.arabic}</span><div className="surah-line"/></div>{selected !== 1 && selected !== 9 && page === 1 && <div className="bismillah" translate="no" lang="ar" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>}<div className="verse-list" aria-busy={current.status === 'loading'}>
+          <div className="surah-heading mt-[18px] mb-[11px] flex items-center gap-3 whitespace-nowrap text-ui-muted"><div className="h-px flex-1 bg-ui-border"/><span translate="no" lang="ar" dir="rtl">سُورَةُ {chapter.arabic}</span><div className="h-px flex-1 bg-ui-border"/></div>{selected !== 1 && selected !== 9 && page === 1 && <div className="bismillah" translate="no" lang="ar" dir="rtl">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>}<div className="verse-list max-h-[540px] overflow-auto [scrollbar-color:var(--theme-border)_transparent] [scrollbar-width:thin] max-[760px]:max-h-none min-[761px]:[@media(max-height:900px)]:max-h-[450px]" aria-busy={current.status === 'loading'}>
           {current.status === 'loading' && <p role="status">Loading verses…</p>}
           {current.status === 'error' && <div><p role="alert">{current.message}</p><Button onClick={() => setAttempt(value => value + 1)}>Retry verses</Button></div>}
-          {current.status === 'ready' && <p className="translation-credit">{current.data.translationName} · Quran Foundation</p>}{verses.map(verse => <article key={`${key}-${verse.number}`} className={`verse ${activeVerse === verse.number ? 'verse-selected' : ''}`}><div className="verse-toolbar"><span className="verse-index"><span>۞</span> {selected}:{verse.number}</span><div><button type="button" aria-label="Audio coming soon" className="tiny-action" disabled><Icon name="play" size={16}/></button><button type="button" aria-label={`Bookmark verse ${verse.number}`} aria-pressed={isVerseSaved(verse)} className="tiny-action" onClick={event => { event.stopPropagation(); toggleSavedVerse(verse); setActiveVerse(verse.number) }}><Icon name="bookmark" size={16}/></button><button type="button" aria-label="More verse actions" className="tiny-action" onClick={event => { event.stopPropagation(); setActiveVerse(verse.number) }}><Icon name="more" size={17}/></button></div></div><VerseWords verse={verse} chapterName={chapter.name} restoreReadingFocus={restoreReadingFocus}/><p className="translation">{verse.translation}</p></article>)}</div><div className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
+          {current.status === 'ready' && <p className="px-4 text-[.85rem] leading-[1.5]">{current.data.translationName} · Quran Foundation</p>}
+          {verses.map(verse => <VerseView key={`${key}-${verse.number}`} verse={verse} chapter={chapter} active={activeVerse === verse.number} saved={isVerseSaved(verse)}
+            onBookmark={() => toggleSavedVerse(verse)} onActivate={() => setActiveVerse(verse.number)} restoreReadingFocus={restoreReadingFocus}/>)}</div><div className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
           <Button variant="outline" disabled={page === 1} onClick={() => setPage(value => value - 1)}>Previous verses</Button>
           <span>Page {page}</span>
           <Button variant="outline" disabled={current.status !== 'ready' || current.data.nextPage === null} onClick={() => { if (current.status === 'ready' && current.data.nextPage) setPage(current.data.nextPage) }}>Next verses</Button>

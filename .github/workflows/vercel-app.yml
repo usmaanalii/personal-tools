@@ -45,7 +45,7 @@ jobs:
           node-version: ${{ inputs.node }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Lint, formatting, strict types, integration coverage and catalogue
+      - name: Lint, formatting, strict types and integration coverage
         run: node scripts/releases/commands.mjs "$PROJECT" quality
         env:
           PROJECT: ${{ inputs.project }}
