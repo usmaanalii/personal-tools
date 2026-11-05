@@ -26,6 +26,11 @@ Import controls from `@scratch-pages/ui` and import `@scratch-pages/ui/styles.cs
 
 Production source scans exclude stories and tests. The catalogue entry imports the same theme definitions and explicitly scans UI and app stories. Keep one utility entry per app so lazy route stylesheets cannot emit competing utility rules. Ordinary presentation uses Tailwind; token/theme definitions, scoped document baselines and source-specific Quran rendering remain CSS.
 
+The dialog interface exports `DialogRoot`, `DialogTrigger`, `DialogClose`,
+`DialogContent` and `DialogTitle`. `DialogContent` composes the portal and overlay
+internally. Apps use that composition rather than importing those implementation
+details. Quran-specific focus restoration remains in Playground.
+
 Prop descriptions and autodocs tags exist in source, but no Docs addon is installed and no generated Docs page is exposed. Storybook needs no environment variables or backend services. Playground's existing public `VITE_*` configuration still applies to the combined build; never add secrets to stories or browser builds. The app's renderer development dependency uses the same MIT-licensed 10.6.5 version already selected by the catalogue; see the [dependency record](../../docs/style-guide/README.md#dependency-ownership).
 
 ## Publishing and verification
