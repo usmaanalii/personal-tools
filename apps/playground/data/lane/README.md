@@ -83,7 +83,9 @@ Failures remain retryable and do not replace successful entries or contextual wo
 Generate the Lane assets and the existing guarded morphology release package before deploying the complete Quran function with the Docker bundler.
 The `static_files` configuration includes both datasets.
 Deploy and verify the backend addition before publishing the frontend.
-The local implementation is not a hosted deployment.
+Backend version 9 was deployed on 2026-11-06 from [af358a5](https://github.com/usmaanalii/personal-tools/commit/af358a5626b42194769736ddaadc514b01928487).
+Live HTTP checks verified name/Allah matches, distinct mercy entries, no match, existing chapters and grammar, legacy chapters, CORS, validation, methods and preflight.
+Frontend publication uses the separate Pages workflow after push.
 See [function release instructions](../../../../supabase/functions/quran/README.md).
 
 ## User journeys and verification boundaries

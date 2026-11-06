@@ -28,9 +28,9 @@ preserves the original source notices. The release guard still rejects missing
 permission evidence.
 See [grammar sources and publication status](apps/playground/data/quran/README.md).
 
-The local #20 implementation adds on-demand Lane dictionary reading through the
+The #20 implementation adds on-demand Lane dictionary reading through the
 existing Supabase Quran function. Its initial reviewed mapping set covers eight
-entries; it requires backend deployment before frontend publication.
+entries. Backend version 9 was deployed and verified before frontend publication.
 See [dictionary sources and coverage](apps/playground/data/lane/README.md).
 
 - Search for a chapter by name or English meaning.

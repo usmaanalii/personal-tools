@@ -235,7 +235,7 @@ Public schemas and inferred types live in [`@scratch-pages/api-contracts`](../..
 
 The v2 backend was deployed and verified on 2026-10-30; frontend publication follows the approved push through Pages. Existing legacy backend routes remain available for older browser builds. Backend rollout must precede this frontend release; see the [migration instructions](../../supabase/functions/quran/README.md#owned-v2-contract-and-migration).
 
-## Lane dictionary (#20, local implementation)
+## Lane dictionary (#20)
 
 Open word details and select **Expand dictionary**. The browser sends available,
 verified grammar stem roots/lemmas to the existing Supabase Quran function.
@@ -259,7 +259,8 @@ exceptions. This is not complete dictionary coverage. See [sources, mappings,
 licence, import commands and journey states](data/lane/README.md).
 No new frontend environment variables are required. Generate backend files with
 `pnpm --filter playground lane:data`, then deploy and verify the complete Quran
-function before publishing this frontend. #20 has not been deployed by this change.
+function before publishing this frontend. Backend version 9 was deployed and verified
+on 2026-11-06 from `af358a5`; the Pages workflow publishes the frontend separately.
 
 ## Default-guide adoption (#28)
 

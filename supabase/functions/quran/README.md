@@ -144,7 +144,7 @@ source ZIP and notices are preserved. Package and deploy the backend first. Veri
 unavailable occurrences, real latency, CORS and legacy responses before frontend
 publication. A local Colima worker check does not replace those live checks.
 
-## Lane dictionary (#20, local implementation)
+## Lane dictionary (#20)
 
 `GET /functions/v1/quran/v2/dictionary?root=سمو&lemma=ٱسْم` serves Lane entries
 on demand through this existing function. The browser supplies verified grammar
@@ -182,11 +182,19 @@ Initial coverage is eight entries through three root mappings and two lemma
 exceptions. See [source, licence and coverage](../../../apps/playground/data/lane/README.md).
 Deploy and verify name/Allah matches, multiple mercy entries, no-match and retry
 outcomes, CORS and existing content before frontend publication.
-The #20 route is not part of the deployed version recorded below.
+The #20 route is available in function version 9, recorded below.
 
 ## Deployed history
 
-Current deployment: function `quran` version 8, released on 2026-11-06 with
+Current deployment: function `quran` version 9, released on 2026-11-06 from
+[af358a5](https://github.com/usmaanalii/personal-tools/commit/af358a5626b42194769736ddaadc514b01928487)
+with the Docker bundler and regenerated morphology/Lane assets. Eleven live HTTP
+checks verified name/Allah matches, distinct mercy entries, no match, v2 chapters,
+available grammar and meaning, legacy chapters, validation, CORS, methods and
+preflight. Provider credentials and pre-live access were unchanged. Frontend
+publication follows separately through Pages.
+
+Previous deployment: function `quran` version 8, released on 2026-11-06 with
 bundled grammar and unchanged credentials/access environment. Live HTTP checks
 confirmed all 29 Al-Fatihah analyses and available/unavailable outcomes on
 Al-Baqarah pages 1, 2, 13 and 15. Meanings, legacy responses and CORS checks
