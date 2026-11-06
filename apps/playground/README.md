@@ -98,7 +98,7 @@ See the [#23 verification record](src/prototypes/quran/word-selection-verificati
 for checks and evidence limits. The existing Pages workflow publishes the
 frontend after an approved push; this refactor adds no deployment steps.
 
-## Word grammar (#19, local preview)
+## Word grammar (#19)
 
 Open a word's meaning and select **Expand grammar**. Grammar arrives with the
 existing verse page from Supabase. Expansion makes no request. Each component shows its prefix, stem or suffix role, part of speech,
@@ -132,16 +132,18 @@ Generate the data offline with Node 24 and `unzip`:
 ```sh
 pnpm --filter playground quran:data --notices-only
 pnpm --filter playground quran:data --output /tmp/quran-data
-pnpm --filter playground quran:backend --preview
+pnpm --filter playground quran:backend
 ```
 
 `dev` and `build:preview` generate only notices for the browser. Keep full
 offline imports outside `public/`. If `public/quran-data/` contains an older
 full import, move that directory outside the app before building. The notices
 step refuses stale corpus files so Vite cannot copy them into the website.
-Backend preview packaging writes gzip files
+Backend packaging writes gzip files
 under `supabase/functions/quran/data/`. The normal `quran:backend` command blocks
-while publication evidence is absent. Both packages use the pinned ZIP and
+if publication evidence is absent. The checked-in record cites the published
+website/application-use grant and its attribution and notice conditions.
+Use `--preview` only for local packages. Both packages use the pinned ZIP and
 saved Foundation snapshot without fetching upstream data. Generated files are
 ignored by Git. Backend `manifest.json` records source versions, checksums,
 decoded sizes and preview status. `coverage.json` records

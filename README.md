@@ -22,10 +22,10 @@ The playground is a small collection of tools and experiments. Start at the [ind
 
 A reading prototype designed for phones, with a wider layout on desktop.
 
-Issue #19 adds a local grammar-analysis preview. Its source notices are preserved,
-but converted-data publication remains unconfirmed. Normal Playground and Pages
-builds stop at that release prerequisite. Use
-`pnpm --filter playground build:preview` for local verification only.
+Issue #19 adds grammar analysis to word details through the existing verse API.
+Release packaging records the published website/application-use grant and
+preserves the original source notices. The release guard still rejects missing
+permission evidence.
 See [grammar sources and publication status](apps/playground/data/quran/README.md).
 
 - Search for a chapter by name or English meaning.

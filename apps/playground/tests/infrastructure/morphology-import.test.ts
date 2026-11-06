@@ -14,6 +14,12 @@ import { pathToFileURL } from 'node:url'
 // Verbatim v0.4 records. The complete unchanged source and notices live in data/quran/source/.
 const bismi = () => '(1:1:1:1)\tbi\tP\tPREFIX|bi+\n(1:1:1:2)\tsomi\tN\tSTEM|POS:N|LEM:{som|ROOT:smw|M|GEN'
 
+async function writePublication(directory: string, permissionEvidence: string | null) {
+  const path = join(directory, 'publication.json')
+  await writeFile(path, JSON.stringify({ permissionEvidence }))
+  return path
+}
+
 it('groups the prefixed bismi occurrence without losing source features', () => {
   const result = importCorpus(bismi())
   expect(result.chapters['1']?.words['1:1:1']).toEqual({
@@ -110,7 +116,8 @@ it('keeps repeated particles separate and never invents a root', () => {
 it('reproducibly generates separate chapter assets with pinned provenance and both source notices', async () => {
   const outputDirectory = await mkdtemp(join(tmpdir(), 'morphology-import-'))
   try {
-    await generateData({ outputDirectory })
+    const publicationFile = await writePublication(outputDirectory, null)
+    await generateData({ outputDirectory, publicationFile })
     const first = await readFile(join(outputDirectory, 'morphology/1.json'), 'utf8')
     const manifest = JSON.parse(await readFile(join(outputDirectory, 'manifest.json'), 'utf8'))
     expect(manifest.corpus).toMatchObject({ version: '0.4', zipSha256: 'fda26f87cc58b42fc992a3ad666a562805b636f34bcecb46326d048337ca7999' })
@@ -122,7 +129,7 @@ it('reproducibly generates separate chapter assets with pinned provenance and bo
     expect(JSON.parse(first).notices).toContain('Copyright (C) 2008-2009 Tanzil.info')
     expect(await readFile(join(outputDirectory, 'NOTICE.txt'), 'utf8')).toBe(JSON.parse(first).notices)
     expect(JSON.parse(await readFile(join(outputDirectory, 'coverage.json'), 'utf8')).referenceOccurrences).toBe(0)
-    await generateData({ outputDirectory })
+    await generateData({ outputDirectory, publicationFile })
     expect(await readFile(join(outputDirectory, 'morphology/1.json'), 'utf8')).toBe(first)
     expect(JSON.parse(await readFile(join(outputDirectory, 'manifest.json'), 'utf8'))).toEqual(manifest)
   } finally {
@@ -174,11 +181,11 @@ it('runs the documented offline import command into a chosen output directory', 
   }
 })
 
-it('generates source notices for the browser without distributing corpus chapter assets', async () => {
+it('releases browser notices using the recorded published terms without distributing corpus chapter assets', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'morphology-notices-'))
   try {
     const command = new URL('../../scripts/quran-data/import.mjs', import.meta.url).pathname
-    execFileSync(process.execPath, [command, '--notices-only', '--output', directory], { encoding: 'utf8', stdio: 'pipe' })
+    execFileSync(process.execPath, [command, '--notices-only', '--require-publication', '--output', directory], { encoding: 'utf8', stdio: 'pipe' })
     expect(await readdir(directory)).toEqual(['NOTICE.txt'])
     const notices = await readFile(join(directory, 'NOTICE.txt'), 'utf8')
     expect(notices).toContain('Copyright (C) 2011 Kais Dukes')
@@ -199,11 +206,42 @@ it('refuses to prepare a browser directory containing old corpus assets without 
   }
 })
 
-it('blocks publication builds while permission for converted data is unconfirmed', async () => {
+it('generates release data using the supplied recorded permission evidence', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'morphology-reviewed-terms-'))
+  try {
+    const permissionEvidence = 'Published website-use terms: https://corpus.quran.com/download/'
+    const publicationFile = await writePublication(directory, permissionEvidence)
+    const outputDirectory = join(directory, 'output')
+    await generateData({ outputDirectory, requirePublication: true, publicationFile })
+    expect(JSON.parse(await readFile(join(outputDirectory, 'manifest.json'), 'utf8')).distributionStatus).toBe(permissionEvidence)
+    expect(await readFile(join(outputDirectory, 'NOTICE.txt'), 'utf8')).toContain('Copyright (C) 2011 Kais Dukes')
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+it('packages release chapters using the supplied recorded permission evidence', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'morphology-release-terms-'))
+  try {
+    const permissionEvidence = 'Published website-use terms: https://corpus.quran.com/download/'
+    const publicationFile = await writePublication(directory, permissionEvidence)
+    const outputDirectory = join(directory, 'output')
+    await packageMorphology({ outputDirectory, publicationFile })
+    const manifest = JSON.parse(await readFile(join(outputDirectory, 'manifest.json'), 'utf8'))
+    expect(manifest).toMatchObject({ preview: false, distributionStatus: permissionEvidence })
+    expect(MorphologyAssetManifestSchema.parse(manifest).chapters).toHaveLength(114)
+    const load = createBundledMorphologyReader(readFile, pathToFileURL(`${outputDirectory}/`))
+    expect(MorphologyChapterSchema.parse(await load(1, new AbortController().signal)).words['1:1:1']?.arabic).toBe('بِسْمِ')
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+it('blocks release generation when recorded permission evidence is absent', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'morphology-publication-'))
   try {
-    const command = new URL('../../scripts/quran-data/import.mjs', import.meta.url).pathname
-    expect(() => execFileSync(process.execPath, [command, '--require-publication', '--output', directory], { encoding: 'utf8', stdio: 'pipe' })).toThrow('Converted-data publication requires confirmation')
+    const publicationFile = await writePublication(directory, null)
+    await expect(generateData({ outputDirectory: directory, requirePublication: true, publicationFile })).rejects.toThrow('Converted-data publication requires confirmation')
     await expect(readFile(join(directory, 'manifest.json'))).rejects.toMatchObject({ code: 'ENOENT' })
   } finally {
     await rm(directory, { recursive: true, force: true })
@@ -213,7 +251,8 @@ it('blocks publication builds while permission for converted data is unconfirmed
 it('blocks backend data packaging before writing files when publication permission is unconfirmed', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'morphology-backend-permission-'))
   try {
-    await expect(packageMorphology({ outputDirectory: directory })).rejects.toThrow('Converted-data publication requires confirmation')
+    const publicationFile = await writePublication(directory, null)
+    await expect(packageMorphology({ outputDirectory: directory, publicationFile })).rejects.toThrow('Converted-data publication requires confirmation')
     await expect(readFile(join(directory, 'manifest.json'))).rejects.toMatchObject({ code: 'ENOENT' })
   } finally {
     await rm(directory, { recursive: true, force: true })
@@ -223,7 +262,8 @@ it('blocks backend data packaging before writing files when publication permissi
 it('creates a local preview package that the backend can read with pinned provenance', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'morphology-backend-preview-'))
   try {
-    const report = await packageMorphology({ outputDirectory: directory, preview: true })
+    const publicationFile = await writePublication(directory, null)
+    const report = await packageMorphology({ outputDirectory: directory, preview: true, publicationFile })
     expect(report.corpusChapters).toBe(114)
     const manifest: unknown = JSON.parse(await readFile(join(directory, 'manifest.json'), 'utf8'))
     expect(MorphologyAssetManifestSchema.parse(manifest).chapters).toHaveLength(114)

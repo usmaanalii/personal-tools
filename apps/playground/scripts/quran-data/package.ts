@@ -8,10 +8,10 @@ import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { MorphologyAssetManifestSchema } from '../../../../supabase/functions/quran/bundled-morphology.ts'
 
-export async function packageMorphology({ outputDirectory, preview = false, referenceFile = fileURLToPath(new URL('../../data/quran/foundation-chapters-1-2.json', import.meta.url)) }: { readonly outputDirectory: string; readonly preview?: boolean; readonly referenceFile?: string }) {
+export async function packageMorphology({ outputDirectory, preview = false, referenceFile = fileURLToPath(new URL('../../data/quran/foundation-chapters-1-2.json', import.meta.url)), publicationFile }: { readonly outputDirectory: string; readonly preview?: boolean; readonly referenceFile?: string; readonly publicationFile?: string }) {
   const temporary = await mkdtemp(join(tmpdir(), 'quran-package-'))
   try {
-    const report = await generateData({ outputDirectory: temporary, requirePublication: !preview, referenceFile })
+    const report = await generateData({ outputDirectory: temporary, requirePublication: !preview, referenceFile, publicationFile })
     const provenance = z.record(z.string(), z.unknown()).parse(JSON.parse(await readFile(join(temporary, 'manifest.json'), 'utf8')))
     await mkdir(join(outputDirectory, 'morphology'), { recursive: true })
     const chapters = await Promise.all(Array.from({ length: report.corpusChapters }, async (_, index) => {

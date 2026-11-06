@@ -124,7 +124,7 @@ result falls back to temporary unavailability. This budget is not a hosted SLO.
 Generate the complete local package from the repository root:
 
 ```sh
-pnpm --filter playground quran:backend --preview
+pnpm --filter playground quran:backend
 ```
 
 The output is gitignored `supabase/functions/quran/data/`. Its manifest records
@@ -134,20 +134,28 @@ for bundling. Use `pnpm --filter playground quran:backend` for a release package
 That command refuses to write data while publication evidence is absent.
 Preview packages must not be deployed. The raw Supabase CLI does not enforce
 this project guard; always regenerate through the guarded release command.
+Deploy with the Docker bundler. Do not use `--use-api`: its successful upload
+does not include the static assets needed by this reader. Verify an available
+grammar response after every deployment.
 
-Publication evidence in `apps/playground/data/quran/publication.json` is still
-null. Grammar has not been deployed. The hosted v6 function supplies meanings
-without grammar, which the new frontend renders as unavailable. After permission
-is resolved, package and deploy the complete backend first. Verify aligned and
+Publication evidence in `apps/playground/data/quran/publication.json` records
+the published website/application-use grant reviewed on 2026-11-06. The original
+source ZIP and notices are preserved. Package and deploy the backend first. Verify aligned and
 unavailable occurrences, real latency, CORS and legacy responses before frontend
 publication. A local Colima worker check does not replace those live checks.
 
 ## Deployed history
 
-Current deployment: function `quran` version 6, released on 2026-11-01 with the
-word-data addition and unchanged credentials/access environment. The deployed
-source bundle was checked against the repository files. See the live word-data
-verification above; frontend publication remains a separate Pages workflow.
+Current deployment: function `quran` version 8, released on 2026-11-06 with
+bundled grammar and unchanged credentials/access environment. Live HTTP checks
+confirmed all 29 Al-Fatihah analyses and available/unavailable outcomes on
+Al-Baqarah pages 1, 2, 13 and 15. Meanings, legacy responses and CORS checks
+passed. The account still provides only the two pre-live chapters.
+The complete 114-chapter corpus is bundled, but this is not live full-Quran
+alignment evidence. Frontend publication uses the separate Pages workflow.
+
+Version 7 used server-side bundling and returned temporary grammar failures
+because its static assets were absent. Version 8 supersedes that deployment.
 
 Function `quran` version 4 was deployed on 2026-10-30 with credentials configured. Live HTTP checks confirmed 2 pre-live chapters, all 7 Al-Fatihah verses, Al-Baqarah page 2 (2:21–2:40), and its final page (2:281–2:286), including Arabic text and translation 85. The resource catalogue confirmed that pre-live provides English translation 85 rather than 131; a temporary diagnostic was removed in version 4. Desktop and mobile browser checks passed against the live services with the local production build mounted at the website origin. The Pages workflow publishes the frontend integration when these changes are pushed to `main`; this backend deployment does not publish the static website.
 

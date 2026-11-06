@@ -12,8 +12,8 @@ const sha256 = (value: string | Uint8Array) => createHash('sha256').update(value
 
 const ReferenceSchema = z.object({ sourceUrl: z.url(), retrievedAt: z.string().datetime(), words: z.array(WordOccurrenceSchema) })
 
-export async function generateData({ outputDirectory, sourceArchive = sourceZip, referenceFile, requirePublication = false, noticesOnly = false }: { readonly outputDirectory: string; readonly sourceArchive?: string; readonly referenceFile?: string; readonly requirePublication?: boolean; readonly noticesOnly?: boolean }) {
-  const publication = z.object({ permissionEvidence: z.string().trim().min(1).nullable() }).parse(JSON.parse(await readFile(new URL('../../data/quran/publication.json', import.meta.url), 'utf8')))
+export async function generateData({ outputDirectory, sourceArchive = sourceZip, referenceFile, requirePublication = false, noticesOnly = false, publicationFile = fileURLToPath(new URL('../../data/quran/publication.json', import.meta.url)) }: { readonly outputDirectory: string; readonly sourceArchive?: string; readonly referenceFile?: string; readonly requirePublication?: boolean; readonly noticesOnly?: boolean; readonly publicationFile?: string }) {
+  const publication = z.object({ permissionEvidence: z.string().trim().min(1).nullable() }).parse(JSON.parse(await readFile(publicationFile, 'utf8')))
   const distributionStatus = publication.permissionEvidence ?? 'Converted-data publication requires confirmation'
   if (requirePublication && !publication.permissionEvidence) throw new Error(distributionStatus)
   const zip = await readFile(sourceArchive)

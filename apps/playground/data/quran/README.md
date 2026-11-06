@@ -19,19 +19,17 @@ the current Tanzil website's different wording.
 
 ## Publication status
 
-Permission for distributing converted chapter JSON is **unconfirmed**.
-Adding attribution does not establish that permission. The notices allow
-website/application use while also restricting changes to the source text.
-Keep the original file and notices intact while the treatment of converted data
-is resolved with the source owner.
+`publication.json` records the published website/application-use grant reviewed
+on 2026-11-06 at https://corpus.quran.com/download/. Release relies on that grant
+with clear source attribution, source links and reproduced notices. The source
+ZIP stays unchanged. Generated annotation assets preserve the original Corpus
+and Tanzil notices. The reader links to both sources and the verbatim notices.
 
-`publication.json` records that state. Its `permissionEvidence` remains null.
-Record a verifiable source-owner clarification or other reviewed permission
-evidence there only after it has actually been obtained. A desire to deploy or
-an attribution link is not permission evidence. The normal build passes
-`--require-publication` to the importer and stops before writing assets while
-the evidence is absent. Local generation, development and `build:preview`
-continue to work. Local preview artifacts must not be published.
+The normal build passes `--require-publication` to the importer. Release builds
+and backend packaging still stop if the recorded evidence is absent. Tests use
+explicit approved and unapproved records so both outcomes remain checked.
+Local generation, development and `build:preview` remain available. Preview
+backend packages must not be deployed.
 
 No source owner has been contacted as part of this change.
 
@@ -100,6 +98,6 @@ gate. Backend HTTP tests own source matching, checksum validation, deadlines and
 meaning preservation. The UI suite owns detailed reader behaviour. Browser
 checks own notices URLs, request-free expansion, native focus, axe and fit.
 
-Do not mark issue #19 fully accepted or publish converted data until the
-publication requirement is resolved. Physical-device and assistive-technology
+Acceptance requires the live backend and website checks as well as local tests.
+Physical-device and assistive-technology
 checks are not established by Chromium/jsdom results.
