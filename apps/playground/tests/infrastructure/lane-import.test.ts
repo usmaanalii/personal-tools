@@ -84,7 +84,7 @@ it('preserves page markers actually present in the selected source entries', asy
   }
 })
 
-it('reproduces identical assets offline and rejects changed source archives before writing data', async () => {
+it('reproduces identical assets from independent offline imports', async () => {
   const output = await mkdtemp(join(tmpdir(), 'lane-repro-'))
   try {
     const first = join(output, 'first')
@@ -92,10 +92,28 @@ it('reproduces identical assets offline and rejects changed source archives befo
     execFileSync('python3', [importer, '--output', first])
     execFileSync('python3', [importer, '--output', second])
     expect(await readFile(join(first, 'manifest.json'), 'utf8')).toBe(await readFile(join(second, 'manifest.json'), 'utf8'))
-    await writeFile(join(first, 'lane/n999999.json'), 'stale generated entry')
-    execFileSync('python3', [importer, '--output', first])
-    expect(await readdir(join(first, 'lane'))).not.toContain('n999999.json')
-    expect(await readFile(join(first, 'manifest.json'), 'utf8')).toBe(await readFile(join(second, 'manifest.json'), 'utf8'))
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+})
+
+it('removes stale generated entries when rebuilding an output directory', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'lane-rebuild-'))
+  try {
+    execFileSync('python3', [importer, '--output', output])
+    const manifest = await readFile(join(output, 'manifest.json'), 'utf8')
+    await writeFile(join(output, 'lane/n999999.json'), 'stale generated entry')
+    execFileSync('python3', [importer, '--output', output])
+    expect(await readdir(join(output, 'lane'))).not.toContain('n999999.json')
+    expect(await readFile(join(output, 'manifest.json'), 'utf8')).toBe(manifest)
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+})
+
+it('rejects a changed source archive before writing data', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'lane-corrupt-source-'))
+  try {
     const corrupt = join(output, 'corrupt.tar.gz')
     await writeFile(corrupt, 'changed source')
     expect(() => execFileSync('python3', [importer, '--source', corrupt, '--output', join(output, 'rejected')], { stdio: 'pipe' })).toThrow(/Source checksum mismatch/)
