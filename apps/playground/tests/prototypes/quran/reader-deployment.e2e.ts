@@ -15,5 +15,11 @@ test('reads Quran content from the deployed app and backend after refresh', asyn
   const word = page.getByRole('dialog', { name: 'Word meaning' })
   await expect(word.getByText('In (the) name', { exact: true })).toBeVisible()
   await expect(word.getByText("bis'mi", { exact: true })).toBeVisible()
-  await word.getByRole('button', { name: 'Close word meaning' }).click()
+  // Checks the published UI and live bundled corpus together, without interception.
+  await word.getByRole('button', { name: 'Expand grammar', exact: true }).click()
+  await expect(word.getByText('Stem · Noun', { exact: true })).toBeVisible()
+  await expect(word.getByRole('link', { name: 'Quranic Arabic Corpus v0.4' })).toBeVisible()
+  await word.getByRole('link', { name: 'Data notices' }).click()
+  await expect(page).toHaveURL(/\/personal-tools\/quran-data\/NOTICE\.txt$/)
+  await expect(page.getByText(/Copyright \(C\) 2011 Kais Dukes/)).toBeVisible()
 })
