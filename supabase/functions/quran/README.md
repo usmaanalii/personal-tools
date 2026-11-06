@@ -144,6 +144,46 @@ source ZIP and notices are preserved. Package and deploy the backend first. Veri
 unavailable occurrences, real latency, CORS and legacy responses before frontend
 publication. A local Colima worker check does not replace those live checks.
 
+## Lane dictionary (#20, local implementation)
+
+`GET /functions/v1/quran/v2/dictionary?root=سمو&lemma=ٱسْم` serves Lane entries
+on demand through this existing function. The browser supplies verified grammar
+stem annotations. The backend owns exact, reviewed root/lemma mappings and
+exceptions; surface matching is not supported. The route does not contact Quran
+Foundation or require provider credentials. It reuses CORS, read-only methods,
+safe JSON errors, `no-store` responses and the per-isolate request budget.
+
+`packages/api-contracts` owns the bounded request and structured response schemas.
+`bundled-lane.ts` hides the mapping/index and file representations behind a single
+lookup operation. It verifies file checksums before parsing and caches successful
+reads within the function instance. A failed entry returns `entry: null` while
+other matches remain distinct; index/read failures produce a safe 503 response.
+No match returns an empty array. Existing chapters, verses and legacy routes
+retain their contracts.
+
+Generate both backend datasets before a release:
+
+```sh
+pnpm --filter playground quran:backend
+pnpm --filter playground lane:data
+```
+
+The Lane command uses Python 3 and the pinned, unchanged archive offline.
+It writes `lane-data/index.json`, `lane-data/lane/{entryId}.json`, a checksum
+manifest and attribution notices. `supabase/config.toml` includes these files in
+the existing function bundle. Use the Docker bundler, as for morphology; a
+successful server-side upload does not establish static-file inclusion.
+Backend-owned tests cover the HTTP contract, actual source matches, checksum
+failure and caching. Deno entry-point checks cover imports and types. Playwright
+calls the real local Deno route using bundled Lane files and fixture verse data.
+These checks do not establish hosted Supabase bundling or physical-device use.
+
+Initial coverage is eight entries through three root mappings and two lemma
+exceptions. See [source, licence and coverage](../../../apps/playground/data/lane/README.md).
+Deploy and verify name/Allah matches, multiple mercy entries, no-match and retry
+outcomes, CORS and existing content before frontend publication.
+The #20 route is not part of the deployed version recorded below.
+
 ## Deployed history
 
 Current deployment: function `quran` version 8, released on 2026-11-06 with

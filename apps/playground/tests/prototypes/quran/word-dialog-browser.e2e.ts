@@ -36,6 +36,8 @@ test('keeps keyboard focus in the word dialog and returns it to the last selecte
   await page.keyboard.press('Enter')
   await expect(expand).toHaveAttribute('aria-expanded', 'false')
   await page.keyboard.press('Tab')
+  await expect(dialog.getByRole('button', { name: 'Expand dictionary' })).toBeFocused()
+  await page.keyboard.press('Tab')
   await expect(next).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(close).toBeFocused()

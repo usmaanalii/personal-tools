@@ -67,6 +67,38 @@ it("shows a word's details when it is selected", async () => {
   expect(word).toHaveAttribute('aria-pressed', 'true')
 })
 
+it('opens Dictionary within the selected word while keeping its meaning and verse context', async () => {
+  const { user, word } = await renderWords()
+  await user.click(word)
+  const details = within(screen.getByRole('dialog', { name: 'Word meaning' }))
+  await user.click(details.getByRole('button', { name: 'Expand dictionary' }))
+  expect(await details.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
+  expect(details.getByText('In (the) name')).toBeVisible()
+  expect(details.getByText('Al-Fātiḥah · 1:1')).toBeVisible()
+  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
+  expect(details.getByText('Analysis unavailable.')).toBeVisible()
+  await user.click(details.getByRole('button', { name: 'Next word' }))
+  expect(details.getByText('of Allah')).toBeVisible()
+  expect(details.getByRole('button', { name: 'Expand dictionary' })).toHaveAttribute('aria-expanded', 'false')
+})
+
+it('reuses dictionary results when word details are closed and reopened', async () => {
+  const requests: string[] = []
+  server.use(http.get(`${quranEndpoint}/dictionary`, ({ request }) => {
+    requests.push(request.url)
+    return HttpResponse.json({ entries: [] })
+  }))
+  const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() })] })
+  await user.click(word)
+  await user.click(screen.getByRole('button', { name: 'Expand dictionary' }))
+  expect(await screen.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
+  await user.click(screen.getByRole('button', { name: 'Close word meaning' }))
+  await user.click(word)
+  await user.click(screen.getByRole('button', { name: 'Expand dictionary' }))
+  expect(await screen.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
+  expect(requests).toHaveLength(1)
+})
+
 it('shows adjacent words in the same verse when Previous or Next is selected', async () => {
   const { user, word } = await renderWords()
   await user.click(word)

@@ -67,3 +67,25 @@ export const VersesResponseSchema = z.object({
   nextPage: z.number().int().min(1).max(15).nullable(),
 })
 export type VersesResponse = z.infer<typeof VersesResponseSchema>
+
+export const LaneEntryIdSchema = z.string().regex(/^n\d+$/)
+export const LaneRequestSchema = z.object({
+  root: z.string().min(1).max(16).optional(),
+  lemma: z.string().min(1).max(80).optional(),
+}).strict().refine(query => query.root || query.lemma, 'A root or lemma is required')
+export type LaneRequest = z.infer<typeof LaneRequestSchema>
+
+export const LaneEntrySchema = z.object({
+  id: LaneEntryIdSchema, headword: z.string(), root: z.string(), file: z.string().regex(/^[A-Za-z0-9_$]+\.xml$/),
+  sourceUrl: z.string().regex(/^https:\/\/github\.com\/alpheios-project\/lan\/blob\/[a-f0-9]{40}\/db\/lexica\/ara\/lan\/[A-Za-z0-9_$]+\.xml$/),
+  blocks: z.array(z.object({ kind: z.enum(['text', 'form', 'sense']), label: z.string(),
+    runs: z.array(z.object({ text: z.string(), lang: z.string().nullable(), emphasis: z.boolean() })),
+  })),
+})
+export type LaneEntry = z.infer<typeof LaneEntrySchema>
+export const LaneResponseSchema = z.object({
+  entries: z.array(z.object({ id: LaneEntryIdSchema, entry: LaneEntrySchema.nullable() })).max(12)
+    .refine(entries => entries.every(item => !item.entry || item.entry.id === item.id), 'Entry identity mismatch')
+    .refine(entries => new Set(entries.map(item => item.id)).size === entries.length, 'Duplicate entries'),
+})
+export type LaneResponse = z.infer<typeof LaneResponseSchema>

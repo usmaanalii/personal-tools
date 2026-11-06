@@ -1,9 +1,9 @@
-import { VERSES_PER_PAGE, VersesRequestSchema } from '../../../packages/api-contracts/src/quran.ts'
+import { VERSES_PER_PAGE, VersesRequestSchema, LaneRequestSchema, LaneResponseSchema, type LaneRequest } from '../../../packages/api-contracts/src/quran.ts'
 import { ApiErrorSchema } from '../../../packages/api-contracts/src/error.ts'
 import { mapChapters, mapVerses } from './provider.ts'
 import { enrichGrammar, type MorphologyReader } from './morphology.ts'
 
-type Config = { clientId: string; clientSecret: string; environment: string; origins: string[]; timeoutMs?: number; readMorphology?: MorphologyReader }
+type Config = { clientId: string; clientSecret: string; environment: string; origins: string[]; timeoutMs?: number; readMorphology?: MorphologyReader; readDictionary?: (query: LaneRequest, signal: AbortSignal) => Promise<unknown> }
 
 export function createQuranHandler(config: Config) {
   const authBase = config.environment === 'production' ? 'https://oauth2.quran.foundation' : 'https://prelive-oauth2.quran.foundation'
@@ -43,13 +43,26 @@ export function createQuranHandler(config: Config) {
     const route = ownedContract ? pathRoute.slice(3) : pathRoute
     const chapter = url.searchParams.get('chapter') ?? ''
     const page = url.searchParams.get('page') ?? '1'
-    const allowed = route === 'chapters' ? [] : ['chapter', 'page']
-    if ((route !== 'chapters' && route !== 'verses') || [...url.searchParams.keys()].some(key => !allowed.includes(key) || url.searchParams.getAll(key).length !== 1)) return error('Invalid content request.', 400)
+    const dictionary = ownedContract && route === 'dictionary'
+    const allowed = dictionary ? ['root', 'lemma'] : route === 'chapters' ? [] : ['chapter', 'page']
+    if ((!dictionary && route !== 'chapters' && route !== 'verses') || [...url.searchParams.keys()].some(key => !allowed.includes(key) || url.searchParams.getAll(key).length !== 1)) return error('Invalid content request.', 400)
     if (route === 'verses' && (!/^[1-9]\d{0,2}$/.test(chapter) || !/^[1-9]\d?$/.test(page) || !VersesRequestSchema.safeParse({ chapter: Number(chapter), page: Number(page) }).success)) return error('Invalid chapter or page.', 400)
-    if (!config.clientId || !config.clientSecret || !['prelive', 'production'].includes(config.environment)) return error('Quran content is not configured yet.', 503)
+    if (!dictionary && (!config.clientId || !config.clientSecret || !['prelive', 'production'].includes(config.environment))) return error('Quran content is not configured yet.', 503)
     if (Date.now() - windowStart >= 60_000) { windowStart = Date.now(); requests = 0 }
     // A bounded per-isolate budget, not a global or per-user rate limiter.
     if (++requests > 60) return Response.json(ApiErrorSchema.parse({ error: 'Too many requests. Please try again shortly.' }), { status: 429, headers: { ...headers, 'Retry-After': '60' } })
+    if (dictionary) {
+      const query = LaneRequestSchema.safeParse(Object.fromEntries(url.searchParams))
+      if (!query.success) return error('Invalid dictionary request.', 400)
+      if (!config.readDictionary) return error('Dictionary temporarily unavailable.', 503)
+      try {
+        const signal = AbortSignal.any([request.signal, AbortSignal.timeout(config.timeoutMs ?? 8_000)])
+        const content = LaneResponseSchema.parse(await config.readDictionary(query.data, signal))
+        return Response.json(content, { headers })
+      } catch {
+        return error('Dictionary temporarily unavailable.', 503)
+      }
+    }
     const translationId = config.environment === 'prelive' ? 85 : 131
     const path = route === 'chapters' ? 'chapters?language=en' : `verses/by_chapter/${chapter}?fields=text_uthmani&translations=${translationId}&per_page=${VERSES_PER_PAGE}&page=${page}${ownedContract ? '&words=true&word_fields=text_uthmani&language=en' : ''}`
     try {

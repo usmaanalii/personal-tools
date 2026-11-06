@@ -1,0 +1,15 @@
+{
+  "roots": {
+    "سمو": ["n20811", "n20831"],
+    "رحم": ["n15076", "n15091", "n15096"],
+    "حمد": ["n9032", "n9039"]
+  },
+  "lemmas": {"ٱسْم": ["n20831"], "ٱللَّه": ["n1123"]},
+  "notes": {
+    "ٱسْم": "QAC lemma ٱسْم is Lane اِسْمٌ, n20831 under سمو; never match the surface بسم (smile).",
+    "ٱللَّه": "QAC root اله is not used to choose among deity-related senses; the lemma selects Lane اللّٰهُ, n1123 under اله.",
+    "سمو": "Source root group سمو: n20811 سَمَا and n20831 اِسْمٌ. The name lemma takes precedence.",
+    "رحم": "Source root group رحم: n15076 verb رَحِمَهُ, n15091 الرَّحْمٰنُ and n15096 رَحِيمُ remain separate entries.",
+    "حمد": "Source root group حمد: n9032 verb حَمِدَهُ and n9039 noun حَمْدٌ remain separate entries."
+  }
+}

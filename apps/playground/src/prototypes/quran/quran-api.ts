@@ -1,4 +1,4 @@
-import { ChaptersResponseSchema, VersesRequestSchema, VersesResponseSchema, type Chapter, type VersesResponse, type QuranWord } from '@scratch-pages/api-contracts/quran'
+import { ChaptersResponseSchema, VersesRequestSchema, VersesResponseSchema, LaneRequestSchema, LaneResponseSchema, type LaneRequest, type Chapter, type VersesResponse, type QuranWord } from '@scratch-pages/api-contracts/quran'
 
 export type { Chapter }
 export type Ayah = { number: number; arabic: string; translation: string; words?: QuranWord[] }
@@ -21,6 +21,12 @@ export async function getChapters(signal: AbortSignal): Promise<[Chapter, ...Cha
   const [first, ...rest] = result.data.chapters
   if (!first) throw new Error('No chapters are available.')
   return [first, ...rest]
+}
+
+export async function getLaneEntries(query: LaneRequest, signal: AbortSignal) {
+  const input = LaneRequestSchema.parse(query)
+  const params = new URLSearchParams(Object.entries(input))
+  return LaneResponseSchema.parse(await getContent(`dictionary?${params}`, signal))
 }
 
 export async function getVerses(chapter: number, page: number, signal: AbortSignal): Promise<VersePage> {

@@ -28,11 +28,15 @@ pnpm --filter playground test:e2e
 
 For both the Quran reader and Supabase demo, copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Both are public browser configuration; never use a secret or service-role key. Vitest uses `.env.test` and MSW responses.
 
-The grammar work in #19 is a local preview. `build` and the Pages build enforce
-its pending data-publication requirement. Use `build:preview` only for local
-verification. It creates frontend assets and source notices. Grammar data is
-packaged separately for the backend. Do not upload preview artifacts. See the source
+Grammar in #19 uses the recorded published website/application-use grant.
+`build` and the Pages build enforce its publication record.
+`build:preview` is for local verification. Both builds create frontend assets and source notices.
+Grammar and dictionary data are packaged separately for the backend. See the source
 [provenance and publication record](data/quran/README.md).
+
+Lane imports require Python 3. Browser checks also require Deno 2.9.6, already used by the backend checks.
+Playwright starts the actual local Quran function on port 8000 with empty provider credentials and restricted permissions.
+It builds the frontend against that local URL; verse/provider responses remain fixtures and dictionary requests use the real local route.
 
 ## Quran API setup
 
@@ -58,8 +62,8 @@ Occurrence identities use chapter, verse and provider position. Missing or
 invalid word records retain whole-verse Arabic; missing annotations have explicit
 unavailable labels. Word text is rendered inertly. The English word data is
 credited to Quran Foundation separately from the selected whole-verse translator;
-no authorship by that translator is implied. Grammar and dictionaries are outside
-this feature. See the [journey/state inventory](src/prototypes/quran/word-meaning-journeys.md).
+no authorship by that translator is implied. Grammar and dictionary behaviour are documented separately below.
+See the [journey/state inventory](src/prototypes/quran/word-meaning-journeys.md).
 
 No new environment variables or backend dependencies are required. The dialog
 migration adds the exact `@radix-ui/react-dialog` 1.1.23 runtime dependency to
@@ -230,6 +234,32 @@ See the [root README](../../README.md) for live links, repository variables, and
 Public schemas and inferred types live in [`@scratch-pages/api-contracts`](../../packages/api-contracts/README.md). The hello and Quran fetch adapters validate successful responses using those schemas. Quran consumes application-owned v2 data and backend attribution; it retains only display-specific conversion of untrusted translation HTML into inert text. No additional environment variables or generation step are needed.
 
 The v2 backend was deployed and verified on 2026-10-30; frontend publication follows the approved push through Pages. Existing legacy backend routes remain available for older browser builds. Backend rollout must precede this frontend release; see the [migration instructions](../../supabase/functions/quran/README.md#owned-v2-contract-and-migration).
+
+## Lane dictionary (#20, local implementation)
+
+Open word details and select **Expand dictionary**. The browser sends available,
+verified grammar stem roots/lemmas to the existing Supabase Quran function.
+Matching and entry files remain backend-owned. No dictionary request is made
+until the section opens, and no additional Quran Foundation call is required.
+
+Entries show their own headword, source ID and pinned XML link. **Read full entry**
+expands long content inside a keyboard-scrollable region. A sticky reference
+retains the selected word while reading on narrow and landscape screens.
+Arabic, forms, sense divisions and available page markers remain distinct from
+the contextual word gloss. Text is rendered inertly.
+
+Unmapped/unverified words show an unavailable state. Request and individual entry
+failures offer **Retry dictionary** while keeping meaning and successful entries
+visible. Changing word or grammar discards pending results and resets disclosure.
+Successful responses remain cached while the verse is mounted, including closing
+and reopening the dialog. Changing the chapter/page clears that local cache.
+
+Initial coverage is eight entries through three root mappings and two lemma
+exceptions. This is not complete dictionary coverage. See [sources, mappings,
+licence, import commands and journey states](data/lane/README.md).
+No new frontend environment variables are required. Generate backend files with
+`pnpm --filter playground lane:data`, then deploy and verify the complete Quran
+function before publishing this frontend. #20 has not been deployed by this change.
 
 ## Default-guide adoption (#28)
 

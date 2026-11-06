@@ -1,0 +1,58 @@
+import { expect, test } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+import { mockQuranContent } from './content-fixture'
+
+// Verse content is a fixture; Dictionary uses the actual local Deno entry point
+// and pinned backend assets. This does not prove the hosted Supabase gateway.
+test('reads a real Lane entry under the deployment prefix while retaining word context', async ({ page }, testInfo) => {
+  await mockQuranContent(page)
+  const requests: string[] = []
+  page.on('request', request => {
+    if (new URL(request.url()).pathname.endsWith('/dictionary')) requests.push(request.url())
+  })
+  await page.goto('./quran/')
+  await page.getByRole('button', { name: 'بِسْمِ · 1:1:1' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Word meaning' })
+  expect(requests).toEqual([])
+  await dialog.getByRole('button', { name: 'Expand dictionary' }).click()
+  const dictionary = dialog.getByRole('region', { name: 'Lane’s dictionary' })
+  const article = dictionary.getByRole('article', { name: /n20831/ })
+  await expect(article).toBeVisible()
+  expect(requests).toHaveLength(1)
+  const request = new URL(requests[0] ?? '')
+  expect(request.pathname).toBe('/functions/v1/quran/v2/dictionary')
+  expect(request.searchParams.get('root')).toBe('سمو')
+  expect(request.searchParams.get('lemma')).toBe('ٱسْم')
+  await article.getByRole('button', { name: 'Read full entry' }).click()
+  await expect(article.getByText('name', { exact: true }).first()).toBeVisible()
+  await expect(dictionary.getByRole('link', { name: 'Original XML · n20831' })).toHaveAttribute('href', /7dd04e1182c13a4b0883978867d2a3b04616542a\/db\/lexica\/ara\/lan\/us0.xml$/)
+  await dictionary.focus()
+  await expect(dictionary).toBeFocused()
+  await page.keyboard.press('End')
+  await expect(dialog.getByText('Al-Fātiḥah · 1:1')).toBeInViewport()
+  await expect(dialog.getByText('In (the) name', { exact: true })).toBeInViewport()
+  expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  const accessibility = await new AxeBuilder({ page }).include('[role="dialog"]').analyze()
+  expect(accessibility.violations).toEqual([])
+  await page.setViewportSize({ width: 320, height: 568 })
+  await dialog.getByRole('button', { name: 'Collapse dictionary' }).focus()
+  await page.keyboard.press('Tab')
+  await expect(dictionary).toBeFocused()
+  await dictionary.press('End')
+  await expect(dictionary.getByText('Selected word · 1:1:1')).toBeInViewport()
+  expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  await dictionary.press('Home')
+  // Home returns to the context/introduction. Bring the named entry into view for the review capture.
+  const entryHeading = article.getByRole('heading', { name: /n20831/ })
+  await entryHeading.scrollIntoViewIfNeeded()
+  await expect(entryHeading).toBeInViewport()
+  await page.screenshot({ path: testInfo.outputPath('lane-dictionary.png') })
+  await page.setViewportSize({ width: 740, height: 360 })
+  await dialog.getByRole('button', { name: 'Collapse dictionary' }).focus()
+  await page.keyboard.press('Tab')
+  await expect(dictionary).toBeFocused()
+  await dictionary.press('End')
+  await expect(dictionary.getByText('Selected word · 1:1:1')).toBeInViewport()
+  await dialog.getByRole('button', { name: 'Close word meaning' }).click()
+  await expect(page.getByRole('button', { name: 'بِسْمِ · 1:1:1' })).toBeFocused()
+})

@@ -46,6 +46,14 @@ The short frontend/function Vitest suites remain in Pages to prevent publication
 
 The connection browser journeys run axe accessibility scans alongside their short route and action checks.
 
+Playground's #20 dictionary journey calls the actual local Quran Deno entry point
+with generated, pinned Lane assets. Playwright owns that server on port 8000,
+starts it with empty provider credentials and restricted permissions, and builds
+the frontend against its local URL. Verse/provider responses remain fixtures.
+Deno 2.9.6 is installed before the browser step. The dictionary check covers
+native reading, request timing, source content and accessibility through the
+production frontend; it does not prove the hosted Supabase gateway or deployment.
+
 ## Shared API contracts
 
 Changes to `packages/api-contracts/**` cause Pages, Playground E2E and Next verification to run, including PR change detection. Function changes also trigger Pages.

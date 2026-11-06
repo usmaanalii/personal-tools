@@ -84,7 +84,7 @@ jobs:
         run: pnpm --filter edge-functions check:deno
       - name: Edge Function API contract tests (Vitest)
         run: pnpm test:functions
-      - name: Production static-site routing and layout smoke (fixture content)
+      - name: Production frontend journeys (fixture verses, local Deno dictionary)
         run: pnpm test:e2e
       - name: Deployment browser smoke (no asset or backend mocks)
         if: github.event_name == 'workflow_dispatch' && inputs.deployment_url != ''

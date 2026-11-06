@@ -24,6 +24,18 @@ verse against the requested reading context. Provider models remain backend-only
 - `quran`: GET `/functions/v1/quran/v2/chapters` returns `{ chapters: Chapter[] }`. Chapter fields are `id`, `name`, `arabic`, `meaning`, `verses`, and `place` (`Meccan` or `Medinan`).
 - `quran`: GET `/functions/v1/quran/v2/verses?chapter=1&page=1` returns `{ verses: [{ number, arabic, translationHtml }], translationName, nextPage }`. Chapter is 1–114; page is 1–15 and defaults to 1. A page contains 1–20 verses. `nextPage` is the next sequential page or null.
 - `error`: application errors with JSON bodies use `{ error: string }` and the HTTP status. CORS rejection and preflight have empty bodies; platform-generated errors are outside this schema.
+- `quran`: GET `/functions/v1/quran/v2/dictionary?root=سمو&lemma=ٱسْم` returns `{ entries: [{ id, entry }] }`. At least one exact root (1–16 characters) or lemma (1–80 characters) is required. Unknown/duplicate query parameters are rejected. This new route leaves verse responses unchanged.
+
+`LaneRequestSchema` and `LaneResponseSchema` own the dictionary contract.
+A lookup returns at most 12 distinct entries. A successful `entry` contains its
+ID, headword, source root/file, pinned XML URL and structured form/text/sense
+blocks with inert text runs, language and emphasis. `entry: null` means a matched
+entry temporarily failed to load; other entries remain usable. An empty array
+means there is no reviewed match. Transport/index failures use the existing error
+schema and status codes. Response IDs must be unique and agree with their entries.
+The browser renders strings as text and uses only validated HTTPS source links.
+The mapping/index representation remains private to the backend.
+Deploy and verify this new backend route before publishing its frontend consumer.
 
 `translationHtml` is explicitly untrusted provider markup. Playground extracts inert text and removes script, style, and footnote nodes; never insert this field directly into HTML. Attribution and translation selection belong to the backend. Component display models may differ from wire DTOs.
 

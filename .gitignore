@@ -27,4 +27,6 @@ release-evidence/
 
 # Reproducible chapter assets are generated from pinned app-local source inputs.
 apps/playground/public/quran-data/
+apps/playground/public/quran-lexicons/
 supabase/functions/quran/data/
+supabase/functions/quran/lane-data/
