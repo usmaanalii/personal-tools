@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { RouteLoading } from './route-loading'
+import { ReaderLoading } from '../prototypes/quran/reader-loading'
 
 const meta = {
   title: 'Playground/Route loading',
@@ -16,5 +17,5 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Quran: Story = {}
+export const Quran: Story = { render: ({ message }) => <ReaderLoading message={message}/> }
 export const Supabase: Story = { args: { title: 'Supabase API demo', message: 'Loading Supabase demo…' } }

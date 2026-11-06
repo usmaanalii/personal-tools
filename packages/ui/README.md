@@ -2,6 +2,8 @@
 
 `@scratch-pages/ui` owns reusable React controls, shared Tailwind utilities and the Storybook catalogue. Apps compose these controls and own their behaviour. Foundation and semantic variables come from `@scratch-pages/design-tokens`; see the [style guide](../../docs/style-guide/README.md).
 
+`Skeleton` adapts the [shadcn/ui primitive](https://ui.shadcn.com/docs/components/skeleton) to the shared border colour and control radius, without adding dependencies. Give each placeholder dimensions that match its content. It is decorative (`aria-hidden`); callers supply a polite loading announcement and `aria-busy` on the region being updated. Pulse animation runs only when reduced motion is not requested. Storybook's Feedback/Skeleton examples show text and card shapes; the Quran reader supplies the loading compositions.
+
 Use Node 24 and pnpm 9.5.0 for the Pages build. Install from the repository root with `pnpm install --frozen-lockfile`.
 
 ```sh

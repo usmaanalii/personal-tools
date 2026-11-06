@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { Button } from '@scratch-pages/ui'
+import { Button, Skeleton } from '@scratch-pages/ui'
 import { VERSES_PER_PAGE, type QuranWord, type WordGrammar as GrammarOutcome } from '@scratch-pages/api-contracts/quran'
 import { getVerses } from './quran-api'
 import type { GrammarRecovery } from './use-reader'
@@ -49,8 +49,10 @@ export function WordGrammar({ word, onGrammarRecovered }: { readonly word: Quran
   }
   return <div className="my-5 text-base leading-relaxed wrap-anywhere">
     <Button ref={disclosure} variant="outline" aria-expanded={expanded} aria-controls={id} onClick={toggle}>{expanded ? 'Collapse grammar' : 'Expand grammar'}</Button>
-    <div id={id} hidden={!expanded}>
-      {current.status === 'loading' && <p role="status">Loading grammar…</p>}
+    {expanded && current.status === 'loading' && <p role="status" className="sr-only">Loading grammar…</p>}
+    {/* biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard readers need a focus target to scroll the analysis region. */}
+    <section id={id} hidden={!expanded} aria-label="Grammar analysis" tabIndex={0} aria-busy={current.status === 'loading'} className="mt-4 h-[clamp(12rem,35svh,22rem)] overflow-auto [scrollbar-gutter:stable] focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-ui-focus">
+      {current.status === 'loading' && <div aria-hidden="true" className="my-4 space-y-3"><Skeleton className="h-5 w-1/2"/><Skeleton className="ml-auto h-8 w-1/3"/><Skeleton className="h-4 w-full"/><Skeleton className="h-4 w-3/4"/></div>}
       {current.status === 'failed' && <p role="status">Analysis temporarily unavailable.</p>}
       {(current.status === 'failed' || current.status === 'loading') && <Button variant="outline" className="aria-disabled:cursor-default aria-disabled:opacity-60" aria-disabled={current.status === 'loading'} onClick={event => void load(event.currentTarget)}>Retry grammar</Button>}
       {current.status === 'ready' && !current.analysis && <p role="status">Analysis unavailable.</p>}
@@ -68,6 +70,6 @@ export function WordGrammar({ word, onGrammarRecovered }: { readonly word: Quran
           </li>)}
         </ol>
       </>}
-    </div>
+    </section>
   </div>
 }

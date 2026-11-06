@@ -20,14 +20,14 @@ export function ChapterBrowser({ total, tab, onTabChange, bookmarkCount, search,
       { value: 'chapters', label: 'All chapters' },
       { value: 'bookmarks', label: <>My bookmarks <span>{bookmarkCount}</span></> },
     ]}/>
-    {search}
-    <div className="mt-4 max-h-96 overflow-y-auto overscroll-contain p-1">{children}</div>
+    <div className="h-24 pt-4">{search}</div>
+    <div className="h-96 overflow-y-auto overscroll-contain p-1 [scrollbar-gutter:stable]">{children}</div>
   </section>
 }
 
 export function ChapterSearch({ query, onQueryChange, onClose }: { query: string; onQueryChange: (query: string) => void; onClose: () => void }) {
   const inputId = useId()
-  return <div id="chapter-search" className="mt-4">
+  return <div id="chapter-search">
     <label htmlFor={inputId} className="mb-2 block text-sm font-semibold">Search chapters</label>
     <div className="flex items-center gap-2">
       <Input id={inputId} autoFocus value={query} onChange={event => onQueryChange(event.target.value)} placeholder="Search by chapter or meaning…"/>

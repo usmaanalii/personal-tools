@@ -18,6 +18,10 @@ describe('Playground navigation', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent(message)
     expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
+    if (route === 'quran') {
+      expect(screen.getByRole('heading', { name: 'A moment with the Quran.' })).toBeVisible()
+      expect(screen.getByRole('complementary', { name: 'Current chapter' })).toHaveAttribute('aria-busy', 'true')
+    }
     expect(screen.getByRole('link', { name: /All playground pages/i })).toHaveAttribute('href', import.meta.env.BASE_URL)
     expect(await screen.findByRole('heading', {
       name: route === 'quran' ? 'Al-Fātiḥah' : 'Hello from GitHub Pages',

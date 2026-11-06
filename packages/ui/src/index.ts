@@ -1,4 +1,5 @@
 export { Button } from './button'
 export { Input } from './input'
+export { Skeleton } from './skeleton'
 export { ViewSwitcher } from './view-switcher'
 export { DialogRoot, DialogTrigger, DialogClose, DialogContent, DialogTitle } from './dialog'

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it } from 'vitest'
 import App from '../../app/app'
@@ -15,6 +15,39 @@ async function renderReader() {
 }
 
 afterEach(() => window.history.pushState({}, '', '/'))
+
+it('keeps the reader shell visible with decorative placeholders while chapters load', async () => {
+  server.use(http.get(`${quranEndpoint}/chapters`, () => new Promise(() => {})))
+  window.history.pushState({}, '', '/quran/')
+  render(<App />)
+
+  expect(await screen.findByText('Loading chapters…')).toHaveAttribute('role', 'status')
+  expect(screen.getByRole('heading', { name: 'A moment with the Quran.' })).toBeVisible()
+  expect(screen.getByRole('region', { name: 'Sources' })).toBeVisible()
+  const reading = screen.getByRole('complementary', { name: 'Current chapter' })
+  expect(reading).toHaveAttribute('aria-busy', 'true')
+  expect(reading.querySelector('[data-slot="skeleton"]')).toHaveAttribute('aria-hidden', 'true')
+  expect(within(reading).queryByRole('button')).not.toBeInTheDocument()
+})
+
+it('shows verse placeholders during chapter changes and removes them when the request finishes', async () => {
+  const { user } = await renderReader()
+  const pending = Promise.withResolvers<Response>()
+  server.use(http.get(`${quranEndpoint}/verses`, () => pending.promise))
+  await user.click(screen.getByRole('button', { name: /^NEXT/ }))
+
+  expect(screen.getByRole('status')).toHaveTextContent('Loading verses…')
+  expect(screen.getByRole('complementary', { name: 'Current chapter' })).not.toContainElement(screen.getByRole('status'))
+  const verses = screen.getByRole('region', { name: 'Verses' })
+  expect(verses).toHaveAttribute('aria-busy', 'true')
+  expect(verses.querySelector('[data-slot="skeleton"]')).toHaveAttribute('aria-hidden', 'true')
+  expect(screen.queryByText('All praise is for Allah—Lord of all worlds,')).not.toBeInTheDocument()
+  pending.resolve(HttpResponse.json({ verses: [{ number: 1, arabic: 'نص للاختبار', translationHtml: 'New chapter text.' }], translationName: 'Translator', nextPage: null }))
+
+  expect(await screen.findByText('New chapter text.')).toBeVisible()
+  expect(verses).toHaveAttribute('aria-busy', 'false')
+  expect(verses.querySelector('[data-slot="skeleton"]')).not.toBeInTheDocument()
+})
 
 describe('Quran reader bookmarks', () => {
   it('announces which chapter view is selected when switching to My bookmarks', async () => {
@@ -167,6 +200,10 @@ describe('Quran request recovery and pagination', () => {
     window.history.pushState({}, '', '/quran/')
     render(<App />)
     expect(await screen.findByRole('alert')).toHaveTextContent('Quran content is not configured yet.')
+    expect(screen.getByRole('heading', { name: 'A moment with the Quran.' })).toBeVisible()
+    const reading = screen.getByRole('complementary', { name: 'Current chapter' })
+    expect(reading).toHaveAttribute('aria-busy', 'false')
+    expect(reading.querySelector('[data-slot="skeleton"]')).not.toBeInTheDocument()
     expect(screen.queryByText(/private server detail/)).not.toBeInTheDocument()
     server.resetHandlers()
     await userEvent.click(screen.getByRole('button', { name: 'Retry chapters' }))

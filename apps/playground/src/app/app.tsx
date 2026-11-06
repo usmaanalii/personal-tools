@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { PlaygroundHome } from './playground-home'
 import { RouteLoading } from './route-loading'
+import { ReaderLoading } from '../prototypes/quran/reader-loading'
 
 const QuranReader = lazy(() => import('../prototypes/quran/quran-reader'))
 const SupabaseDemo = lazy(() => import('../prototypes/supabase/supabase-demo'))
@@ -9,7 +10,7 @@ export default function App() {
 
   if (route === 'quran') {
     return (
-      <Suspense fallback={<RouteLoading title="Quran reader" message="Loading Quran reader…" />}>
+      <Suspense fallback={<ReaderLoading message="Loading Quran reader…" />}>
         <QuranReader />
       </Suspense>
     )
