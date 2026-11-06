@@ -33,6 +33,14 @@ def blocks(entry):
     )]
 
 
+def candidate_roots(raw, ids):
+    # The pinned XML uses double-quoted IDs. This only skips negative files;
+    # parsed entry IDs and source root groups still decide every positive match.
+    if not any(('id="' + entry + '"').encode('utf-8') in raw for entry in ids):
+        return []
+    return ET.fromstring(raw).findall('.//div2')
+
+
 def generate(output, source, mappings_file, notices_only=False):
     if hashlib.sha256(source.read_bytes()).hexdigest() != '633b60ec3dbccb8c5214dcb0dcdfb5979f26610789093dc18c32780ce2bb6b05':
         raise ValueError('Source checksum mismatch')
@@ -58,7 +66,7 @@ def generate(output, source, mappings_file, notices_only=False):
              'sourceUrl': 'https://github.com/alpheios-project/lan/blob/' + COMMIT + '/db/lexica/ara/lan/' + Path(name).name,
              'blocks': blocks(entry)}
             for name in files
-            for group in ET.fromstring(archive.extractfile(name).read()).findall('.//div2')
+            for group in candidate_roots(archive.extractfile(name).read(), ids)
             for entry in group.findall('entryFree') if entry.get('id') in ids
         ]
     by_id = {entry['id']: entry for entry in entries}
