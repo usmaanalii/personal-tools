@@ -101,7 +101,48 @@ References: [Word fields](https://api-docs.quran.foundation/docs/api/field-refer
 [Chapter operation](https://api-docs.quran.com/docs/content_apis_versioned/4.0.0/verses-by-chapter-number/),
 [Native dialog](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog).
 
-## Deployment status
+## Grammar enrichment (#19, local implementation)
+
+V2 verse pages automatically receive optional grammar outcomes beside word
+meanings. `morphology.ts` matches chapter, verse, position and Arabic text against
+the pinned corpus. Only NFC and presentation-tatweel removal are permitted.
+Missing or mismatched occurrences return `unavailable`. Read, checksum, schema
+and deadline failures return `temporarily_unavailable` while retaining verses
+and meanings. Legacy routes are unchanged.
+
+`bundled-morphology.ts` reads one gzip chapter per verse-page request. It checks
+compressed and decoded hashes and sizes before source validation. Decoded data
+is bounded to its manifest size, with a 3 MB maximum. No chapter cache, database,
+Storage bucket or browser corpus is needed. Public segments omit source IDs,
+forms and raw annotation tokens.
+
+Enrichment has a provisional 200 ms added-work budget after verse mapping.
+Cancellation reaches decompression. Timers cannot interrupt synchronous parsing,
+so elapsed time is also checked before validation and after matching. A late
+result falls back to temporary unavailability. This budget is not a hosted SLO.
+
+Generate the complete local package from the repository root:
+
+```sh
+pnpm --filter playground quran:backend --preview
+```
+
+The output is gitignored `supabase/functions/quran/data/`. Its manifest records
+gzip hashes, decoded sizes, pinned provenance, reference identity and preview
+status. `supabase/config.toml` includes the explicit nested gzip glob and notices
+for bundling. Use `pnpm --filter playground quran:backend` for a release package.
+That command refuses to write data while publication evidence is absent.
+Preview packages must not be deployed. The raw Supabase CLI does not enforce
+this project guard; always regenerate through the guarded release command.
+
+Publication evidence in `apps/playground/data/quran/publication.json` is still
+null. Grammar has not been deployed. The hosted v6 function supplies meanings
+without grammar, which the new frontend renders as unavailable. After permission
+is resolved, package and deploy the complete backend first. Verify aligned and
+unavailable occurrences, real latency, CORS and legacy responses before frontend
+publication. A local Colima worker check does not replace those live checks.
+
+## Deployed history
 
 Current deployment: function `quran` version 6, released on 2026-11-01 with the
 word-data addition and unchanged credentials/access environment. The deployed

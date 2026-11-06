@@ -4,8 +4,11 @@
   "private": true,
   "description": "A React and TypeScript Playground app with a public Supabase Edge Function demo.",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build --configLoader runner",
+    "dev": "pnpm quran:data --notices-only && vite",
+    "build": "pnpm quran:data --notices-only --require-publication && tsc -b && vite build --configLoader runner",
+    "build:preview": "pnpm quran:data --notices-only && tsc -b && vite build --configLoader runner",
+    "quran:data": "node scripts/quran-data/import.mjs",
+    "quran:backend": "node scripts/quran-data/package.mjs",
     "preview": "vite preview",
     "test": "vitest run --configLoader runner",
     "test:watch": "vitest --configLoader runner",
@@ -35,6 +38,7 @@
     "vitest": "^5.0.5"
   },
   "dependencies": {
+    "zod": "4.6.7",
     "@scratch-pages/ui": "workspace:*",
     "@scratch-pages/design-tokens": "workspace:*",
     "react": "^19.3.1",

@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+export const VERSES_PER_PAGE = 20
+
 export const ChapterSchema = z.object({
   id: z.number().int().min(1).max(114),
   name: z.string().trim().min(1),
@@ -22,6 +24,21 @@ export const VersesRequestSchema = z.object({
 })
 export type VersesRequest = z.input<typeof VersesRequestSchema>
 
+export const GrammarSegmentSchema = z.object({
+  kind: z.enum(['prefix', 'stem', 'suffix']),
+  arabic: z.string(),
+  partOfSpeech: z.string().min(1),
+  root: z.string().nullable(),
+  lemma: z.string().nullable(),
+  features: z.array(z.string()),
+})
+export const WordGrammarSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('available'), segments: z.array(GrammarSegmentSchema).min(1) }),
+  z.object({ status: z.literal('unavailable') }),
+  z.object({ status: z.literal('temporarily_unavailable') }),
+])
+export type WordGrammar = z.infer<typeof WordGrammarSchema>
+
 export const WordSchema = z.object({
   chapter: z.number().int().min(1).max(114),
   verse: z.number().int().min(1).max(286),
@@ -29,6 +46,8 @@ export const WordSchema = z.object({
   arabic: z.string().trim().min(1),
   meaning: z.string().trim().min(1).nullable(),
   transliteration: z.string().trim().min(1).nullable(),
+  // Grammar failure must not trigger the enclosing words fallback and lose meanings.
+  grammar: WordGrammarSchema.optional().catch({ status: 'temporarily_unavailable' }),
 })
 export type QuranWord = z.infer<typeof WordSchema>
 
@@ -43,7 +62,7 @@ export const VerseSchema = z.object({
     .optional().catch(undefined),
 })
 export const VersesResponseSchema = z.object({
-  verses: z.array(VerseSchema).min(1).max(20),
+  verses: z.array(VerseSchema).min(1).max(VERSES_PER_PAGE),
   translationName: z.string().trim().min(1),
   nextPage: z.number().int().min(1).max(15).nullable(),
 })

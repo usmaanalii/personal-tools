@@ -1,8 +1,9 @@
-import { VersesRequestSchema } from '../../../packages/api-contracts/src/quran.ts'
+import { VERSES_PER_PAGE, VersesRequestSchema } from '../../../packages/api-contracts/src/quran.ts'
 import { ApiErrorSchema } from '../../../packages/api-contracts/src/error.ts'
 import { mapChapters, mapVerses } from './provider.ts'
+import { enrichGrammar, type MorphologyReader } from './morphology.ts'
 
-type Config = { clientId: string; clientSecret: string; environment: string; origins: string[]; timeoutMs?: number }
+type Config = { clientId: string; clientSecret: string; environment: string; origins: string[]; timeoutMs?: number; readMorphology?: MorphologyReader }
 
 export function createQuranHandler(config: Config) {
   const authBase = config.environment === 'production' ? 'https://oauth2.quran.foundation' : 'https://prelive-oauth2.quran.foundation'
@@ -50,7 +51,7 @@ export function createQuranHandler(config: Config) {
     // A bounded per-isolate budget, not a global or per-user rate limiter.
     if (++requests > 60) return Response.json(ApiErrorSchema.parse({ error: 'Too many requests. Please try again shortly.' }), { status: 429, headers: { ...headers, 'Retry-After': '60' } })
     const translationId = config.environment === 'prelive' ? 85 : 131
-    const path = route === 'chapters' ? 'chapters?language=en' : `verses/by_chapter/${chapter}?fields=text_uthmani&translations=${translationId}&per_page=20&page=${page}${ownedContract ? '&words=true&word_fields=text_uthmani&language=en' : ''}`
+    const path = route === 'chapters' ? 'chapters?language=en' : `verses/by_chapter/${chapter}?fields=text_uthmani&translations=${translationId}&per_page=${VERSES_PER_PAGE}&page=${page}${ownedContract ? '&words=true&word_fields=text_uthmani&language=en' : ''}`
     try {
       const read = async (token: string) => fetch(`${apiBase}/content/api/v4/${path}`, { signal: AbortSignal.timeout(config.timeoutMs ?? 8_000), redirect: 'error', headers: { 'x-auth-token': token, 'x-client-id': config.clientId } })
       const token = await getToken()
@@ -63,7 +64,7 @@ export function createQuranHandler(config: Config) {
       if (!response.ok) return error('Quran content is temporarily unavailable. Please try again.', response.status === 429 ? 429 : 502)
       const payload: unknown = await response.json()
       const content = ownedContract
-        ? route === 'chapters' ? mapChapters(payload) : mapVerses(payload, translationId, Number(page), Number(chapter))
+        ? route === 'chapters' ? mapChapters(payload) : await enrichGrammar(mapVerses(payload, translationId, Number(page), Number(chapter)), Number(chapter), request.signal, config.readMorphology)
         : payload
       return Response.json(content, { headers })
     } catch {

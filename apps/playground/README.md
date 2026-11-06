@@ -20,11 +20,17 @@ Use Node 24 for Playground checks (the current jsdom/Undici test dependencies fa
 pnpm --filter playground dev
 pnpm --filter playground test
 pnpm --filter playground typecheck
-pnpm --filter playground build
+pnpm --filter playground build:preview
 pnpm --filter playground test:e2e
 ```
 
 For both the Quran reader and Supabase demo, copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Both are public browser configuration; never use a secret or service-role key. Vitest uses `.env.test` and MSW responses.
+
+The grammar work in #19 is a local preview. `build` and the Pages build enforce
+its pending data-publication requirement. Use `build:preview` only for local
+verification. It creates frontend assets and source notices. Grammar data is
+packaged separately for the backend. Do not upload preview artifacts. See the source
+[provenance and publication record](data/quran/README.md).
 
 ## Quran API setup
 
@@ -91,6 +97,73 @@ shared theme tokens.
 See the [#23 verification record](src/prototypes/quran/word-selection-verification.md)
 for checks and evidence limits. The existing Pages workflow publishes the
 frontend after an approved push; this refactor adds no deployment steps.
+
+## Word grammar (#19, local preview)
+
+Open a word's meaning and select **Expand grammar**. Grammar arrives with the
+existing verse page from Supabase. Expansion makes no request. Each component shows its prefix, stem or suffix role, part of speech,
+available root and lemma, and readable corpus features. Components without a
+root have an explicit source-based label. Some words contain multiple stems.
+Roots are morphological annotations, not claims about historical etymology or
+the intended contextual meaning.
+
+Meanings stay visible when grammar is unavailable. Temporary failures offer
+**Retry grammar**, which re-requests the current verse page in place. Loading
+keeps keyboard focus on Retry. Successful recovery returns focus to the grammar
+disclosure if Retry still has focus. Navigation cancels a pending retry and
+resets expansion for each occurrence. Recovered grammar stays with the current
+verse page, so closing the dialog or moving between words preserves it. Recovery
+updates only the matching occurrence's grammar and leaves its meaning intact.
+Missing, mismatched or withheld analyses
+show **Analysis unavailable**. Older responses without grammar remain readable.
+
+The importer uses the unchanged Quranic Arabic Corpus v0.4 ZIP. It preserves both
+original notices in every generated chapter and in `quran-data/NOTICE.txt`.
+The expanded analysis links to the corpus, Tanzil and those notices. Supabase
+reads compressed bundled chapters, verifies checksums and matches exact word
+occurrences. A provisional 200 ms budget limits added enrichment work after
+verse mapping. It preserves verses and meanings on failure. Synchronous parsing
+cannot be pre-empted by a timer; elapsed time is also checked after parsing.
+This is not a hosted response-time guarantee. No database or new environment
+variable is required. Deploy the compatible backend before publishing the UI.
+
+Generate the data offline with Node 24 and `unzip`:
+
+```sh
+pnpm --filter playground quran:data --notices-only
+pnpm --filter playground quran:data --output /tmp/quran-data
+pnpm --filter playground quran:backend --preview
+```
+
+`dev` and `build:preview` generate only notices for the browser. Keep full
+offline imports outside `public/`. If `public/quran-data/` contains an older
+full import, move that directory outside the app before building. The notices
+step refuses stale corpus files so Vite cannot copy them into the website.
+Backend preview packaging writes gzip files
+under `supabase/functions/quran/data/`. The normal `quran:backend` command blocks
+while publication evidence is absent. Both packages use the pinned ZIP and
+saved Foundation snapshot without fetching upstream data. Generated files are
+ignored by Git. Backend `manifest.json` records source versions, checksums,
+decoded sizes and preview status. `coverage.json` records
+corpus coverage, aligned references and all missing, mismatched or ambiguous
+occurrence keys. See [the input contract and known differences](data/quran/README.md).
+
+The source contains 77,429 words and 128,219 segments across 114 chapters. The
+saved 2026-11-05 snapshot covers 6,145 Foundation occurrences in chapters 1 and 2.
+Of these, 5,250 match and 895 differ. None are missing or ambiguous in that
+snapshot. These are measured import results, not full-Quran alignment evidence.
+On the backend every lookup also checks the current Foundation occurrence and
+Arabic text. Only NFC normalization and removal of presentation tatweel are
+allowed. Diacritic, pause-mark and spelling differences remain unavailable;
+there are no fuzzy matches or automatic mapping exceptions.
+
+Importer and validation tests use real v0.4 examples. Reader integration tests
+cover expansion, retry, unavailable/rootless data and rapid selection through
+MSW. Backend tests own compressed-file validation and occurrence matching.
+Browser dialog checks verify no request on expansion, notices under
+`/personal-tools/`, native focus, axe and narrow-width fit. These fixture-backed
+browser checks do not prove live full-Quran connectivity or physical-device
+screen-reader behaviour.
 
 ## Linting
 

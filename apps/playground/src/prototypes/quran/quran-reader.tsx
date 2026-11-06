@@ -22,7 +22,7 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
   const { reading, bookmarks, actions } = useReader(chapters)
   const { selected, chapter, previousChapter, nextChapter, page, current, verses, key, activeVerse } = reading
   const { bookmarked, savedVerses, isVerseSaved } = bookmarks
-  const { openChapter, openSavedVerse, toggleSavedVerse, toggleChapterBookmark, activateVerse, previousPage, nextPage, retryVerses } = actions
+  const { openChapter, openSavedVerse, toggleSavedVerse, toggleChapterBookmark, activateVerse, previousPage, nextPage, retryVerses, recoverGrammar } = actions
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [tab, setTab] = useState<ChapterView>('chapters')
@@ -60,7 +60,7 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
           {current.status === 'error' && <div><p role="alert">{current.message}</p><Button onClick={retryVerses}>Retry verses</Button></div>}
           {current.status === 'ready' && <p className="px-4 text-[.85rem] leading-[1.5]">{current.data.translationName} · Quran Foundation</p>}
           {verses.map(verse => <VerseView key={`${key}-${verse.number}`} verse={verse} chapter={chapter} active={activeVerse === verse.number} saved={isVerseSaved(verse)}
-            onBookmark={() => toggleSavedVerse(verse)} onActivate={() => activateVerse(verse.number)} readingFocusRef={readingHeading}/>)}</div><div className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
+            onBookmark={() => toggleSavedVerse(verse)} onActivate={() => activateVerse(verse.number)} readingFocusRef={readingHeading} onGrammarRecovered={recoverGrammar}/>)}</div><div className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm">
           <Button variant="outline" disabled={page === 1} onClick={previousPage}>Previous verses</Button>
           <span>Page {page}</span>
           <Button variant="outline" disabled={current.status !== 'ready' || current.data.nextPage === null} onClick={nextPage}>Next verses</Button>

@@ -23,9 +23,24 @@ test('keeps keyboard focus in the word dialog and returns it to the last selecte
   const next = dialog.getByRole('button', { name: 'Next word' })
   await expect(dialog).toBeVisible()
   await expect(close).toBeFocused()
+  await page.keyboard.press('Tab')
+  const expand = dialog.getByRole('button', { name: 'Expand grammar' })
+  await expect(expand).toBeFocused()
+  const requests: string[] = []
+  page.on('request', request => requests.push(request.url()))
+  await page.keyboard.press('Enter')
+  await expect(dialog.getByText('Stem · Noun')).toBeVisible()
+  expect(requests).toEqual([])
+  // Attribution uses a real built asset under the deployment prefix.
+  const notices = dialog.getByRole('link', { name: 'Data notices' })
+  await expect(notices).toHaveAttribute('href', '/personal-tools/quran-data/NOTICE.txt')
+  const noticeResponse = await page.request.get(await notices.getAttribute('href') ?? '')
+  expect(noticeResponse.ok()).toBe(true)
+  expect(await noticeResponse.text()).toContain('Copyright (C) 2011 Kais Dukes')
   const accessibility = await new AxeBuilder({ page }).include('[role="dialog"]').analyze()
   expect(accessibility.violations).toEqual([])
-
+  await page.keyboard.press('Enter')
+  await expect(expand).toHaveAttribute('aria-expanded', 'false')
   await page.keyboard.press('Tab')
   await expect(next).toBeFocused()
   await page.keyboard.press('Tab')
@@ -49,6 +64,9 @@ test('keeps long word details and their controls usable on narrow and landscape 
   if (initialViewport) expectDialogWithinViewport(await dialog.boundingBox(), initialViewport)
   await page.setViewportSize({ width: 320, height: 568 })
   await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Expand grammar' }).click()
+  await expect(dialog.getByText('Stem · Noun')).toBeVisible()
+  expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
   const bounds = await dialog.boundingBox()
   expectDialogWithinViewport(bounds, { width: 320, height: 568 })
   await dialog.getByRole('button', { name: 'Next word' }).click()
@@ -63,4 +81,32 @@ test('keeps long word details and their controls usable on narrow and landscape 
 
   await dialog.getByRole('button', { name: 'Close word meaning' }).click()
   await expect(dialog).toBeHidden()
+})
+
+// Native focus must survive the loading state and removal of the retry control.
+test('retains keyboard focus during a grammar retry and restores it after recovery', async ({ page }) => {
+  const recovered = await mockQuranContent(page, { temporaryGrammarFailure: true })
+  await page.goto('./quran/')
+  await page.getByRole('button', { name: 'بِسْمِ · 1:1:1' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Word meaning' })
+  await dialog.getByRole('button', { name: 'Expand grammar' }).click()
+  let complete = () => {}
+  const pending = new Promise<void>(resolve => { complete = resolve })
+  await page.route('**/functions/v1/quran/v2/verses?*', async route => {
+    await pending
+    await route.fulfill({ json: recovered })
+  })
+  const retry = dialog.getByRole('button', { name: 'Retry grammar' })
+  await retry.focus()
+  await page.keyboard.press('Enter')
+  await expect(dialog.getByRole('status')).toHaveText('Loading grammar…')
+  await expect(retry).toBeFocused()
+  await expect(retry).toHaveAttribute('aria-disabled', 'true')
+  const loadingAccessibility = await new AxeBuilder({ page }).include('[role="dialog"]').analyze()
+  expect(loadingAccessibility.violations).toEqual([])
+  complete()
+  await expect(dialog.getByRole('button', { name: 'Collapse grammar' })).toBeFocused()
+  await expect(dialog.getByText('Stem · Noun')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: 'بِسْمِ · 1:1:1' })).toBeFocused()
 })

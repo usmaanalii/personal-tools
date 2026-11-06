@@ -22,7 +22,7 @@ tests/quran/handler.test.ts   # validation, tokens, retries, pagination, limits 
 tests/setup.ts               # shared Node/MSW lifecycle only
 ```
 
-Coverage includes both `handler.ts` files and the Quran provider adapter. It excludes Deno entry points, platform authentication, deployed CORS/environment configuration and real provider credentials. A high coverage percentage does not prove those runtime boundaries. The app deployment smoke tests exercise actual deployed assets and service responses; they do not repeat every backend error case.
+Coverage includes both handlers, the Quran provider adapter and grammar enrichment, source validation and bundled-file reading. It excludes Deno entry points, platform authentication, deployed CORS/environment configuration and real provider credentials. A high coverage percentage does not prove those runtime boundaries. The app deployment smoke tests exercise actual deployed assets and service responses; they do not repeat every backend error case.
 
 The existing Playground E2E workflow runs these tests independently of the frontend tests and triggers on all `supabase/functions/**` changes. The Pages build also runs the backend suite. `pnpm test:all` includes this workspace.
 

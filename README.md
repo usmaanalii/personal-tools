@@ -22,6 +22,12 @@ The playground is a small collection of tools and experiments. Start at the [ind
 
 A reading prototype designed for phones, with a wider layout on desktop.
 
+Issue #19 adds a local grammar-analysis preview. Its source notices are preserved,
+but converted-data publication remains unconfirmed. Normal Playground and Pages
+builds stop at that release prerequisite. Use
+`pnpm --filter playground build:preview` for local verification only.
+See [grammar sources and publication status](apps/playground/data/quran/README.md).
+
 - Search for a chapter by name or English meaning.
 - Open a chapter to read Arabic text with an English translation.
 - Tap an Arabic word for its English meaning and transliteration, then move between words in the verse.

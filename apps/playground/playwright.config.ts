@@ -20,7 +20,7 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['Pixel 7'], defaultBrowserType: 'chromium' } },
   ],
   webServer: {
-    command: 'pnpm build && node tests/infrastructure/serve-dist.mjs',
+    command: 'pnpm build:preview && node tests/infrastructure/serve-dist.mjs',
     env: {
       VITE_BASE_PATH: '/personal-tools/',
       VITE_SUPABASE_URL: 'https://quran-fixture.supabase.co',

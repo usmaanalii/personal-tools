@@ -24,3 +24,7 @@ catalogue-test-results/
 .vercel/
 coverage/
 release-evidence/
+
+# Reproducible chapter assets are generated from pinned app-local source inputs.
+apps/playground/public/quran-data/
+supabase/functions/quran/data/

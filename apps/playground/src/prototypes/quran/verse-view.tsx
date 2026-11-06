@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import type { Ayah, Chapter } from './quran-api'
 import { Icon } from './reader-icon'
 import { VerseWords } from './verse-words'
+import type { GrammarRecovery } from './use-reader'
 
 type VerseViewProps = {
   readonly verse: Ayah
@@ -12,10 +13,11 @@ type VerseViewProps = {
   readonly onBookmark: () => void
   readonly onActivate: () => void
   readonly readingFocusRef: RefObject<HTMLElement | null>
+  readonly onGrammarRecovered: GrammarRecovery
   readonly layout?: 'stacked' | 'parallel'
 }
 
-export function VerseView({ verse, chapter, active, saved, onBookmark, onActivate, readingFocusRef, layout = 'stacked' }: VerseViewProps) {
+export function VerseView({ verse, chapter, active, saved, onBookmark, onActivate, readingFocusRef, onGrammarRecovered, layout = 'stacked' }: VerseViewProps) {
   const parallel = layout === 'parallel'
   return <article className={`verse rounded-ui-control border-0 border-b border-solid border-ui-border p-3 transition-colors duration-(--theme-motion-fast) ${active ? 'bg-ui-background' : ''} ${parallel ? 'md:grid md:grid-cols-2 md:items-start md:gap-x-8' : ''}`}>
     <div className={`verse-toolbar flex flex-wrap items-center justify-between gap-2 ${parallel ? 'md:col-span-2' : ''}`}>
@@ -26,7 +28,7 @@ export function VerseView({ verse, chapter, active, saved, onBookmark, onActivat
         <Button variant="ghost" size="icon" aria-label="More verse actions" onClick={event => { event.stopPropagation(); onActivate() }}><Icon name="more" size={17}/></Button>
       </div>
     </div>
-    <VerseWords verse={verse} chapterName={chapter.name} readingFocusRef={readingFocusRef} className={parallel ? 'md:col-start-2 md:row-start-2' : ''}/>
+    <VerseWords verse={verse} chapterName={chapter.name} readingFocusRef={readingFocusRef} onGrammarRecovered={onGrammarRecovered} className={parallel ? 'md:col-start-2 md:row-start-2' : ''}/>
     <p className={`translation m-0 font-ui-body text-base leading-[1.7] text-ui-muted wrap-anywhere ${parallel ? 'md:col-start-1 md:row-start-2' : ''}`}>{verse.translation}</p>
   </article>
 }

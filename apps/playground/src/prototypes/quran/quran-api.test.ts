@@ -52,6 +52,18 @@ it('preserves request cancellation', async () => {
   await expect(getChapters(controller.signal)).rejects.toMatchObject({ name: 'AbortError' })
 })
 
+it('preserves valid word meanings when only their grammar response is malformed', async () => {
+  server.use(http.get('*/functions/v1/quran/v2/verses', () => HttpResponse.json({
+    verses: [{ number: 1, arabic: 'بِسْمِ', translationHtml: 'In the name', words: [
+      { chapter: 1, verse: 1, position: 1, arabic: 'بِسْمِ', meaning: 'In (the) name', transliteration: null, grammar: { status: 'available', segments: [] } },
+    ] }], translationName: 'Translator', nextPage: null,
+  })))
+  const page = await getVerses(1, 1, new AbortController().signal)
+  expect(page.verses[0]?.words).toEqual([
+    { chapter: 1, verse: 1, position: 1, arabic: 'بِسْمِ', meaning: 'In (the) name', transliteration: null, grammar: { status: 'temporarily_unavailable' } },
+  ])
+})
+
 it.each([
   null, [], [{ position: 1 }],
   [{ chapter: 2, verse: 1, position: 1, arabic: 'نص', meaning: null, transliteration: null }],

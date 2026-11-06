@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { VERSES_PER_PAGE, type QuranWord, type WordGrammar } from '@scratch-pages/api-contracts/quran'
 import { getChapters, getVerses, type Chapter, type Ayah, type VersePage } from './quran-api'
 
 export type SavedVerse = { readonly chapterId: number; readonly verse: Ayah }
+export type GrammarRecovery = (word: QuranWord, grammar: WordGrammar) => void
 
 type ChaptersState =
   | { readonly status: 'loading' }
@@ -56,11 +58,22 @@ export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
   const chapter = chapters[chapterIndex] ?? chapters[0]
   const openChapter = (id: number, verse = 1) => {
     setSelected(id)
-    // The owned content contract serves fixed pages of 20 verses.
-    setPage(Math.ceil(verse / 20))
+    setPage(Math.ceil(verse / VERSES_PER_PAGE))
     setActiveVerse(null)
   }
   const isVerseSaved = (verse: Ayah) => savedVerses.some(item => item.chapterId === selected && item.verse.number === verse.number)
+  const recoverGrammar: GrammarRecovery = (word, grammar) => {
+    setVerseState(state => {
+      if (state.key !== key || state.status !== 'ready') return state
+      return { ...state, data: { ...state.data, verses: state.data.verses.map(verse => {
+        if (verse.number !== word.verse || !verse.words) return verse
+        return { ...verse, words: verse.words.map(item =>
+          item.chapter === word.chapter && item.verse === word.verse && item.position === word.position && item.arabic === word.arabic
+            ? { ...item, grammar } : item,
+        ) }
+      }) } }
+    })
+  }
   const toggleSavedVerse = (verse: Ayah) => {
     setSavedVerses(current => {
       const exists = current.some(item => item.chapterId === selected && item.verse.number === verse.number)
@@ -82,6 +95,7 @@ export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
       count: savedVerses.length + (bookmarked ? 1 : 0),
     },
     actions: {
+      recoverGrammar,
       openChapter,
       openSavedVerse: (chapterId: number, verseNumber: number) => {
         openChapter(chapterId, verseNumber)

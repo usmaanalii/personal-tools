@@ -27,6 +27,16 @@ verse against the requested reading context. Provider models remain backend-only
 
 `translationHtml` is explicitly untrusted provider markup. Playground extracts inert text and removes script, style, and footnote nodes; never insert this field directly into HTML. Attribution and translation selection belong to the backend. Component display models may differ from wire DTOs.
 
+Quran v2 verses may include selectable `words`. Each word carries its chapter,
+verse and position, Arabic, nullable meaning and transliteration. Optional
+`grammar` is `available` with ordered display segments, `unavailable` for an
+unmatched occurrence, or `temporarily_unavailable` for enrichment failures.
+Display segments expose kind, Arabic, part of speech, nullable root/lemma and
+readable features. Source identifiers and raw corpus features stay backend-only.
+Malformed grammar falls back inside the word boundary so meanings survive.
+Older v2 responses without grammar remain valid. `VERSES_PER_PAGE` owns the
+20-verse page size used by the contract, handler and browser pagination.
+
 Ordinary Zod objects accept and strip unknown response fields so additive server changes remain compatible. Do not use strict response objects. Removing fields, changing types, requiring new inputs, and expanding exhaustively handled enums require compatibility planning. Keep the legacy Quran routes available until their consumers have migrated; package versions alone do not protect existing browser builds.
 
 ## Verification and deployment
