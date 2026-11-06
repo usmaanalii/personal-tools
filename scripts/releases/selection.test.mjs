@@ -17,16 +17,14 @@ test("selects only the app whose source changed", () => {
   ]);
 });
 
-test("selects shared consumers, ignores unrelated work, and releases all when detection is unavailable", () => {
-  // Shared code and the lockfile can affect both apps. Unrelated docs affect
-  // neither. null means we could not detect changes, so run both to be safe;
-  // an empty list means detection worked and found nothing to do.
-  assert.deepEqual(
-    selectProjects(projects, ["packages/ui/button.tsx"]),
-    projects,
-  );
-  assert.deepEqual(selectProjects(projects, ["docs/guide.md"]), []);
-  assert.deepEqual(selectProjects(projects, ["pnpm-lock.yaml"]), projects);
-  assert.deepEqual(selectProjects(projects, null), projects);
-  assert.deepEqual(selectProjects(projects, []), []);
+[
+  { name: "selects both apps when their shared package changes", changed: ["packages/ui/button.tsx"], expected: projects },
+  { name: "selects no apps for unrelated documentation", changed: ["docs/guide.md"], expected: [] },
+  { name: "selects every app when the lockfile changes", changed: ["pnpm-lock.yaml"], expected: projects },
+  { name: "selects every app when change detection is unavailable", changed: null, expected: projects },
+  { name: "selects no apps when no files changed", changed: [], expected: [] },
+].forEach(({ name, changed, expected }) => {
+  test(name, () => {
+    assert.deepEqual(selectProjects(projects, changed), expected);
+  });
 });

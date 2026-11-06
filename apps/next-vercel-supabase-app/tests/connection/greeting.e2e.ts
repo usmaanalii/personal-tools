@@ -15,6 +15,7 @@ test('shows the greeting when Check connection is selected', async ({
     .getByRole('button', { name: 'Check connection', exact: true })
     .click()
   await expect(page.getByRole('status')).toHaveText('Hello from Supabase!')
+  await expect(page.getByRole('status')).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,

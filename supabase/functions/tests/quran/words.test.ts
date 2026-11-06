@@ -71,7 +71,15 @@ it('publishes validated words with occurrence identity and excludes verse-end ma
   expect(body.verses[0].words).toHaveLength(1)
 })
 
-it.each([null, [], [{ ...word(), position: 0 }], [word(), word()], [word(2)], [{ ...word(), text_uthmani: '' }], [{ ...word(), char_type_name: 'unknown' }]])('keeps whole-verse content usable when word data is unusable, case %#', async words => {
+it.each([
+  { reason: 'word data is null', words: null },
+  { reason: 'the word list is empty', words: [] },
+  { reason: 'a word position is zero', words: [{ ...word(), position: 0 }] },
+  { reason: 'word positions are duplicated', words: [word(), word()] },
+  { reason: 'word positions do not start at one', words: [word(2)] },
+  { reason: 'the Arabic word is empty', words: [{ ...word(), text_uthmani: '' }] },
+  { reason: 'the word has an unknown character type', words: [{ ...word(), char_type_name: 'unknown' }] },
+])('returns the verse without selectable words when $reason', async ({ words }) => {
   const response = await read(provider(words))
   expect(response.status).toBe(200)
   expect(await response.json()).toEqual({ verses: [{ number: 1, arabic: 'بِسْمِ', translationHtml: 'In the name' }], translationName: 'M.A.S. Abdel Haleem', nextPage: null })
@@ -272,7 +280,10 @@ it('refuses a manifest that permits a decoded chapter larger than 3 MB', async (
       sha256: createHash('sha256').update(raw).digest('hex'), compressedSha256: createHash('sha256').update(compressed).digest('hex'),
     }] }))
     const load = createBundledMorphologyReader(readFile, pathToFileURL(`${directory}/`))
-    await expect(load(1, new AbortController().signal)).rejects.toThrow()
+    await expect(load(1, new AbortController().signal)).rejects.toMatchObject({
+      name: 'ZodError',
+      issues: [expect.objectContaining({ code: 'too_big', path: ['chapters', 0, 'decodedBytes'], maximum: 3_000_000 })],
+    })
   })
 })
 

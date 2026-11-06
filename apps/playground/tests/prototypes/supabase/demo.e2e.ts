@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
-test('opens the homepage when All playground pages is selected from the Supabase demo', async ({ page }) => {
+test('opens the homepage from the Supabase demo and returns through keyboard navigation', async ({ page }) => {
   await page.goto('./supabase/')
 
   await expect(page.getByRole('heading', { name: 'Hello from GitHub Pages' })).toBeVisible()

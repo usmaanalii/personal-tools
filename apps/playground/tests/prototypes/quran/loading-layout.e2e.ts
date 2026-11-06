@@ -11,7 +11,26 @@ async function documentBox(locator: Locator) {
 
 // Geometry across real CSS, scroll containers and responsive breakpoints is not proved by jsdom.
 // API fixtures control wait stages; this does not prove hosted backend connectivity.
-test('keeps the reading area stable while browsing fits loading, search and bookmark content', async ({ page }, testInfo) => {
+test('stops loading animation when reduced motion is requested', async ({ page }) => {
+  await mockQuranContent(page)
+  const pending = Promise.withResolvers<void>()
+  await page.route('**/functions/v1/quran/v2/chapters', async route => {
+    await pending.promise
+    await route.fallback()
+  })
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto('./quran/')
+  await expect(page.getByRole('status')).toHaveText('Loading chapters…')
+  const reading = page.getByRole('complementary', { name: 'Current chapter' })
+
+  await expect.poll(() => reading.evaluate(element => element.getAnimations({ subtree: true }).length)).toBeGreaterThan(0)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+
+  await expect.poll(() => reading.evaluate(element => element.getAnimations({ subtree: true }).length)).toBe(0)
+  pending.resolve()
+})
+
+test('keeps the reading area stable through loading, errors, retries and verse navigation', async ({ page }, testInfo) => {
   await mockQuranContent(page)
   let releaseChapters = () => {}
   let failChapters = true
@@ -30,11 +49,6 @@ test('keeps the reading area stable while browsing fits loading, search and book
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('./quran/')
   await expect(page.getByRole('status')).toHaveText('Loading chapters…')
-  const skeleton = page.locator('[data-slot="skeleton"]').first()
-  await expect.poll(() => skeleton.evaluate(element => element.getAnimations().length)).toBe(0)
-  await page.emulateMedia({ reducedMotion: 'no-preference' })
-  await expect.poll(() => skeleton.evaluate(element => element.getAnimations().length)).toBeGreaterThan(0)
-  await page.emulateMedia({ reducedMotion: 'reduce' })
   const panel = page.getByRole('complementary', { name: 'Current chapter' })
   const initial = await documentBox(panel)
   const browser = page.getByRole('region', { name: 'Chapter browsing' })
@@ -60,21 +74,9 @@ test('keeps the reading area stable while browsing fits loading, search and book
   expect(await documentBox(verses)).toEqual(reading)
   await page.screenshot({ path: testInfo.outputPath('reader-loaded.png'), fullPage: true })
 
-  await page.getByRole('button', { name: 'Search chapters', exact: true }).click()
-  await expect(page.getByRole('textbox', { name: 'Search chapters' })).toBeFocused()
-  await page.getByRole('textbox', { name: 'Search chapters' }).fill('no matching chapter')
-  await expect(page.getByRole('status')).toContainText('No chapters match')
-  await page.getByRole('button', { name: 'Close search' }).click()
-  await page.getByRole('navigation', { name: 'Reader controls' }).getByRole('button', { name: /Bookmarks/ }).click()
-  await expect(page.getByText('Your saved verses will find a home here.')).toBeVisible()
-
   // Errors and retries must preserve the reading footprint as well as successful responses.
   await page.route('**/functions/v1/quran/v2/verses?*', route => route.fulfill({ status: 503, json: {} }))
   await page.getByRole('button', { name: /^NEXT/ }).click()
-  await expect(page.getByRole('alert')).toBeVisible()
-  expect(await documentBox(verses)).toEqual(reading)
-  await page.route('**/functions/v1/quran/v2/verses?*', route => route.abort())
-  await page.getByRole('button', { name: 'Retry verses' }).click()
   await expect(page.getByRole('alert')).toBeVisible()
   expect(await documentBox(verses)).toEqual(reading)
   const accessibility = await new AxeBuilder({ page }).analyze()

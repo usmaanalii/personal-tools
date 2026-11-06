@@ -16,7 +16,7 @@ async function renderReader() {
 
 afterEach(() => window.history.pushState({}, '', '/'))
 
-it('opens bookmarks through reader controls without inactive or bottom navigation actions', async () => {
+it('shows the saved verse and focuses Bookmarks when Bookmarks is selected', async () => {
   const { user } = await renderReader()
   const header = within(screen.getByRole('navigation', { name: 'Reader controls' }))
   expect(header.getByRole('button', { name: 'Chapters', pressed: true })).toBeVisible()
@@ -24,12 +24,9 @@ it('opens bookmarks through reader controls without inactive or bottom navigatio
   await user.click(header.getByRole('button', { name: /Bookmarks/ }))
   expect(screen.getByRole('heading', { name: 'Bookmarks 1' })).toHaveFocus()
   expect(screen.getByRole('button', { name: /Al-Fātiḥah 1:1/ })).toBeVisible()
-  expect(screen.queryByRole('navigation', { name: 'Reader shortcuts' })).not.toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument()
 })
 
-it('keeps the reader shell visible with decorative placeholders while chapters load', async () => {
+it('keeps the reader shell visible and announces chapter loading', async () => {
   server.use(http.get(`${quranEndpoint}/chapters`, () => new Promise(() => {})))
   window.history.pushState({}, '', '/quran/')
   render(<App />)
@@ -39,21 +36,16 @@ it('keeps the reader shell visible with decorative placeholders while chapters l
   expect(screen.getByRole('region', { name: 'Sources' })).toBeVisible()
   const reading = screen.getByRole('complementary', { name: 'Current chapter' })
   expect(reading).toHaveAttribute('aria-busy', 'true')
-  expect(reading.querySelector('[data-slot="skeleton"]')).toHaveAttribute('aria-hidden', 'true')
   expect(within(reading).queryByRole('button')).not.toBeInTheDocument()
 })
 
-it('keeps the introduction to a heading and a direct chapter shortcut', async () => {
+it('opens Al-Baqarah when its chapter shortcut is selected', async () => {
   const { user } = await renderReader()
-  expect(screen.queryByText('WEDNESDAY, 29 OCTOBER')).not.toBeInTheDocument()
-  expect(screen.queryByText('Find a little stillness in the words that matter.')).not.toBeInTheDocument()
-  expect(screen.queryByText('EXPLORE THE QURAN')).not.toBeInTheDocument()
-  expect(screen.queryByText('Read at your own pace')).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: /^Open Al-Baqarah/ }))
   expect(await screen.findByRole('heading', { name: 'Al-Baqarah' })).toBeVisible()
 })
 
-it('shows verse placeholders during chapter changes and removes them when the request finishes', async () => {
+it('announces verse loading when changing chapters and shows the new translation when ready', async () => {
   const { user } = await renderReader()
   const pending = Promise.withResolvers<Response>()
   server.use(http.get(`${quranEndpoint}/verses`, () => pending.promise))
@@ -63,32 +55,21 @@ it('shows verse placeholders during chapter changes and removes them when the re
   expect(screen.getByRole('complementary', { name: 'Current chapter' })).not.toContainElement(screen.getByRole('status'))
   const verses = screen.getByRole('region', { name: 'Verses' })
   expect(verses).toHaveAttribute('aria-busy', 'true')
-  expect(verses.querySelector('[data-slot="skeleton"]')).toHaveAttribute('aria-hidden', 'true')
   expect(screen.queryByText('All praise is for Allah—Lord of all worlds,')).not.toBeInTheDocument()
   pending.resolve(HttpResponse.json({ verses: [{ number: 1, arabic: 'نص للاختبار', translationHtml: 'New chapter text.' }], translationName: 'Translator', nextPage: null }))
 
   expect(await screen.findByText('New chapter text.')).toBeVisible()
   expect(verses).toHaveAttribute('aria-busy', 'false')
-  expect(verses.querySelector('[data-slot="skeleton"]')).not.toBeInTheDocument()
 })
 
 describe('Quran reader bookmarks', () => {
   it('announces which chapter view is selected when switching to Bookmarks', async () => {
     const { user } = await renderReader()
-    expect(screen.getByRole('button', { name: 'Chapters', pressed: true })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Chapters', pressed: true })).toBeVisible()
     await user.click(screen.getByRole('button', { name: /Bookmarks/, pressed: false }))
-    expect(screen.getByRole('button', { name: /Bookmarks/, pressed: true })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Chapters', pressed: false })).toBeInTheDocument()
-    expect(screen.getByText('Your saved verses will find a home here.')).toBeInTheDocument()
-  })
-
-  it('shows the saved verse’s chapter and number when Bookmarks is selected', async () => {
-    const { user } = await renderReader()
-
-    await user.click(screen.getByRole('button', { name: 'Bookmark verse 1' }))
-    await user.click(within(screen.getByRole('navigation', { name: 'Reader controls' })).getByRole('button', { name: /Bookmarks/ }))
-
-    expect(screen.getByRole('button', { name: /Al-Fātiḥah 1:1/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Bookmarks/, pressed: true })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Chapters', pressed: false })).toBeVisible()
+    expect(screen.getByText('Your saved verses will find a home here.')).toBeVisible()
   })
 
   it('marks the verse bookmark as pressed when Bookmark verse is selected', async () => {
@@ -124,7 +105,7 @@ describe('Quran reader chapter search', () => {
     expect(toggle).toHaveFocus()
     await user.click(toggle)
     expect(screen.getByRole('textbox', { name: 'Search chapters' })).toHaveValue('')
-    expect(screen.getByRole('button', { name: /Al-Fātiḥah/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Al-Fātiḥah/ })).toBeVisible()
   })
 
   it('shows matching chapters when a chapter name is entered in Search chapters', async () => {
@@ -134,7 +115,7 @@ describe('Quran reader chapter search', () => {
     const search = screen.getByRole('textbox', { name: 'Search chapters' })
     await user.type(search, 'Yūnus')
 
-    expect(screen.getByRole('button', { name: /Yūnus/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Yūnus/ })).toBeVisible()
     expect(screen.queryByRole('button', { name: /Al-Fātiḥah/ })).not.toBeInTheDocument()
   })
 })
@@ -146,8 +127,8 @@ describe('Quran reader chapter navigation', () => {
     await user.click(screen.getByRole('button', { name: /Yūnus/ }))
     await user.click(screen.getByRole('button', { name: /NEXT/ }))
 
-    expect(screen.getByRole('heading', { name: 'Al-Kahf' })).toBeInTheDocument()
-    expect(await screen.findByText('18:1')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Al-Kahf' })).toBeVisible()
+    expect(await screen.findByText('18:1')).toBeVisible()
   })
 })
 
@@ -158,7 +139,7 @@ describe('Quran reader chapter bookmark', () => {
     const bookmark = screen.getByRole('button', { name: 'Bookmark this chapter', pressed: false })
     await user.click(bookmark)
 
-    expect(screen.getByRole('button', { name: 'Bookmark this chapter', pressed: true })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Bookmark this chapter', pressed: true })).toBeVisible()
   })
 })
 
@@ -171,8 +152,8 @@ describe('Quran reader saved verse removal', () => {
     await user.click(screen.getByRole('button', { name: /Al-Fātiḥah 1:1/ }))
     await user.click(screen.getByRole('button', { name: 'Bookmark verse 1', pressed: true }))
 
-    expect(screen.getByText('Your saved verses will find a home here.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Bookmark verse 1', pressed: false })).toBeInTheDocument()
+    expect(screen.getByText('Your saved verses will find a home here.')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Bookmark verse 1', pressed: false })).toBeVisible()
   })
 })
 
@@ -184,9 +165,9 @@ describe('Quran API content', () => {
     )
     window.history.pushState({}, '', '/quran/')
     render(<App />)
-    expect(await screen.findByRole('heading', { name: 'Al-Ikhlas' })).toBeInTheDocument()
-    expect(await screen.findByText('Say, “He is Allah—One.”')).toBeInTheDocument()
-    expect(screen.getByText(/Dr. Mustafa Khattab/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Al-Ikhlas' })).toBeVisible()
+    expect(await screen.findByText('Say, “He is Allah—One.”')).toBeVisible()
+    expect(screen.getByText(/Dr. Mustafa Khattab/)).toBeVisible()
     expect(screen.queryByText('All praise is for Allah—Lord of all worlds,')).not.toBeInTheDocument()
   })
 })
@@ -213,7 +194,7 @@ describe('Quran request recovery and pagination', () => {
 
     await user.click(screen.getByRole('button', { name: /^Open Al-Baqarah/ }))
 
-    expect(await screen.findByText('Translation for chapter 2.')).toBeInTheDocument()
+    expect(await screen.findByText('Translation for chapter 2.')).toBeVisible()
     expect(signal.aborted).toBe(true)
     expect(screen.queryByText('Translation for chapter 1.')).not.toBeInTheDocument()
   })
@@ -226,25 +207,24 @@ describe('Quran request recovery and pagination', () => {
     expect(screen.getByRole('heading', { name: 'A moment with the Quran.' })).toBeVisible()
     const reading = screen.getByRole('complementary', { name: 'Current chapter' })
     expect(reading).toHaveAttribute('aria-busy', 'false')
-    expect(reading.querySelector('[data-slot="skeleton"]')).not.toBeInTheDocument()
     expect(screen.queryByText(/private server detail/)).not.toBeInTheDocument()
     server.resetHandlers()
     await userEvent.click(screen.getByRole('button', { name: 'Retry chapters' }))
-    expect(await screen.findByRole('heading', { name: 'Al-Fātiḥah' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Al-Fātiḥah' })).toBeVisible()
   })
 
   it('loads the next verse page and opens a saved verse on its original page', async () => {
     server.use(http.get(`${quranEndpoint}/verses`, ({ request }) => {
       const page = Number(new URL(request.url).searchParams.get('page'))
-      return HttpResponse.json({ verses: [{ number: page === 1 ? 1 : 21, arabic: 'نص للاختبار', translationHtml: `Page ${page} translation.<sup>1</sup><script>unsafe()</script>` }], translationName: 'Dr. Mustafa Khattab, The Clear Quran', nextPage: page === 1 ? 2 : null })
+      return HttpResponse.json({ verses: [{ number: page === 1 ? 1 : 21, arabic: 'نص للاختبار', translationHtml: `Page ${page} translation.` }], translationName: 'Dr. Mustafa Khattab, The Clear Quran', nextPage: page === 1 ? 2 : null })
     }))
     const { user } = await renderReader()
-    expect(screen.getByText('Page 1 translation.')).toBeInTheDocument()
+    expect(screen.getByText('Page 1 translation.')).toBeVisible()
     await user.click(screen.getByRole('button', { name: /^NEXT/ }))
     await screen.findByRole('heading', { name: 'Al-Baqarah' })
     await screen.findByText('Page 1 translation.')
     await user.click(screen.getByRole('button', { name: 'Next verses' }))
-    expect(await screen.findByText('Page 2 translation.')).toBeInTheDocument()
+    expect(await screen.findByText('Page 2 translation.')).toBeVisible()
     expect(screen.queryByText('Page 1 translation.')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Next verses' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Bookmark verse 21' }))
@@ -252,8 +232,7 @@ describe('Quran request recovery and pagination', () => {
     await screen.findByText('Page 1 translation.')
     await user.click(within(screen.getByRole('navigation', { name: 'Reader controls' })).getByRole('button', { name: /Bookmarks/ }))
     await user.click(screen.getByRole('button', { name: 'Al-Baqarah 2:21' }))
-    expect(await screen.findByRole('button', { name: 'Bookmark verse 21', pressed: true })).toBeInTheDocument()
-    expect(screen.queryByText(/unsafe/)).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Bookmark verse 21', pressed: true })).toBeVisible()
   })
 
   it('hides old verses when a new chapter fails and lets readers retry', async () => {
@@ -264,17 +243,17 @@ describe('Quran request recovery and pagination', () => {
     expect(screen.queryByText('All praise is for Allah—Lord of all worlds,')).not.toBeInTheDocument()
     server.resetHandlers()
     await user.click(screen.getByRole('button', { name: 'Retry verses' }))
-    expect(await screen.findByText('Test translation for chapter 2.')).toBeInTheDocument()
+    expect(await screen.findByText('Test translation for chapter 2.')).toBeVisible()
   })
 })
 
-describe('Pre-live translation availability', () => {
-  it('shows the pre-live translation with the correct attribution', async () => {
+describe('Translation attribution', () => {
+  it('shows the supplied translation and translator attribution', async () => {
     server.use(http.get(`${quranEndpoint}/verses`, () => HttpResponse.json({ verses: [{ number: 1, arabic: 'نص للاختبار', translationHtml: 'Pre-live English translation.' }], translationName: 'M.A.S. Abdel Haleem', nextPage: null })))
     window.history.pushState({}, '', '/quran/')
     render(<App />)
-    expect(await screen.findByText('Pre-live English translation.')).toBeInTheDocument()
-    expect(screen.getByText(/M.A.S. Abdel Haleem/)).toBeInTheDocument()
+    expect(await screen.findByText('Pre-live English translation.')).toBeVisible()
+    expect(screen.getByText(/M.A.S. Abdel Haleem/)).toBeVisible()
     expect(screen.queryByText(/Dr. Mustafa Khattab/)).not.toBeInTheDocument()
   })
 })

@@ -1,4 +1,4 @@
-import type { QuranWord } from '@scratch-pages/api-contracts/quran'
+import { WordSchema, type QuranWord } from '@scratch-pages/api-contracts/quran'
 import type { Chapter, Ayah } from './quran-api'
 
 export const chapters: [Chapter, ...Chapter[]] = [
@@ -29,7 +29,7 @@ export const alFatihah: Ayah[] = [
 ]
 
 export function buildWord(overrides: Partial<QuranWord> = {}): QuranWord {
-  return { chapter: 1, verse: 1, position: 1, arabic: 'بِسْمِ', meaning: 'In (the) name', transliteration: "bis'mi", ...overrides }
+  return WordSchema.parse({ chapter: 1, verse: 1, position: 1, arabic: 'بِسْمِ', meaning: 'In (the) name', transliteration: "bis'mi", ...overrides })
 }
 
 export function buildOpeningVerse(meaning = 'In (the) name'): Ayah {

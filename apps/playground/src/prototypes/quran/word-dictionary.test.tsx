@@ -23,44 +23,56 @@ function entry(id = 'n20831') {
   ] })
 }
 
-it('keeps entry codes, XML links and explanatory notes in sources after the dictionary content', async () => {
-  server.use(http.get(endpoint, () => HttpResponse.json({ entries: [{ id: 'n20831', entry: entry() }] })))
+function serveSelectedEntry(selectedEntry = entry()) {
+  server.use(http.get(endpoint, ({ request }) => {
+    const query = new URL(request.url).searchParams
+    if (query.get('root') !== 'سمو' || query.get('lemma') !== 'ٱسْم' || request.headers.get('apikey') !== 'sb_publishable_test_only') {
+      return new HttpResponse(null, { status: 400 })
+    }
+    return HttpResponse.json({ entries: [{ id: selectedEntry.id, entry: selectedEntry }] })
+  }))
+}
+
+it('groups dictionary attribution and entry links in Dictionary sources', async () => {
+  const selectedEntry = entry()
+  serveSelectedEntry(selectedEntry)
   render(<WordDictionary word={word()} />)
   const article = within(await screen.findByRole('article', { name: 'اِسْمٌ' }))
   expect(article.queryByText(/n20831/)).not.toBeInTheDocument()
   expect(article.queryByRole('link', { name: /Original XML/ })).not.toBeInTheDocument()
   const sources = within(screen.getByLabelText('Dictionary sources'))
-  expect(sources.getByRole('link', { name: 'Original XML · n20831' })).toBeVisible()
+  const original = sources.getByRole('link', { name: 'Original XML · n20831' })
+  expect(original).toBeVisible()
+  expect(original).toHaveAttribute('href', selectedEntry.sourceUrl)
   expect(sources.getByText(/Dictionary senses are not the contextual verse meaning/)).toBeVisible()
-  expect(sources.getByRole('link', { name: 'CC BY-SA 3.0 US' })).toBeVisible()
-  expect(screen.queryByText('Selected word · 1:1:1')).not.toBeInTheDocument()
+  const licence = sources.getByRole('link', { name: 'CC BY-SA 3.0 US' })
+  expect(licence).toBeVisible()
+  expect(licence).toHaveAttribute('href', 'https://creativecommons.org/licenses/by-sa/3.0/us/')
 })
 
-it('loads the mapped entry when Dictionary is displayed and preserves Arabic, senses and attribution safely', async () => {
-  const requests: string[] = []
-  server.use(http.get(`${quranEndpoint}/dictionary`, ({ request }) => {
-    requests.push(request.url)
-    expect(new URL(request.url).searchParams.get('root')).toBe('سمو')
-    expect(new URL(request.url).searchParams.get('lemma')).toBe('ٱسْم')
-    expect(request.headers.get('apikey')).toBe('sb_publishable_test_only')
-    return HttpResponse.json({ entries: [{ id: 'n20831', entry: entry() }] })
-  }))
-  const user = userEvent.setup()
+it('shows the dictionary entry for the selected word', async () => {
+  serveSelectedEntry()
   render(<WordDictionary word={word()} />)
-  expect(requests).toEqual([])
+
   expect(await screen.findByText('The name of a thing. (S, M, Msb, K.)')).toBeVisible()
-  expect(requests).toEqual([`${quranEndpoint}/dictionary?${new URLSearchParams({ root: 'سمو', lemma: 'ٱسْم' })}`])
   const article = within(screen.getByRole('article', { name: 'اِسْمٌ' }))
   expect(article.getByRole('heading', { name: /اِسْمٌ/ })).toHaveAttribute('lang', 'ar')
+})
+
+it('shows the remaining senses as safe text when Read full entry is selected', async () => {
+  serveSelectedEntry()
+  const user = userEvent.setup()
+  render(<WordDictionary word={word()} />)
+  const article = within(await screen.findByRole('article', { name: 'اِسْمٌ' }))
+
   await user.click(article.getByRole('button', { name: 'Read full entry' }))
+
   expect(article.getByText('Sense 2')).toBeVisible()
   expect(article.getByText('<img src=x onerror=alert(1)> More senses.')).toBeVisible()
   expect(article.queryByRole('img')).not.toBeInTheDocument()
-  expect(screen.getByRole('link', { name: 'CC BY-SA 3.0 US' })).toHaveAttribute('href', 'https://creativecommons.org/licenses/by-sa/3.0/us/')
-  expect(screen.getByText(/Dictionary senses are not the contextual verse meaning/)).toBeVisible()
 })
 
-it('reuses validated entries after changing words and discards pending results', async () => {
+it('reuses the dictionary entry when its word is selected again', async () => {
   const requests: string[] = []
   server.use(http.get(endpoint, ({ request }) => {
     requests.push(request.url)

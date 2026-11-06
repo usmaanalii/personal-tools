@@ -53,7 +53,9 @@ Use Vitest to test detailed page and handler behaviour. Run the real application
 
 The Edge Function API-contract tests have their own workspace under `supabase/functions/tests/`. Run `pnpm test:functions` or `pnpm --filter edge-functions test:coverage`; see [backend test ownership and setup](supabase/functions/README.md).
 
-Both apps have a `test:smoke` command that opens an existing deployment using `PLAYWRIGHT_BASE_URL` and calls its real backend. Local tests use a fake backend, so they cannot confirm the hosted service works. Each app README explains the commands and what they check.
+Both apps have a `test:smoke` command that opens an existing deployment using `PLAYWRIGHT_BASE_URL` and calls its real backend. Local checks use HTTP fixtures; the Playground dictionary journey also runs the real local Deno entry point with pinned data. These checks cannot confirm the hosted service works. Each app README explains the commands and what they check.
+
+Run release-policy tests with `node --experimental-strip-types --test scripts/releases/*.test.mjs`. They exercise selection, staging, promotion, credential containment and failure reporting without deploying. The CLI test uses the root MSW development dependency to intercept HTTP at the network boundary; unexpected hosts, methods and metadata queries fail the test.
 
 ## Local setup
 

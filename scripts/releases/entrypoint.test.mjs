@@ -64,27 +64,40 @@ test("the real runner requests structured CLI failures and keeps raw diagnostics
   const cwd = mkdtempSync(join(tmpdir(), "issue32-cli-error-"));
   const runner = new URL("./run.mjs", import.meta.url).href;
   const config = new URL("./config.mjs", import.meta.url).href;
+  const msw = import.meta.resolve("msw");
+  const mswNode = import.meta.resolve("msw/node");
   const worker = `
     import childProcess from 'node:child_process';
     import { syncBuiltinESMExports } from 'node:module';
+    import { http, HttpResponse } from ${JSON.stringify(msw)};
+    import { setupServer } from ${JSON.stringify(mswNode)};
     import { project } from ${JSON.stringify(config)};
     const configured = project('next');
-    globalThis.fetch = async (url) => {
-      const path = new URL(url).pathname;
-      let data;
-      if (path.startsWith('/v9/projects/')) data = {
+    const metadata = (request, data) => {
+      const query = new URL(request.url).searchParams;
+      if (query.size !== 1 || query.get('teamId') !== configured.teamId || request.headers.get('authorization') !== 'Bearer fake-token') {
+        return new HttpResponse(null, { status: 400 });
+      }
+      return HttpResponse.json(data);
+    };
+    const server = setupServer(
+      http.get('https://api.vercel.com/v9/projects/' + configured.projectId, ({ request }) => metadata(request, {
         id: configured.projectId, accountId: configured.teamId,
         rootDirectory: configured.root, nodeVersion: '22.x', link: null,
-      };
-      else if (path.endsWith('/git/ref/heads/main')) data = { object: { sha: process.env.GITHUB_SHA } };
-      else if (path.startsWith('/v4/aliases/')) data = {
+      })),
+      http.get('https://api.github.com/repos/usmaanalii/personal-tools/git/ref/heads/main', ({ request }) => {
+        if (new URL(request.url).search || request.headers.get('authorization') !== 'Bearer fake-token') {
+          return new HttpResponse(null, { status: 400 });
+        }
+        return HttpResponse.json({ object: { sha: process.env.GITHUB_SHA } });
+      }),
+      http.get('https://api.vercel.com/v4/aliases/' + new URL(configured.productionUrl).hostname, ({ request }) => metadata(request, {
         projectId: configured.projectId,
         alias: new URL(configured.productionUrl).hostname,
         deploymentId: 'dpl_previous',
-      };
-      else throw new Error('Unexpected test API request');
-      return { ok: true, json: async () => data };
-    };
+      })),
+    );
+    server.listen({ onUnhandledFrame: 'error' });
     childProcess.execFile = (file, args, options, callback) => {
       const error = Object.assign(new Error('CLI failed'), { code: 1 });
       const stdout = args.includes('--non-interactive')
@@ -96,7 +109,11 @@ test("the real runner requests structured CLI failures and keeps raw diagnostics
     };
     syncBuiltinESMExports();
     process.argv[2] = 'next';
-    await import(${JSON.stringify(runner)});
+    try {
+      await import(${JSON.stringify(runner)});
+    } finally {
+      server.close();
+    }
   `;
   try {
     assert.throws(

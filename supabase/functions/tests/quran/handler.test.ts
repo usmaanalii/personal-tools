@@ -19,35 +19,118 @@ function upstream() {
     }),
   )
 }
+function tokenScenario() {
+  let tokens = 0
+  server.use(
+    http.post('https://prelive-oauth2.quran.foundation/oauth2/token', () => {
+      tokens++
+      return HttpResponse.json({ access_token: 'private-token', expires_in: 3600 })
+    }),
+    http.get('https://apis-prelive.quran.foundation/content/api/v4/chapters', () => HttpResponse.json({ chapters: [{ id: 1 }] })),
+  )
+  return { handler: setup(), tokenCount: () => tokens }
+}
 afterEach(() => vi.useRealTimers())
 describe('Quran content proxy', () => {
-  it('shares a token across simultaneous content requests and renews it near expiry', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    let tokens = 0
-    server.use(
-      http.post('https://prelive-oauth2.quran.foundation/oauth2/token', () => { tokens++; return HttpResponse.json({ access_token: 'private-token', expires_in: 3600 }) }),
-      http.get('https://apis-prelive.quran.foundation/content/api/v4/chapters', () => HttpResponse.json({ chapters: [{ id: 1 }] })),
-    )
-    const handler = setup()
-    await Promise.all([handler(request()), handler(request())])
-    expect(tokens).toBe(1)
-    vi.setSystemTime(Date.now() + 3_571_000)
-    expect((await handler(request())).status).toBe(200)
-    expect(tokens).toBe(2)
+  it('returns content to simultaneous requests using one token', async () => {
+    const { handler, tokenCount } = tokenScenario()
+
+    const responses = await Promise.all([handler(request()), handler(request())])
+
+    expect(responses.map(response => response.status)).toEqual([200, 200])
+    expect(await Promise.all(responses.map(response => response.json()))).toEqual([
+      { chapters: [{ id: 1 }] }, { chapters: [{ id: 1 }] },
+    ])
+    expect(tokenCount()).toBe(1)
   })
 
-  it('rejects requests outside the read-only content contract before calling upstream', async () => {
-    upstream()
-    const handler = setup()
-    expect((await handler(request('chapters', 'POST'))).status).toBe(405)
-    expect((await handler(request('chapters', 'GET', 'https://untrusted.example'))).status).toBe(403)
-    expect((await handler(request('https://untrusted.example'))).status).toBe(400)
-    expect((await handler(request('verses?chapter=115'))).status).toBe(400)
-    expect((await handler(request('verses?chapter=1&page=999'))).status).toBe(400)
-    expect((await handler(request('chapters?url=https://untrusted.example'))).status).toBe(400)
-    expect((await handler(request('chapters', 'OPTIONS'))).status).toBe(204)
-    const unconfigured = createQuranHandler({ clientId: '', clientSecret: '', environment: 'invalid', origins: [origin] })
-    expect((await unconfigured(request())).status).toBe(503)
+  it('renews the token when less than 30 seconds remain', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(0)
+    const { handler, tokenCount } = tokenScenario()
+    await handler(request())
+
+    vi.setSystemTime(3_570_001)
+    const response = await handler(request())
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ chapters: [{ id: 1 }] })
+    expect(tokenCount()).toBe(2)
+  })
+
+  it('renews the token when exactly 30 seconds remain', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(0)
+    const { handler, tokenCount } = tokenScenario()
+    await handler(request())
+
+    vi.setSystemTime(3_570_000)
+    const response = await handler(request())
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ chapters: [{ id: 1 }] })
+    expect(tokenCount()).toBe(2)
+  })
+
+  it('reuses the token while more than 30 seconds remain', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(0)
+    const { handler, tokenCount } = tokenScenario()
+    await handler(request())
+
+    vi.setSystemTime(3_569_999)
+    const response = await handler(request())
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ chapters: [{ id: 1 }] })
+    expect(tokenCount()).toBe(1)
+  })
+
+  it.each([
+    { reason: 'the method writes content', path: 'chapters', method: 'POST', status: 405, error: 'Method not allowed.' },
+    { reason: 'the route is unknown', path: 'https://untrusted.example', method: 'GET', status: 400, error: 'Invalid content request.' },
+    { reason: 'the chapter exceeds 114', path: 'verses?chapter=115', method: 'GET', status: 400, error: 'Invalid chapter or page.' },
+    { reason: 'the verse page has more than two digits', path: 'verses?chapter=1&page=999', method: 'GET', status: 400, error: 'Invalid chapter or page.' },
+    { reason: 'a query parameter is unsupported', path: 'chapters?url=https://untrusted.example', method: 'GET', status: 400, error: 'Invalid content request.' },
+  ])('rejects a request when $reason', async ({ path, method, status, error }) => {
+    const response = await setup()(request(path, method))
+
+    expect(response.status).toBe(status)
+    expect(await response.json()).toEqual({ error })
+  })
+
+  it('rejects an untrusted origin without exposing content or allowing CORS', async () => {
+    const response = await setup()(request('chapters', 'GET', 'https://untrusted.example'))
+
+    expect(response.status).toBe(403)
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull()
+    expect(await response.text()).toBe('')
+  })
+
+  it('allows a read-only preflight from a trusted origin', async () => {
+    const response = await setup()(request('chapters', 'OPTIONS'))
+
+    expect(response.status).toBe(204)
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(origin)
+    expect(response.headers.get('Access-Control-Allow-Methods')).toBe('GET, OPTIONS')
+    expect(await response.text()).toBe('')
+  })
+
+  it('returns a configuration error when Quran content credentials are missing', async () => {
+    const unconfigured = createQuranHandler({ clientId: '', clientSecret: '', environment: 'prelive', origins: [origin] })
+    const response = await unconfigured(request())
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ error: 'Quran content is not configured yet.' })
+  })
+
+  it('returns a configuration error when the Quran environment is unsupported', async () => {
+    const handler = createQuranHandler({ clientId: 'test-client', clientSecret: 'test-secret', environment: 'invalid', origins: [origin] })
+
+    const response = await handler(request())
+
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ error: 'Quran content is not configured yet.' })
   })
 
   it('renews an invalid token once and returns a safe error if the retry also fails', async () => {
@@ -59,7 +142,7 @@ describe('Quran content proxy', () => {
     )
     const response = await setup()(request())
     expect(response.status).toBe(502)
-    expect(await response.text()).not.toContain('private detail')
+    expect(await response.json()).toEqual({ error: 'Quran content is temporarily unavailable. Please try again.' })
     expect(tokens).toBe(2)
     expect(calls).toBe(2)
   })
@@ -69,7 +152,9 @@ describe('Quran content proxy', () => {
       return HttpResponse.json({ access_token: 'late-token', expires_in: 3600 })
     }))
     const handler = createQuranHandler({ clientId: 'test-client', clientSecret: 'test-secret', environment: 'prelive', origins: [origin], timeoutMs: 5 })
-    expect((await handler(request())).status).toBe(502)
+    const response = await handler(request())
+    expect(response.status).toBe(502)
+    expect(await response.json()).toEqual({ error: 'Quran content is temporarily unavailable. Please try again.' })
   })
   it('requests the English translation available in pre-live', async () => {
     upstream()
@@ -105,15 +190,15 @@ describe('Quran content proxy', () => {
 
 describe('Quran API recovery and request contracts', () => {
   it.each([
-    null,
-    {},
-    { access_token: '', expires_in: 3600 },
-    { access_token: 42, expires_in: 3600 },
-    { access_token: 'private-token' },
-    { access_token: 'private-token', expires_in: 0 },
-    { access_token: 'private-token', expires_in: -1 },
-    { access_token: 'private-token', expires_in: '3600' },
-  ])('rejects malformed token payload case %# without requesting content', async payload => {
+    { reason: 'the payload is null', payload: null },
+    { reason: 'the token fields are missing', payload: {} },
+    { reason: 'the access token is empty', payload: { access_token: '', expires_in: 3600 } },
+    { reason: 'the access token is not text', payload: { access_token: 42, expires_in: 3600 } },
+    { reason: 'the token lifetime is missing', payload: { access_token: 'private-token' } },
+    { reason: 'the token lifetime is zero', payload: { access_token: 'private-token', expires_in: 0 } },
+    { reason: 'the token lifetime is negative', payload: { access_token: 'private-token', expires_in: -1 } },
+    { reason: 'the token lifetime is not numeric', payload: { access_token: 'private-token', expires_in: '3600' } },
+  ])('returns a safe error without requesting content when $reason', async ({ payload }) => {
     let contentRequests = 0
     server.use(
       http.post('https://prelive-oauth2.quran.foundation/oauth2/token', () => HttpResponse.json(payload)),
@@ -134,7 +219,7 @@ describe('Quran API recovery and request contracts', () => {
     const handler = setup()
     const failed = await handler(request())
     expect(failed.status).toBe(502)
-    expect(await failed.text()).not.toContain('private auth failure')
+    expect(await failed.json()).toEqual({ error: 'Quran content is temporarily unavailable. Please try again.' })
     server.use(http.post('https://prelive-oauth2.quran.foundation/oauth2/token', () => HttpResponse.json({ access_token: 'private-token', expires_in: 3600 })))
     const recovered = await handler(request())
     expect(recovered.status).toBe(200)
@@ -204,7 +289,7 @@ describe('Quran upstream response contracts', () => {
     server.use(http.get('https://apis-prelive.quran.foundation/content/api/v4/chapters', () => new HttpResponse('invalid private content')))
     const response = await setup()(request())
     expect(response.status).toBe(502)
-    expect(await response.text()).not.toContain('invalid private content')
+    expect(await response.json()).toEqual({ error: 'Quran content is temporarily unavailable. Please try again.' })
   })
 
   it('rejects a request with no Origin header', async () => {
@@ -254,10 +339,10 @@ it('rejects an upstream pagination jump before publishing the owned response', a
 
 
 it.each([
-  { chapters: [] },
-  { chapters: [{ id: 1 }] },
-  { chapters: [{ id: 115, name_simple: 'Invalid', name_arabic: 'نص', translated_name: { name: 'Invalid' }, verses_count: 7, revelation_place: 'makkah' }] },
-])('rejects malformed provider chapters without leaking validation details, case %#', async payload => {
+  { reason: 'the provider chapter list is empty', payload: { chapters: [] } },
+  { reason: 'provider chapter details are missing', payload: { chapters: [{ id: 1 }] } },
+  { reason: 'the provider chapter number exceeds 114', payload: { chapters: [{ id: 115, name_simple: 'Invalid', name_arabic: 'نص', translated_name: { name: 'Invalid' }, verses_count: 7, revelation_place: 'makkah' }] } },
+])('returns a safe error when $reason', async ({ payload }) => {
   upstream()
   server.use(http.get('https://apis-prelive.quran.foundation/content/api/v4/chapters', () => HttpResponse.json(payload)))
   const response = await setup()(request('v2/chapters'))
@@ -265,6 +350,16 @@ it.each([
   expect(await response.json()).toEqual({ error: 'Quran content is temporarily unavailable. Please try again.' })
 })
 
-it.each(['verses', 'verses?chapter=0', 'verses?chapter=115', 'verses?chapter=1&page=0', 'verses?chapter=1&page=16', 'verses?chapter=1&chapter=2', 'verses?chapter=1&page=1&page=2', 'verses?chapter=1&extra=1', 'chapters?extra=1'])('rejects invalid v2 requests before contacting the provider: %s', async path => {
+it.each([
+  { reason: 'the chapter is missing', path: 'verses' },
+  { reason: 'the chapter is below one', path: 'verses?chapter=0' },
+  { reason: 'the chapter exceeds 114', path: 'verses?chapter=115' },
+  { reason: 'the verse page is below one', path: 'verses?chapter=1&page=0' },
+  { reason: 'the verse page exceeds the supported limit', path: 'verses?chapter=1&page=16' },
+  { reason: 'the chapter parameter is repeated', path: 'verses?chapter=1&chapter=2' },
+  { reason: 'the page parameter is repeated', path: 'verses?chapter=1&page=1&page=2' },
+  { reason: 'a verse query parameter is unsupported', path: 'verses?chapter=1&extra=1' },
+  { reason: 'a chapter query parameter is unsupported', path: 'chapters?extra=1' },
+])('rejects a v2 request when $reason', async ({ path }) => {
   expect((await setup()(request(`v2/${path}`))).status).toBe(400)
 })

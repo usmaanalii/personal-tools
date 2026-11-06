@@ -1,19 +1,17 @@
-import { describe, expect, it, vi } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../../test/server'
 import { GET } from './route'
 
-describe('GET /api/supabase', () => {
-  it('returns a configuration error when Supabase is not configured', async () => {
-    vi.stubEnv('SUPABASE_URL', '')
-    vi.stubEnv('SUPABASE_PUBLISHABLE_KEY', '')
+it('returns a configuration error when Supabase is not configured', async () => {
+  vi.stubEnv('SUPABASE_URL', '')
+  vi.stubEnv('SUPABASE_PUBLISHABLE_KEY', '')
 
-    const response = await GET()
+  const response = await GET()
 
-    expect(response.status).toBe(503)
-    await expect(response.json()).resolves.toEqual({
-      error: 'Supabase is not configured.',
-    })
+  expect(response.status).toBe(503)
+  await expect(response.json()).resolves.toEqual({
+    error: 'Supabase is not configured.',
   })
 })
 

@@ -14,6 +14,8 @@ The Vercel workflow uses a project list and an always-running summary check for 
 
 Each app first runs dependency installation with the frozen lockfile, its quality and coverage checks, and browser tests against a production build with a fake local backend. Pages owns the Storybook catalogue build and its browser checks. The release job can access the project's protected environment only after that app's checks pass, and only on main.
 
+The change-selection job installs the root workspace dependencies with the frozen lockfile before running release-safety tests. Those tests use MSW at the HTTP boundary and run without production credentials. App dependencies and browser installation remain in their owning verification jobs.
+
 The release job uses Vercel CLI 65.8.0 to build with production settings and upload to a new URL without changing the public domain. It tests that deployment against the real backend, points the public domain at the same build, checks the domain's deployment ID, then tests the public website. Action versions are pinned to commit SHAs. Each project's releases run one at a time, and a newer run cannot automatically cancel a release in progress.
 
 Complete the setup in [the Vercel release runbook](VERCEL_RELEASES.md) before enabling releases. The Next app needs a GitHub environment named `vercel-next-production` and credentials configured there; source changes alone do not set them up. The runbook also covers adding another app and recovering from failures.

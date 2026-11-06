@@ -57,21 +57,21 @@ it('imports the complete pinned corpus with Arabic conversion and readable annot
 })
 
 it.each([
-  `${bismi()}\n(1:1:1:2)\tsomi\tN\tSTEM|POS:N`,
-  '(1:1:1:2)\tsomi\tN\tSTEM|POS:N',
-  '(0:1:1:1)\tbi\tP\tPREFIX|bi+',
-  '(115:1:1:1)\tbi\tP\tPREFIX|bi+',
-  '(1:0:1:1)\tbi\tP\tPREFIX|bi+',
-  '(1:287:1:1)\tbi\tP\tPREFIX|bi+',
-  '(1:1:0:1)\tbi\tP\tPREFIX|bi+',
-  '(1:1:1:1)\t?\tP\tSTEM|POS:P',
-  '(1:1:1:1)\tbi\tUNKNOWN\tSTEM|POS:P',
-  '(1:1:1:1)\tbi\tP\tPOS:P',
-  '(1:1:1:1)\tbi\tP',
-  'not a corpus record',
-  '',
-])('rejects malformed or ambiguous corpus records (%#)', source => {
-  expect(() => importCorpus(source)).toThrow()
+  { reason: 'duplicate segment numbers', source: `${bismi()}\n(1:1:1:2)\tsomi\tN\tSTEM|POS:N`, error: /Ambiguous segment order/ },
+  { reason: 'segment numbers starting at two', source: '(1:1:1:2)\tsomi\tN\tSTEM|POS:N', error: /Ambiguous segment order/ },
+  { reason: 'a chapter number below one', source: '(0:1:1:1)\tbi\tP\tPREFIX|bi+', error: /Invalid corpus location/ },
+  { reason: 'a chapter number above 114', source: '(115:1:1:1)\tbi\tP\tPREFIX|bi+', error: /Invalid corpus location/ },
+  { reason: 'a verse number below one', source: '(1:0:1:1)\tbi\tP\tPREFIX|bi+', error: /Invalid corpus location/ },
+  { reason: 'a verse number above 286', source: '(1:287:1:1)\tbi\tP\tPREFIX|bi+', error: /Invalid corpus location/ },
+  { reason: 'a word position below one', source: '(1:1:0:1)\tbi\tP\tPREFIX|bi+', error: /Invalid corpus location/ },
+  { reason: 'an unknown Buckwalter character', source: '(1:1:1:1)\t?\tP\tSTEM|POS:P', error: /Unknown Buckwalter character/ },
+  { reason: 'an unknown part of speech', source: '(1:1:1:1)\tbi\tUNKNOWN\tSTEM|POS:P', error: /Invalid corpus record/ },
+  { reason: 'a missing segment role', source: '(1:1:1:1)\tbi\tP\tPOS:P', error: /Invalid segment role/ },
+  { reason: 'a record with missing columns', source: '(1:1:1:1)\tbi\tP', error: /Invalid corpus record/ },
+  { reason: 'an invalid location format', source: 'not a corpus record', error: /Invalid corpus record/ },
+  { reason: 'an empty corpus', source: '', error: /No corpus records/ },
+])('rejects $reason', ({ source, error }) => {
+  expect(() => importCorpus(source)).toThrow(error)
 })
 
 it('reports verified occurrences separately from corpus coverage and preserves the original notices', () => {

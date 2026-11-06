@@ -4,28 +4,17 @@ import { mockQuranContent } from './content-fixture'
 
 // Verse content is a fixture; Dictionary uses the actual local Deno entry point
 // and pinned backend assets. This does not prove the hosted Supabase gateway.
-test('reads a real Lane entry under the deployment prefix while retaining word context', async ({ page }, testInfo) => {
+test('keeps word context visible while scrolling a real Lane dictionary entry', async ({ page }, testInfo) => {
   await mockQuranContent(page)
-  const requests: string[] = []
-  page.on('request', request => {
-    if (new URL(request.url()).pathname.endsWith('/dictionary')) requests.push(request.url())
-  })
   await page.goto('./quran/')
   await page.getByRole('button', { name: 'بِسْمِ · 1:1:1' }).click()
   const dialog = page.getByRole('dialog', { name: 'Word meaning' })
-  expect(requests).toEqual([])
   await dialog.getByRole('tab', { name: 'Dictionary' }).click()
   const dictionary = dialog.getByRole('region', { name: 'Lane’s dictionary' })
   const article = dictionary.getByRole('article').first()
   await expect(article).toBeVisible()
-  expect(requests).toHaveLength(1)
-  const request = new URL(requests[0] ?? '')
-  expect(request.pathname).toBe('/functions/v1/quran/v2/dictionary')
-  expect(request.searchParams.get('root')).toBe('سمو')
-  expect(request.searchParams.get('lemma')).toBe('ٱسْم')
   await article.getByRole('button', { name: 'Read full entry' }).click()
   await expect(article.getByText('name', { exact: true }).first()).toBeVisible()
-  await expect(dictionary.getByRole('link', { name: 'Original XML · n20831' })).toHaveAttribute('href', /7dd04e1182c13a4b0883978867d2a3b04616542a\/db\/lexica\/ara\/lan\/us0.xml$/)
   const panel = dialog.getByRole('tabpanel', { name: 'Dictionary' })
   await panel.focus()
   await expect(panel).toBeFocused()

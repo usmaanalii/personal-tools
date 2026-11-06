@@ -128,16 +128,21 @@ test("refuses a changed project, competing deployment owner, or stale commit bef
   }
 });
 
-test("waits for readiness and fails closed on build errors or timeout", async () => {
-  // Vercel can accept an upload before it is ready to serve requests. A build
-  // that fails, is cancelled, or keeps building must never reach promotion.
-  for (const state of ["ERROR", "CANCELED", "BUILDING"]) {
+[
+  { name: "rejects a failed build before promotion", state: "ERROR" },
+  { name: "rejects a cancelled build before promotion", state: "CANCELED" },
+  { name: "rejects a deployment that never becomes ready", state: "BUILDING" },
+].forEach(({ name, state }) => {
+  test(name, async () => {
     const io = platform();
     const original = await io.deployment();
     io.deployment = async () => ({ ...original, readyState: state });
     await assert.rejects(release(project, sha, io), /readiness|failed/i);
     assert.deepEqual(io.evidence, ["staged"]);
-  }
+  });
+});
+
+test("promotes after a building deployment becomes ready", async () => {
   const io = platform();
   const original = await io.deployment();
   let calls = 0;
@@ -147,7 +152,12 @@ test("waits for readiness and fails closed on build errors or timeout", async ()
     readyState: ++calls === 1 ? "BUILDING" : "READY",
   });
   assert.equal((await release(project, sha, io)).status, "verified");
-  assert.equal(calls >= 2, true);
+  assert.deepEqual(io.evidence, [
+    "staged",
+    "smoke:https://next-unique.vercel.app",
+    "promoted:dpl_new",
+    "smoke:https://next.vercel.app",
+  ]);
 });
 
 test("a failed live check, advanced main, or changed production target cannot promote", async () => {
@@ -211,10 +221,7 @@ test("a deployment losing readiness after live verification cannot be promoted",
   );
 });
 
-test("staging failure and post-publication smoke failure are reported without a second promotion", async () => {
-  // Before promotion, a failed upload leaves the public site alone. After
-  // promotion, a failed public check must report failure without trying to
-  // publish again or rolling back over a potentially newer release.
+test("does not promote when staging fails", async () => {
   const staging = platform({
     stage: async () => {
       throw new Error("Staging failed");
@@ -222,7 +229,9 @@ test("staging failure and post-publication smoke failure are reported without a 
   });
   await assert.rejects(release(project, sha, staging), /Staging failed/);
   assert.deepEqual(staging.evidence, []);
+});
 
+test("reports a failed public check after one promotion", async () => {
   const io = platform();
   const original = io.smoke;
   io.smoke = async (url) => {

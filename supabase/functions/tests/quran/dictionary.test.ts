@@ -45,22 +45,44 @@ it('serves owned Lane entries on demand without requesting Quran Foundation cont
 })
 
 it.each([
-  [`root=${'ر'.repeat(15)}`, 200], [`root=${'ر'.repeat(16)}`, 200], [`root=${'ر'.repeat(17)}`, 400],
-  [`lemma=${'ر'.repeat(79)}`, 200], [`lemma=${'ر'.repeat(80)}`, 200], [`lemma=${'ر'.repeat(81)}`, 400],
-  ['', 400], ['root=', 400], ['lemma=', 400], ['root=سمو&root=رحم', 400],
-  ['lemma=ٱسْم&surface=بسم', 400], ['url=https://untrusted.example', 400],
-])('bounds dictionary queries before reading content: %s', async (query, status) => {
+  { reason: 'the root has 15 characters', query: `root=${'ر'.repeat(15)}`, status: 200 },
+  { reason: 'the root reaches its 16-character limit', query: `root=${'ر'.repeat(16)}`, status: 200 },
+  { reason: 'the root exceeds 16 characters', query: `root=${'ر'.repeat(17)}`, status: 400 },
+  { reason: 'the lemma has 79 characters', query: `lemma=${'ر'.repeat(79)}`, status: 200 },
+  { reason: 'the lemma reaches its 80-character limit', query: `lemma=${'ر'.repeat(80)}`, status: 200 },
+  { reason: 'the lemma exceeds 80 characters', query: `lemma=${'ر'.repeat(81)}`, status: 400 },
+  { reason: 'no dictionary term is supplied', query: '', status: 400 },
+  { reason: 'the root is empty', query: 'root=', status: 400 },
+  { reason: 'the lemma is empty', query: 'lemma=', status: 400 },
+  { reason: 'the root parameter is repeated', query: 'root=سمو&root=رحم', status: 400 },
+  { reason: 'surface matching is requested', query: 'lemma=ٱسْم&surface=بسم', status: 400 },
+  { reason: 'an external URL is supplied', query: 'url=https://untrusted.example', status: 400 },
+])('returns HTTP $status when $reason', async ({ query, status }) => {
   const handler = createHandler({ readDictionary: async () => ({ entries: [] }) })
   const response = await handler(request(query))
   expect(response.status).toBe(status)
   expect(await response.json()).toEqual(status === 200 ? { entries: [] } : { error: expect.any(String) })
 })
 
-it('applies existing read-only CORS policy and hides dictionary read failures', async () => {
+it.each([
+  { reason: 'the origin is untrusted', method: 'GET', requestOrigin: 'https://untrusted.example', status: 403 },
+  { reason: 'the method writes content', method: 'POST', requestOrigin: origin, status: 405 },
+])('rejects a dictionary request when $reason', async ({ method, requestOrigin, status }) => {
+  const response = await createHandler()(new Request(request().url, { method, headers: { Origin: requestOrigin } }))
+
+  expect(response.status).toBe(status)
+})
+
+it('allows a dictionary preflight from a trusted origin', async () => {
+  const response = await createHandler()(new Request(request().url, { method: 'OPTIONS', headers: { Origin: origin } }))
+
+  expect(response.status).toBe(204)
+  expect(response.headers.get('Access-Control-Allow-Origin')).toBe(origin)
+  expect(response.headers.get('Access-Control-Allow-Methods')).toBe('GET, OPTIONS')
+})
+
+it('returns a safe error when reading dictionary data fails', async () => {
   const handler = createHandler({ readDictionary: async () => { throw new Error('Private server filename') } })
-  expect((await handler(new Request(request().url, { headers: { Origin: 'https://untrusted.example' } }))).status).toBe(403)
-  expect((await handler(new Request(request().url, { method: 'POST', headers: { Origin: origin } }))).status).toBe(405)
-  expect((await handler(new Request(request().url, { method: 'OPTIONS', headers: { Origin: origin } }))).status).toBe(204)
   const response = await handler(request())
   expect(response.status).toBe(503)
   expect(await response.json()).toEqual({ error: 'Dictionary temporarily unavailable.' })
@@ -96,8 +118,24 @@ it('matches the reviewed name exception from real pinned Lane data and retains s
   await withLaneData(async reader => {
     const result = LaneResponseSchema.parse(await reader({ root: 'سمو', lemma: 'ٱسْم' }, new AbortController().signal))
     expect(result.entries.map(item => item.id)).toEqual(['n20831'])
-    expect(result.entries[0]?.entry).toMatchObject({ headword: 'اِسْمٌ', root: 'سمو', file: 'us0.xml' })
-    expect(JSON.stringify(result)).toContain('name')
-    expect(JSON.stringify(result)).toContain('sense')
+    const entry = result.entries[0]?.entry
+    expect(entry).toMatchObject({
+      headword: 'اِسْمٌ', root: 'سمو', file: 'us0.xml',
+      sourceUrl: 'https://github.com/alpheios-project/lan/blob/7dd04e1182c13a4b0883978867d2a3b04616542a/db/lexica/ara/lan/us0.xml',
+      blocks: expect.arrayContaining([
+        expect.objectContaining({ kind: 'form', runs: expect.arrayContaining([{ text: 'اِسْمٌ', lang: 'ar', emphasis: false }]) }),
+        { kind: 'text', label: '', runs: [{ text: 'name', lang: null, emphasis: true }] },
+        { kind: 'sense', label: '2', runs: [] },
+        { kind: 'text', label: '', runs: [{ text: ', (S, M, Msb, K,) with the conjunctive ', lang: null, emphasis: false }] },
+      ]),
+    })
+    const readingOrder = entry?.blocks.filter(block =>
+      block.kind === 'sense' ||
+      (block.kind === 'form' && block.runs.some(run => run.text === 'اِسْمٌ')) ||
+      block.runs.some(run => run.text === 'name'),
+    ).map(({ kind, label }) => ({ kind, label }))
+    expect(readingOrder).toEqual([
+      { kind: 'form', label: '' }, { kind: 'text', label: '' }, { kind: 'sense', label: '2' },
+    ])
   })
 })

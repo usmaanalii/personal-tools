@@ -17,7 +17,7 @@ describe('Playground navigation', () => {
     renderAtPath(`/personal-tools/${route}/`)
 
     expect(screen.getByRole('status')).toHaveTextContent(message)
-    expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: title })).toBeVisible()
     if (route === 'quran') {
       expect(screen.getByRole('heading', { name: 'A moment with the Quran.' })).toBeVisible()
       expect(screen.getByRole('complementary', { name: 'Current chapter' })).toHaveAttribute('aria-busy', 'true')
@@ -25,14 +25,14 @@ describe('Playground navigation', () => {
     expect(screen.getByRole('link', { name: /All playground pages/i })).toHaveAttribute('href', import.meta.env.BASE_URL)
     expect(await screen.findByRole('heading', {
       name: route === 'quran' ? 'Al-Fātiḥah' : 'Hello from GitHub Pages',
-    })).toBeInTheDocument()
+    })).toBeVisible()
     expect(screen.queryByText(message)).not.toBeInTheDocument()
   })
 
   it('offers separate destinations for the Quran reader and Supabase demo', () => {
     renderAtPath('/')
 
-    expect(screen.getByRole('heading', { name: 'Playground' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Playground' })).toBeVisible()
     expect(screen.getByRole('link', { name: /Quran reader/i }).getAttribute('href')).toMatch(/quran\/$/)
     expect(screen.getByRole('link', { name: /Supabase API demo/i }).getAttribute('href')).toMatch(/supabase\/$/)
   })

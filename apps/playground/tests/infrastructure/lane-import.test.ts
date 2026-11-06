@@ -15,11 +15,24 @@ it('imports the pinned Lane entry for name with its Arabic, senses and source re
     const index = LaneIndexSchema.parse(JSON.parse(await readFile(join(output, 'index.json'), 'utf8')))
     expect(index.lemmas['ٱسْم']).toEqual(['n20831'])
     const entry = LaneEntrySchema.parse(JSON.parse(await readFile(join(output, 'lane/n20831.json'), 'utf8')))
-    expect(entry).toMatchObject({ id: 'n20831', headword: 'اِسْمٌ', root: 'سمو', file: 'us0.xml' })
-    expect(JSON.stringify(entry.blocks)).toContain('name')
-    expect(JSON.stringify(entry.blocks)).toContain('lang')
-    expect(JSON.stringify(entry.blocks)).toContain('sense')
-    expect(JSON.stringify(entry.blocks)).toContain('S, M')
+    expect(entry).toMatchObject({
+      id: 'n20831', headword: 'اِسْمٌ', root: 'سمو', file: 'us0.xml',
+      sourceUrl: 'https://github.com/alpheios-project/lan/blob/7dd04e1182c13a4b0883978867d2a3b04616542a/db/lexica/ara/lan/us0.xml',
+      blocks: expect.arrayContaining([
+        expect.objectContaining({ kind: 'form', runs: expect.arrayContaining([{ text: 'اِسْمٌ', lang: 'ar', emphasis: false }]) }),
+        { kind: 'text', label: '', runs: [{ text: 'name', lang: null, emphasis: true }] },
+        { kind: 'sense', label: '2', runs: [] },
+        { kind: 'text', label: '', runs: [{ text: ', (S, M, Msb, K,) with the conjunctive ', lang: null, emphasis: false }] },
+      ]),
+    })
+    const readingOrder = entry.blocks.filter(block =>
+      block.kind === 'sense' ||
+      (block.kind === 'form' && block.runs.some(run => run.text === 'اِسْمٌ')) ||
+      block.runs.some(run => run.text === 'name'),
+    ).map(({ kind, label }) => ({ kind, label }))
+    expect(readingOrder).toEqual([
+      { kind: 'form', label: '' }, { kind: 'text', label: '' }, { kind: 'sense', label: '2' },
+    ])
   } finally {
     await rm(output, { recursive: true, force: true })
   }

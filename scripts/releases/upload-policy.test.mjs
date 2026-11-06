@@ -8,7 +8,7 @@ import test from "node:test";
 
 // Vercel uses gitignore-style rules. Check their effect on representative paths
 // in an empty repository, without reading any real credential files.
-test("uploads the traced public example while excluding credentials and local output", () => {
+test("excludes credentials and local output while retaining the public environment example", () => {
   const cwd = mkdtempSync(join(tmpdir(), "issue32-upload-"));
   const rules = fileURLToPath(new URL("../../.vercelignore", import.meta.url));
   const excluded = [

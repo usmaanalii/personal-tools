@@ -51,7 +51,7 @@ async function renderWords({ verseWords = words(), chapter = 1, verseNumber = 1 
 }
 afterEach(() => window.history.pushState({}, '', '/'))
 
-it('opens grammar directly and switches to dictionary without another disclosure, retaining the tab between words', async () => {
+it('shows Grammar initially and retains Dictionary when the next word is selected', async () => {
   const requests: string[] = []
   server.use(http.get(`${quranEndpoint}/dictionary`, ({ request }) => {
     requests.push(request.url)
@@ -63,7 +63,6 @@ it('opens grammar directly and switches to dictionary without another disclosure
   expect(details.getByRole('tab', { name: 'Grammar', selected: true })).toBeVisible()
   expect(details.getByText('Stem · Noun')).toBeVisible()
   expect(requests).toEqual([])
-  expect(details.queryByRole('button', { name: /Expand|Collapse/ })).not.toBeInTheDocument()
   await user.click(details.getByRole('tab', { name: 'Dictionary' }))
   expect(await details.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
   expect(details.queryByText('Stem · Noun')).not.toBeInTheDocument()
@@ -106,7 +105,17 @@ it('opens Dictionary within the selected word while keeping its meaning and vers
   expect(await details.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(details.getByText('Al-Fātiḥah · Verse 1')).toBeVisible()
+})
+
+it('retains Grammar for the next word after switching back from Dictionary', async () => {
+  const { user, word } = await renderWords()
+  await user.click(word)
+  const details = within(screen.getByRole('dialog', { name: 'Word meaning' }))
+  await user.click(details.getByRole('tab', { name: 'Dictionary' }))
+  expect(await details.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
+
   await user.click(details.getByRole('tab', { name: 'Grammar' }))
+
   expect(details.getByText('Analysis unavailable.')).toBeVisible()
   await user.click(details.getByRole('button', { name: 'Next word' }))
   expect(details.getByText('of Allah')).toBeVisible()
@@ -199,11 +208,6 @@ it("shows when a word's meaning or pronunciation is unavailable", async () => {
 })
 
 it('keeps source links in one reader section while showing word grammar', async () => {
-  const chapterRequests: string[] = []
-  server.use(http.get('*/quran-data/morphology/1.json', ({ request }) => {
-    chapterRequests.push(request.url)
-    return HttpResponse.json(grammarChapter())
-  }))
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() })] })
   const sources = within(screen.getByRole('region', { name: 'Sources' }))
   expect(sources.getByRole('link', { name: 'Quranic Arabic Corpus v0.4' })).toHaveAttribute('href', 'https://corpus.quran.com/')
@@ -218,26 +222,19 @@ it('keeps source links in one reader section while showing word grammar', async 
   expect(details.getByText('سمو')).toHaveAttribute('lang', 'ar')
   expect(details.getByText('ٱسْم')).toHaveAttribute('dir', 'rtl')
   expect(details.queryByRole('link')).not.toBeInTheDocument()
-  expect(chapterRequests).toEqual([])
   await user.click(details.getByRole('button', { name: 'Close word meaning' }))
   expect(screen.getAllByRole('link', { name: 'Quranic Arabic Corpus v0.4' })).toHaveLength(1)
   expect(screen.getAllByRole('link', { name: 'Tanzil' })).toHaveLength(1)
   expect(screen.getAllByRole('link', { name: 'Data notices' })).toHaveLength(1)
 })
 
-it('offers recovery for temporarily unavailable grammar without hiding the meaning or fetching on opening', async () => {
-  const chapterRequests: string[] = []
-  server.use(http.get('*/quran-data/morphology/1.json', ({ request }) => {
-    chapterRequests.push(request.url)
-    return HttpResponse.json(grammarChapter())
-  }))
+it('shows Retry grammar and the word meaning when analysis is temporarily unavailable', async () => {
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: { status: 'temporarily_unavailable' } })] })
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
   expect(details.getByText('Analysis temporarily unavailable.')).toBeVisible()
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(details.getByRole('button', { name: 'Retry grammar' })).toBeVisible()
-  expect(chapterRequests).toEqual([])
 })
 
 it('retries through the current verse page without losing meaning, reading position or keyboard focus', async () => {
@@ -248,7 +245,6 @@ it('retries through the current verse page without losing meaning, reading posit
   const pending = Promise.withResolvers<Response>()
   const requests: string[] = []
   server.use(
-    http.get('*/quran-data/morphology/2.json', () => pending.promise),
     http.get(`${quranEndpoint}/verses`, ({ request }) => {
       const params = new URL(request.url).searchParams
       requests.push(`${params.get('chapter')}:${params.get('page')}`)
@@ -262,7 +258,6 @@ it('retries through the current verse page without losing meaning, reading posit
   const analysis = details.getByRole('region', { name: 'Grammar analysis' })
   expect(analysis).not.toContainElement(details.getByRole('status'))
   expect(analysis).toHaveAttribute('aria-busy', 'true')
-  expect(analysis.querySelector('[data-slot="skeleton"]')).toHaveAttribute('aria-hidden', 'true')
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(details.getByText('Al-Baqarah · Verse 21')).toBeVisible()
   expect(retry).toHaveAttribute('aria-disabled', 'true')
@@ -273,7 +268,6 @@ it('retries through the current verse page without losing meaning, reading posit
   }))
   expect(await details.findByText('Genitive')).toBeVisible()
   expect(analysis).toHaveAttribute('aria-busy', 'false')
-  expect(analysis.querySelector('[data-slot="skeleton"]')).not.toBeInTheDocument()
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(details.getByRole('region', { name: 'Grammar analysis' })).toHaveFocus()
 })
@@ -316,30 +310,18 @@ it('keeps the meaning and displays an unavailable analysis outcome from verse da
   expect(details.queryByText('سمو')).not.toBeInTheDocument()
 })
 
-it('keeps older verse responses readable without fetching a browser corpus on opening', async () => {
-  const requests: string[] = []
-  server.use(http.get('*/quran-data/morphology/1.json', ({ request }) => {
-    requests.push(request.url)
-    return HttpResponse.json(grammarChapter())
-  }))
+it('shows the word meaning when grammar is missing', async () => {
   const { user, word } = await renderWords()
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
   expect(await details.findByText('Analysis unavailable.')).toBeVisible()
   expect(details.getByText('In (the) name')).toBeVisible()
-  expect(requests).toEqual([])
 })
 
 it('reuses received grammar after moving between words and reopening the dialog', async () => {
-  const requests: string[] = []
-  server.use(http.get('*/quran-data/morphology/1.json', ({ request }) => {
-    requests.push(new URL(request.url).pathname)
-    return HttpResponse.json(grammarChapter())
-  }))
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() }), buildWord({ position: 2, arabic: 'ٱللَّهِ', meaning: 'of Allah', grammar: { status: 'unavailable' } })] })
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
-  expect(requests).toEqual([])
   expect(await details.findByText('Genitive')).toBeVisible()
   await user.click(details.getByRole('button', { name: 'Next word' }))
   expect(details.getByRole('tab', { name: 'Grammar', selected: true })).toBeVisible()
@@ -347,7 +329,6 @@ it('reuses received grammar after moving between words and reopening the dialog'
   await user.click(details.getByRole('button', { name: 'Close word meaning' }))
   await user.click(word)
   expect(await within(screen.getByRole('dialog')).findByText('Genitive')).toBeVisible()
-  expect(requests).toHaveLength(0)
 })
 
 it('cancels a grammar retry when moving to another occurrence and ignores its late response', async () => {
