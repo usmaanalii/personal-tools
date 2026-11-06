@@ -1,8 +1,9 @@
 import { useEffect, type ReactNode, type RefObject } from 'react'
 import { Button, DialogClose, DialogContent, DialogRoot, DialogTitle } from '@scratch-pages/ui'
 
-export function WordDialog({ children, dismiss, getReturnFocusTarget, fallbackFocusRef }: {
+export function WordDialog({ children, summary, dismiss, getReturnFocusTarget, fallbackFocusRef }: {
   readonly children: ReactNode
+  readonly summary: ReactNode
   readonly dismiss: () => void
   readonly getReturnFocusTarget: () => HTMLElement | undefined
   readonly fallbackFocusRef: RefObject<HTMLElement | null>
@@ -26,13 +27,14 @@ export function WordDialog({ children, dismiss, getReturnFocusTarget, fallbackFo
     // Preserve immediate return before the deferred unmount fallback runs.
     returnFocus()
   }}>
-    <DialogContent className="w-[calc(100%_-_32px)] max-w-[520px] p-6 text-base leading-[1.6] [overflow-wrap:anywhere] max-[760px]:inset-x-0 max-[760px]:inset-y-auto max-[760px]:bottom-0 max-[760px]:m-0 max-[760px]:max-h-[85dvh] max-[760px]:w-full max-[760px]:max-w-none max-[760px]:rounded-b-none max-[760px]:pl-[max(20px,env(safe-area-inset-left))] max-[760px]:pr-[max(20px,env(safe-area-inset-right))] max-[760px]:pb-[max(24px,env(safe-area-inset-bottom))] max-[760px]:pt-5" onCloseAutoFocus={event => {
+    <DialogContent className="grid grid-rows-[auto_minmax(0,1fr)_auto] gap-2 p-4 text-base leading-[1.6] [overflow-wrap:anywhere] min-[761px]:h-[min(48rem,90dvh)] min-[761px]:overflow-hidden max-[760px]:m-0 max-[760px]:h-dvh max-[760px]:max-h-none max-[760px]:w-full max-[760px]:overflow-hidden max-[760px]:rounded-none max-[760px]:border-0 max-[760px]:pl-[max(12px,env(safe-area-inset-left))] max-[760px]:pr-[max(12px,env(safe-area-inset-right))] max-[760px]:pb-[max(12px,env(safe-area-inset-bottom))] max-[760px]:pt-[max(8px,env(safe-area-inset-top))]" onCloseAutoFocus={event => {
       event.preventDefault()
       returnFocus()
     }} onInteractOutside={event => event.preventDefault()}>
-      <header className="flex items-center justify-between gap-4">
-        <DialogTitle className="m-0 font-ui-heading text-xl font-semibold">Word meaning</DialogTitle>
+      <header className="flex min-w-0 items-center gap-3">
+        <DialogTitle className="sr-only">Word meaning</DialogTitle>
         <DialogClose asChild><Button variant="outline" size="compact" aria-label="Close word meaning">Close</Button></DialogClose>
+        {summary}
       </header>
       {children}
     </DialogContent>

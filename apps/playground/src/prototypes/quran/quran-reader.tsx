@@ -3,7 +3,7 @@ import { Button } from '@scratch-pages/ui'
 import './styles.css'
 import { VerseView } from './verse-view'
 import { ChapterList } from './chapter-list'
-import { BookmarkList, ChapterBrowser, ChapterSearch, type ChapterView } from './chapter-browser'
+import { BookmarkList, ChapterBrowser, ChapterSearch, ChapterViews, type ChapterView } from './chapter-browser'
 import { ReaderTopbar, ReaderWelcome, ChapterShortcut } from './reader-chrome'
 import { ReaderLayout } from './reader-layout'
 import { ReadingPanel } from './reading-panel'
@@ -22,6 +22,7 @@ export default function App() {
 function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
   const searchToggle = useRef<HTMLButtonElement>(null)
   const readingHeading = useRef<HTMLHeadingElement>(null)
+  const browsingHeading = useRef<HTMLHeadingElement>(null)
   const { reading, bookmarks, actions } = useReader(chapters)
   const { selected, chapter, previousChapter, nextChapter, page, current, verses, key, activeVerse } = reading
   const { bookmarked, savedVerses, isVerseSaved } = bookmarks
@@ -30,19 +31,28 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [tab, setTab] = useState<ChapterView>('chapters')
   const visibleChapters = chapters.filter(item => `${item.name} ${item.meaning} ${item.id}`.toLowerCase().includes(query.toLowerCase()))
+  const openBrowsing = (view: ChapterView) => {
+    setTab(view)
+    browsingHeading.current?.focus({ preventScroll: true })
+    browsingHeading.current?.scrollIntoView({ block: 'start' })
+  }
+  const focusReading = () => {
+    readingHeading.current?.focus({ preventScroll: true })
+    readingHeading.current?.scrollIntoView({ block: 'start' })
+  }
 
-  return <ReaderLayout onBookmarks={() => setTab('bookmarks')} onExplore={() => setSearchOpen(true)}
-    topbar={<ReaderTopbar searchOpen={searchOpen} searchRef={searchToggle} onToggleSearch={() => setSearchOpen(!searchOpen)}/>}>
+  return <ReaderLayout onBookmarks={() => openBrowsing('bookmarks')}
+    topbar={<ReaderTopbar searchOpen={searchOpen} searchRef={searchToggle} onToggleSearch={() => setSearchOpen(!searchOpen)}><ChapterViews tab={tab} onTabChange={openBrowsing} bookmarkCount={bookmarks.count}/></ReaderTopbar>}>
         <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-6">
           <ReaderWelcome/>
           <ChapterShortcut onOpen={() => openChapter(2)}/>
-          <ChapterBrowser total={chapters.length} tab={tab} onTabChange={setTab} bookmarkCount={bookmarks.count}
+          <ChapterBrowser total={tab === 'chapters' ? chapters.length : bookmarks.count} tab={tab} headingRef={browsingHeading}
             search={searchOpen && <ChapterSearch query={query} onQueryChange={setQuery} onClose={() => { setSearchOpen(false); setQuery(''); searchToggle.current?.focus() }}/>}
           >
             {tab === 'chapters'
-              ? <ChapterList chapters={visibleChapters} selectedId={selected} onSelect={openChapter}/>
-              : <BookmarkList chapters={chapters} bookmarkedChapter={bookmarked ? chapter : null} savedVerses={savedVerses} onOpenChapter={openChapter}
-                  onOpenVerse={openSavedVerse}/>
+            ? <ChapterList chapters={visibleChapters} selectedId={selected} onSelect={id => { openChapter(id); focusReading() }}/>
+              : <BookmarkList chapters={chapters} bookmarkedChapter={bookmarked ? chapter : null} savedVerses={savedVerses} onOpenChapter={id => { openChapter(id); focusReading() }}
+                  onOpenVerse={(chapterId, verseNumber) => { openSavedVerse(chapterId, verseNumber); focusReading() }}/>
             }
           </ChapterBrowser>
         </div>

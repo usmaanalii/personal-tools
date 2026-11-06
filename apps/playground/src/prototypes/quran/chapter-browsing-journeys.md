@@ -1,5 +1,9 @@
 # Chapter browsing and bookmarks (#25)
 
+Historical layout snapshot. The mobile reading-space update moves view choices
+to the top header, removes the fixed bottom bar and lets short chapter lists
+fit their content. See the [current app README](../../../README.md) for maintained behaviour.
+
 Reader owns selected chapter, search text/open state, chapter view, chapter bookmark flag, saved verses, verse page and retries. ChapterLoader owns the abortable chapter request. Reader owns the abortable verse request and invalidates stale pages with its existing chapter/page/retry key. Refresh/unmount starts a new session; no persistence or URL state was added. The chapter bookmark flag continues to apply to the current chapter when selection changes, matching the previous implementation.
 
 App-local views receive data and actions: `ChapterBrowser` composes the view choices, optional search and list slot; `ChapterList`/`BookmarkList` render choices; `ChapterRequestStatus` renders request feedback; `reader-chrome.tsx` owns screen chrome. They call no feature API. Shared UI owns Button/Input/ViewSwitcher styling and native semantics and imports no Quran code. There is no shared feature view-model.

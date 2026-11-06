@@ -8,9 +8,9 @@ The homepage and lazy-route loading shells use shared typography, surfaces, focu
 
 Storybook includes the homepage and both route-loading shells under Playground, plus the Quran reader's chapter-loading and failed-request shells. Use these and the existing chapter stories for visual review of typography, spacing, focus indicators and style isolation. These examples remain local until an approved push publishes the combined Pages artifact.
 
-Chapter browsing and surrounding reader chrome use shared tokens, owned Button/Input/ViewSwitcher controls and Tailwind utilities. `use-reader.ts` owns chapter requests, selection, bookmarks, verse loading, retries and pagination. It exposes reading state, bookmarks and reading actions without importing screen modules. `quran-reader.tsx` composes the screen and owns search visibility, the chapter-view tab and DOM focus targets. App-local views receive data, actions and composition slots. Search and bookmarks remain local to the mounted reader and do not modify URL state. See the [chapter browsing state inventory](src/prototypes/quran/chapter-browsing-journeys.md) for responsive examples, intentional visual/accessibility changes and verification limits. Quran text and verse presentation remain separate from the migrated chrome; the word dialog uses Tailwind utilities.
+Chapter browsing and surrounding reader chrome use shared tokens, owned Button/Input/ViewSwitcher controls and Tailwind utilities. `use-reader.ts` owns chapter requests, selection, bookmarks, verse loading, retries and pagination. `quran-reader.tsx` composes the screen and owns search visibility, chapter-view selection and DOM focus targets. Chapters, Bookmarks and Search sit in the top header and scroll with the page. There is no fixed bottom bar, inactive More action or settings control. A small heading and direct Al-Baqarah shortcut replace the large introduction. Chapter rows use compact padding; short lists fit their content and long lists scroll. Closed search reserves no empty space. Search and bookmarks remain local to the mounted reader and do not modify URL state. The [chapter browsing state inventory](src/prototypes/quran/chapter-browsing-journeys.md) preserves the earlier layout snapshot. Quran text and verse presentation remain separate from the surrounding chrome.
 
-The Quran route keeps the same reader layout while its JavaScript, chapters and verses load. Shared shadcn-derived Skeleton placeholders use the existing semantic colours, stop pulsing for reduced motion, and stay hidden from assistive technology; the owning region announces its request state. Chapter failures retain the shell and offer Retry chapters without continuing skeleton feedback. Search has a reserved slot, and chapter results keep their height through filtering, empty results and bookmarks. Verses use a bounded, keyboard-scrollable region on mobile and desktop so chapter changes, pagination, failures and retries do not collapse the reading panel. Grammar retry/loading/success states likewise share a bounded scroll region. Opening or collapsing grammar remains an intentional disclosure change. Arabic text, shaping and source-specific styling are unchanged.
+Shared Skeleton placeholders use the existing semantic colours, stop pulsing for reduced motion, and stay hidden from assistive technology; the owning region announces its request state. Chapter failures retain the shell and offer Retry chapters without continuing skeleton feedback. Chapter results change height through filtering, empty results and bookmarks to avoid unused space. Verses retain a bounded, keyboard-scrollable region so chapter changes, pagination, failures and retries do not collapse the reading panel. Arabic text, shaping and source-specific styling are unchanged.
 
 `pnpm --filter @scratch-pages/ui storybook` opens the shared catalogue, including Playground's twelve chapter examples (six states at mobile and desktop widths). Playground declares the same pinned Storybook renderer as a development dependency so its colocated stories are included in normal TypeScript checks; it adds no production dependency. The combined Pages workflow will publish these additions after an approved push.
 
@@ -52,8 +52,10 @@ See the [Quran function README](../../supabase/functions/quran/README.md) for th
 
 When the backend supplies validated word data, tap an Arabic word (or activate it
 with Enter/Space) to highlight it and open its English gloss, available
-transliteration and verse reference. The owned shared Dialog appears as a mobile
-bottom sheet or a centered desktop dialog. Previous/next stays within the verse;
+transliteration and verse reference. The owned shared Dialog fills the available mobile
+viewport and stays centred on desktop. A compact word summary remains above
+Grammar and Dictionary tabs. The active panel owns the main scrolling area;
+long meanings, analysis and source credits scroll inside it. Previous/next stays within the verse;
 Close/Escape restores focus to the last selected word. Changing the chapter or
 verse page closes the details. Verse-end markers remain non-interactive.
 
@@ -97,8 +99,11 @@ the normal Tab order. The fallback runs after old DOM targets have been removed.
 The shared primitive traps modal focus and handles Escape; the feature prevents
 outside dismissal and returns focus to the most recently selected connected word.
 The app composes Tailwind utilities on a single dialog primitive for its centered
-desktop surface and bottom-aligned mobile sheet, using safe-area padding and
-shared theme tokens.
+desktop surface and full-screen mobile layout, using safe-area padding and
+shared theme tokens. Shared Radix Tabs wrappers provide keyboard navigation.
+Arrow keys move between tabs; Enter or Space selects the focused tab. Grammar
+is selected on opening. Moving between words preserves the active tab;
+closing and reopening starts with Grammar.
 
 See the [#23 verification record](src/prototypes/quran/word-selection-verification.md)
 for checks and evidence limits. The existing Pages workflow publishes the
@@ -106,8 +111,8 @@ frontend after an approved push; this refactor adds no deployment steps.
 
 ## Word grammar (#19)
 
-Open a word's meaning and select **Expand grammar**. Grammar arrives with the
-existing verse page from Supabase. Expansion makes no request. Each component shows its prefix, stem or suffix role, part of speech,
+Open a word's meaning to read **Grammar** immediately. Grammar arrives with the
+existing verse page from Supabase. Selecting Grammar makes no request. Each component shows its prefix, stem or suffix role, part of speech,
 available root and lemma, and readable corpus features. Components without a
 root have an explicit source-based label. Some words contain multiple stems.
 Roots are morphological annotations, not claims about historical etymology or
@@ -116,8 +121,8 @@ the intended contextual meaning.
 Meanings stay visible when grammar is unavailable. Temporary failures offer
 **Retry grammar**, which re-requests the current verse page in place. Loading
 keeps keyboard focus on Retry. Successful recovery returns focus to the grammar
-disclosure if Retry still has focus. Navigation cancels a pending retry and
-resets expansion for each occurrence. Recovered grammar stays with the current
+analysis if Retry still has focus. Leaving the panel or occurrence cancels a pending retry.
+Recovered grammar stays with the current
 verse page, so closing the dialog or moving between words preserves it. Recovery
 updates only the matching occurrence's grammar and leaves its meaning intact.
 Missing, mismatched or withheld analyses
@@ -167,9 +172,9 @@ allowed. Diacritic, pause-mark and spelling differences remain unavailable;
 there are no fuzzy matches or automatic mapping exceptions.
 
 Importer and validation tests use real v0.4 examples. Reader integration tests
-cover expansion, retry, unavailable/rootless data and rapid selection through
+cover tab selection, retry, unavailable/rootless data and rapid selection through
 MSW. Backend tests own compressed-file validation and occurrence matching.
-Browser dialog checks verify no request on expansion, notices under
+Browser dialog checks verify tab keyboard navigation, notices under
 `/personal-tools/`, native focus, axe and narrow-width fit. These fixture-backed
 browser checks do not prove live full-Quran connectivity or physical-device
 screen-reader behaviour.
@@ -189,7 +194,8 @@ Keep detailed page behavior in Vitest with real application components and HTTP-
 `test:e2e` builds preview assets and serves only those static files at `http://127.0.0.1:5173/personal-tools/`, without an SPA fallback. Playwright owns the server and refuses to reuse that port. Desktop and mobile Chromium checks cover:
 
 - `tests/prototypes/quran/reader.e2e.ts`: homepage keyboard entry, homepage axe/overflow, reader refresh, visible content and overflow.
-- `tests/prototypes/quran/loading-layout.e2e.ts`: rendered layout stability during chapter/verse loading, chapter failure/retry, search, empty results, bookmarks and verse failure/retry; loading and error accessibility. API fixtures control request stages, so these checks do not establish hosted backend connectivity.
+- `tests/prototypes/quran/loading-layout.e2e.ts`: reading-panel stability during chapter/verse loading and retries; search, empty results, bookmarks and error accessibility. Chapter browsing deliberately changes height with its content. API fixtures control request stages, so these checks do not establish hosted backend connectivity.
+- `tests/prototypes/quran/mobile-reading-space.e2e.ts`: reaching the end of long word content while the word summary and navigation stay available, starting the next word's analysis at its beginning, and returning to a saved verse through the top bookmarks control. Appearance and spacing are reviewed through screenshots. These emulated viewports do not prove physical software-keyboard or safe-area behaviour.
 - `tests/prototypes/supabase/demo.e2e.ts`: direct loading, refresh, navigation back to the homepage and keyboard entry through its second destination.
 
 The suite includes navigation journeys and focused browser checks for loading layout and word dialogs. Detailed feature behavior belongs in Vitest; `quran-words.test.tsx` covers real page composition, word content, Arabic language metadata and attribution with HTTP fixtures. Content assertions share that integration surface rather than repeating them in an isolated word-content suite. `quran-reader.test.tsx` also checks cancellation of a pending verse request when another chapter is opened. The word journeys close the dialog before navigating to another chapter or verse page. `word-dialog-browser.e2e.ts` verifies browser focus containment, Escape, accessible naming/axe, focus return and stable dialog bounds across grammar retries. Its long-content case checks viewport fit and uses the word controls on a narrow screen, then closes the dialog in landscape. `reader-presentation.e2e.ts` checks selected-button hover contrast on desktop. Typography and precise positioning are reviewed visually. The shared typed word factory avoids copied records; fixtures reject unsupported chapter/page requests, and pagination uses Al-Baqarah rather than inventing a second page for seven-verse Al-Fatihah.
@@ -237,20 +243,23 @@ The v2 backend was deployed and verified on 2026-10-30; frontend publication fol
 
 ## Lane dictionary (#20)
 
-Open word details and select **Expand dictionary**. The browser sends available,
+Open word details and select the **Dictionary** tab. The browser sends available,
 verified grammar stem roots/lemmas to the existing Supabase Quran function.
 Matching and entry files remain backend-owned. No dictionary request is made
-until the section opens, and no additional Quran Foundation call is required.
+until that tab opens, and no additional Quran Foundation call is required.
 
-Entries show their own headword, source ID and pinned XML link. **Read full entry**
-expands long content inside a keyboard-scrollable region. A sticky reference
-retains the selected word while reading on narrow and landscape screens.
+Entries show their own headword. **Read full entry** expands long content inside
+the active tab's scrolling area. The compact header retains the selected word
+while reading on narrow and landscape screens. Entry IDs, filenames, pinned XML
+links, dictionary notes and licence credits follow the entries. English word
+attribution also follows the active panel's reading content. Required Corpus
+and Tanzil links remain in the page's Sources section.
 Arabic, forms, sense divisions and available page markers remain distinct from
 the contextual word gloss. Text is rendered inertly.
 
 Unmapped/unverified words show an unavailable state. Request and individual entry
 failures offer **Retry dictionary** while keeping meaning and successful entries
-visible. Changing word or grammar discards pending results and resets disclosure.
+visible. Leaving the tab or changing word/grammar discards pending results.
 Successful responses remain cached while the verse is mounted, including closing
 and reopening the dialog. Changing the chapter/page clears that local cache.
 

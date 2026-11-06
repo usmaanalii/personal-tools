@@ -33,6 +33,14 @@ The dialog interface exports `DialogRoot`, `DialogTrigger`, `DialogClose`,
 internally. Apps use that composition rather than importing those implementation
 details. Quran-specific focus restoration remains in Playground.
 
+The tab interface exports `TabsRoot`, `TabsList`, `TabsTrigger` and `TabsContent`.
+It wraps the MIT-licensed `@radix-ui/react-tabs` 1.2.1 primitive with the shared
+control colours and focus styles, following the shadcn composition pattern.
+Apps own tab labels, selection, activation mode, panel content and dimensions.
+The Quran reader uses manual activation so arrow-key focus does not start a
+dictionary request. Its real page integration and browser checks exercise the
+primitive; these local changes require an approved push before publication.
+
 Prop descriptions and autodocs tags exist in source, but no Docs addon is installed and no generated Docs page is exposed. Storybook needs no environment variables or backend services. Playground's existing public `VITE_*` configuration still applies to the combined build; never add secrets to stories or browser builds. The app's renderer development dependency uses the same MIT-licensed 10.6.5 version already selected by the catalogue; see the [dependency record](../../docs/style-guide/README.md#dependency-ownership).
 
 ## Publishing and verification

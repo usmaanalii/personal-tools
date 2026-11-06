@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { ChapterList } from './chapter-list'
-import { BookmarkList, ChapterBrowser, ChapterRequestStatus, ChapterSearch, type ChapterView } from './chapter-browser'
+import { BookmarkList, ChapterBrowser, ChapterViews, ChapterRequestStatus, ChapterSearch, type ChapterView } from './chapter-browser'
 import type { Chapter } from './quran-api'
 import './styles.css'
 
@@ -22,14 +22,14 @@ function ChapterBrowserExample({ state, width }: ExampleProps) {
   return <div className="quran-reader max-w-full bg-ui-background p-4 font-ui-body text-ui-foreground" style={{ width }}>
     {state === 'loading' || retrying ? <ChapterRequestStatus message="Loading chapters…"/>
       : state === 'failed' ? <ChapterRequestStatus failed message="Quran content is temporarily unavailable. Please try again." onRetry={() => setRetrying(true)}/>
-      : <ChapterBrowser total={available.length} tab={tab} onTabChange={setTab} bookmarkCount={0}
+      : <><ChapterViews tab={tab} onTabChange={setTab} bookmarkCount={0}/><ChapterBrowser total={tab === 'chapters' ? available.length : 0} tab={tab}
           search={<ChapterSearch query={query} onQueryChange={setQuery} onClose={() => setQuery('')}/>}
         >
           {tab === 'chapters'
             ? <ChapterList chapters={available.filter(chapter => `${chapter.name} ${chapter.meaning} ${chapter.id}`.toLowerCase().includes(query.toLowerCase()))} selectedId={selected} onSelect={setSelected}/>
             : <BookmarkList chapters={available} bookmarkedChapter={null} savedVerses={[]} onOpenChapter={setSelected} onOpenVerse={() => undefined}/>
           }
-        </ChapterBrowser>}
+        </ChapterBrowser></>}
   </div>
 }
 

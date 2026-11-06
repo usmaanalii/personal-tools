@@ -1,4 +1,4 @@
-import type { Ref } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { Button } from '@scratch-pages/ui'
 import { Icon } from './reader-icon'
 
@@ -24,46 +24,24 @@ export function ReaderSidebar({ onBookmarks }: { onBookmarks: () => void }) {
   </aside>
 }
 
-export function ReaderTopbar({ searchOpen, onToggleSearch, searchRef }: {
+export function ReaderTopbar({ searchOpen, onToggleSearch, searchRef, children }: {
   searchOpen: boolean
   onToggleSearch: () => void
   searchRef: Ref<HTMLButtonElement>
+  readonly children: ReactNode
 }) {
-  return <header className="flex items-center justify-between border-0 border-b border-solid border-ui-border bg-ui-surface px-4 py-2 sm:px-8">
-    <span className="text-xs font-bold tracking-widest text-ui-muted">QURAN / READ</span>
-    <div className="flex items-center gap-2">
+  return <header className="flex min-h-16 items-center justify-between border-0 border-b border-solid border-ui-border bg-ui-surface px-4 py-2 sm:px-8">
+    <nav aria-label="Reader controls" className="flex w-full items-center justify-between gap-2">
+      {children}
       <Button variant="ghost" size="icon" ref={searchRef} aria-label="Search chapters" aria-expanded={searchOpen} aria-controls={searchOpen ? 'chapter-search' : undefined} onClick={onToggleSearch}><Icon name="search"/></Button>
-      <Button variant="ghost" size="icon" aria-label="Settings" className="hidden sm:inline-flex"><Icon name="settings"/></Button>
-    </div>
+    </nav>
   </header>
 }
 
 export function ReaderWelcome() {
-  return <div className="flex items-center justify-between gap-4">
-    <div>
-      <p className="m-0 text-xs font-bold tracking-widest text-ui-muted">WEDNESDAY, 29 OCTOBER</p>
-      <h1 className="mt-2 mb-0 font-ui-heading text-2xl leading-tight font-semibold sm:text-3xl">A moment with the Quran<span className="text-ui-primary">.</span></h1>
-      <p className="mt-3 mb-0 text-sm leading-relaxed text-ui-muted">Find a little stillness in the words that matter.</p>
-    </div>
-    <span aria-hidden="true" className="text-4xl text-ui-primary">۞</span>
-  </div>
+  return <h1 className="m-0 font-ui-heading text-lg leading-tight font-semibold sm:text-xl">A moment with the Quran<span className="text-ui-primary">.</span></h1>
 }
 
 export function ChapterShortcut({ onOpen }: { onOpen: () => void }) {
-  return <div className="relative overflow-hidden rounded-ui-card bg-ui-primary p-6 text-ui-on-primary shadow-ui-card">
-    <p className="m-0 text-xs font-bold tracking-widest">EXPLORE THE QURAN</p>
-    <p className="my-3 text-xl font-semibold">Al-Baqarah · Chapter 2</p>
-    <p className="my-3 text-sm">Read at your own pace</p>
-    <Button variant="outline" onClick={onOpen}>Open Al-Baqarah <span aria-hidden="true">→</span></Button>
-    <span aria-hidden="true" className="card-arabic">البقرة</span>
-  </div>
-}
-
-export function ReaderMobileNav({ onExplore, onBookmarks }: { onExplore: () => void; onBookmarks: () => void }) {
-  return <nav aria-label="Reader shortcuts" className="fixed inset-x-0 bottom-0 z-10 flex justify-around gap-2 border-0 border-t border-solid border-ui-border bg-ui-surface px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:hidden">
-    <Button variant="ghost" size="compact" className="flex-col" ><Icon name="home" size={19}/><span>Read</span></Button>
-    <Button variant="ghost" size="compact" className="flex-col" onClick={onExplore}><Icon name="search" size={19}/><span>Explore</span></Button>
-    <Button variant="ghost" size="compact" className="flex-col" onClick={onBookmarks}><Icon name="bookmark" size={19}/><span>Saved</span></Button>
-    <Button variant="ghost" size="compact" className="flex-col"><Icon name="settings" size={19}/><span>More</span></Button>
-  </nav>
+  return <Button variant="outline" className="self-start justify-start" aria-label="Open Al-Baqarah · Chapter 2" onClick={onOpen}>Al-Baqarah · Chapter 2 <span aria-hidden="true">→</span></Button>
 }

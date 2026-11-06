@@ -2,12 +2,13 @@ import type { QuranWord } from '@scratch-pages/api-contracts/quran'
 
 export function WordContent({ word, chapterName }: { word: QuranWord; chapterName: string }) {
   return (
-    <div aria-live="polite" aria-atomic="true">
-      <p className="my-5 mb-2 text-ui-muted">{chapterName} · {word.chapter}:{word.verse}</p>
-      <p className="my-2 text-center [font:500_42px/1.9_'Noto_Naskh_Arabic',serif]" lang="ar" dir="rtl" translate="no">{word.arabic}</p>
-      <p className="my-3 text-center">{word.transliteration ?? 'Transliteration unavailable'}</p>
-      <p className="my-3 text-center text-xl font-semibold">{word.meaning ?? 'Meaning unavailable for this word.'}</p>
-      <p className="my-6 text-base text-ui-muted">English word data · Quran Foundation</p>
+    // biome-ignore lint/a11y/useSemanticElements: This groups live word text, not form controls.
+    <div role="group" aria-label="Word summary" aria-live="polite" aria-atomic="true" className="flex min-w-0 flex-1 items-center justify-between gap-3 text-sm">
+      <p className="m-0 min-w-0 text-ui-muted wrap-anywhere">{chapterName} · Verse {word.verse}</p>
+      <div className="min-w-0 text-right">
+        <p className="m-0 [font:500_28px/1.5_'Noto_Naskh_Arabic',serif]" lang="ar" dir="rtl" translate="no">{word.arabic}</p>
+        <p className="m-0 wrap-anywhere">{word.transliteration ?? 'Transliteration unavailable'}</p>
+      </div>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react'
+import { useId, type ReactNode, type Ref } from 'react'
 import { Button, Input, ViewSwitcher } from '@scratch-pages/ui'
 import { ChapterChoice } from './chapter-list'
 import type { Chapter } from './quran-api'
@@ -6,22 +6,28 @@ import type { SavedVerse } from './use-reader'
 
 export type ChapterView = 'chapters' | 'bookmarks'
 
-export function ChapterBrowser({ total, tab, onTabChange, bookmarkCount, search, children }: {
-  total: number
+export function ChapterViews({ tab, onTabChange, bookmarkCount }: {
   tab: ChapterView
   onTabChange: (tab: ChapterView) => void
   bookmarkCount: number
+}) {
+  return <div className="[&_button]:px-2 [&_button]:text-sm"><ViewSwitcher<ChapterView> label="Chapter views" value={tab} onValueChange={onTabChange} options={[
+    { value: 'chapters', label: 'Chapters' },
+    { value: 'bookmarks', label: <>Bookmarks{bookmarkCount > 0 && <span> {bookmarkCount}</span>}</> },
+  ]}/></div>
+}
+
+export function ChapterBrowser({ total, search, children, headingRef, tab = 'chapters' }: {
+  total: number
   search: ReactNode
   children: ReactNode
+  readonly headingRef?: Ref<HTMLHeadingElement>
+  readonly tab?: ChapterView
 }) {
   return <section aria-label="Chapter browsing" className="order-3 min-w-0 lg:order-none">
-    <h2 className="mt-0 mb-4 font-ui-heading text-xl font-semibold">Chapters <span className="ml-2 text-sm font-normal text-ui-muted">{total}</span></h2>
-    <ViewSwitcher<ChapterView> label="Chapter views" value={tab} onValueChange={onTabChange} options={[
-      { value: 'chapters', label: 'All chapters' },
-      { value: 'bookmarks', label: <>My bookmarks <span>{bookmarkCount}</span></> },
-    ]}/>
-    <div className="h-24 pt-4">{search}</div>
-    <div className="h-96 overflow-y-auto overscroll-contain p-1 [scrollbar-gutter:stable]">{children}</div>
+    <h2 ref={headingRef} tabIndex={-1} className="mt-0 mb-2 font-ui-heading text-xl font-semibold">{tab === 'chapters' ? 'Chapters' : 'Bookmarks'} <span className="ml-2 text-sm font-normal text-ui-muted">{total}</span></h2>
+    {search && <div className="mb-3">{search}</div>}
+    <div className="max-h-[60dvh] overflow-y-auto overscroll-contain p-1 [scrollbar-gutter:stable] lg:max-h-96">{children}</div>
   </section>
 }
 

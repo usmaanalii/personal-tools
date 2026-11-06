@@ -11,7 +11,7 @@ async function documentBox(locator: Locator) {
 
 // Geometry across real CSS, scroll containers and responsive breakpoints is not proved by jsdom.
 // API fixtures control wait stages; this does not prove hosted backend connectivity.
-test('keeps reading and search areas stable through loading, empty results and retries', async ({ page }, testInfo) => {
+test('keeps the reading area stable while browsing fits loading, search and bookmark content', async ({ page }, testInfo) => {
   await mockQuranContent(page)
   let releaseChapters = () => {}
   let failChapters = true
@@ -60,17 +60,13 @@ test('keeps reading and search areas stable through loading, empty results and r
   expect(await documentBox(verses)).toEqual(reading)
   await page.screenshot({ path: testInfo.outputPath('reader-loaded.png'), fullPage: true })
 
-  expect(await documentBox(browser)).toEqual(initialBrowsing)
-  expect(await documentBox(sources)).toEqual(initialSources)
-  const browsing = await documentBox(browser)
   await page.getByRole('button', { name: 'Search chapters', exact: true }).click()
-  expect(await documentBox(browser)).toEqual(browsing)
+  await expect(page.getByRole('textbox', { name: 'Search chapters' })).toBeFocused()
   await page.getByRole('textbox', { name: 'Search chapters' }).fill('no matching chapter')
   await expect(page.getByRole('status')).toContainText('No chapters match')
-  expect(await documentBox(browser)).toEqual(browsing)
   await page.getByRole('button', { name: 'Close search' }).click()
-  await page.getByRole('button', { name: /My bookmarks/ }).click()
-  expect(await documentBox(browser)).toEqual(browsing)
+  await page.getByRole('navigation', { name: 'Reader controls' }).getByRole('button', { name: /Bookmarks/ }).click()
+  await expect(page.getByText('Your saved verses will find a home here.')).toBeVisible()
 
   // Errors and retries must preserve the reading footprint as well as successful responses.
   await page.route('**/functions/v1/quran/v2/verses?*', route => route.fulfill({ status: 503, json: {} }))

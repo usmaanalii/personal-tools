@@ -51,6 +51,27 @@ async function renderWords({ verseWords = words(), chapter = 1, verseNumber = 1 
 }
 afterEach(() => window.history.pushState({}, '', '/'))
 
+it('opens grammar directly and switches to dictionary without another disclosure, retaining the tab between words', async () => {
+  const requests: string[] = []
+  server.use(http.get(`${quranEndpoint}/dictionary`, ({ request }) => {
+    requests.push(request.url)
+    return HttpResponse.json({ entries: [] })
+  }))
+  const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() }), buildWord({ position: 2, arabic: 'ٱللَّهِ', meaning: 'of Allah' })] })
+  await user.click(word)
+  const details = within(screen.getByRole('dialog'))
+  expect(details.getByRole('tab', { name: 'Grammar', selected: true })).toBeVisible()
+  expect(details.getByText('Stem · Noun')).toBeVisible()
+  expect(requests).toEqual([])
+  expect(details.queryByRole('button', { name: /Expand|Collapse/ })).not.toBeInTheDocument()
+  await user.click(details.getByRole('tab', { name: 'Dictionary' }))
+  expect(await details.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
+  expect(details.queryByText('Stem · Noun')).not.toBeInTheDocument()
+  await user.click(details.getByRole('button', { name: 'Next word' }))
+  expect(details.getByRole('tab', { name: 'Dictionary', selected: true })).toBeVisible()
+  expect(details.getByText('of Allah')).toBeVisible()
+})
+
 it("shows a word's details when it is selected", async () => {
   const { user, word } = await renderWords()
   await user.click(word)
@@ -62,24 +83,34 @@ it("shows a word's details when it is selected", async () => {
   expect(arabic).toHaveAttribute('translate', 'no')
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(details.getByText("bis'mi")).toBeVisible()
-  expect(details.getByText('Al-Fātiḥah · 1:1')).toBeVisible()
+  expect(details.getByText('Al-Fātiḥah · Verse 1')).toBeVisible()
   expect(details.getByText('English word data · Quran Foundation')).toBeVisible()
   expect(word).toHaveAttribute('aria-pressed', 'true')
+})
+
+it('keeps English word attribution in the active reading panel', async () => {
+  const { user, word } = await renderWords()
+  await user.click(word)
+  const summary = within(screen.getByLabelText('Word summary'))
+  expect(summary.queryByText('English word data · Quran Foundation')).not.toBeInTheDocument()
+  const panel = within(screen.getByRole('tabpanel', { name: 'Grammar' }))
+  expect(panel.getByText('In (the) name')).toBeVisible()
+  expect(within(panel.getByLabelText('Word sources')).getByText('English word data · Quran Foundation')).toBeVisible()
 })
 
 it('opens Dictionary within the selected word while keeping its meaning and verse context', async () => {
   const { user, word } = await renderWords()
   await user.click(word)
   const details = within(screen.getByRole('dialog', { name: 'Word meaning' }))
-  await user.click(details.getByRole('button', { name: 'Expand dictionary' }))
+  await user.click(details.getByRole('tab', { name: 'Dictionary' }))
   expect(await details.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
   expect(details.getByText('In (the) name')).toBeVisible()
-  expect(details.getByText('Al-Fātiḥah · 1:1')).toBeVisible()
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
+  expect(details.getByText('Al-Fātiḥah · Verse 1')).toBeVisible()
+  await user.click(details.getByRole('tab', { name: 'Grammar' }))
   expect(details.getByText('Analysis unavailable.')).toBeVisible()
   await user.click(details.getByRole('button', { name: 'Next word' }))
   expect(details.getByText('of Allah')).toBeVisible()
-  expect(details.getByRole('button', { name: 'Expand dictionary' })).toHaveAttribute('aria-expanded', 'false')
+  expect(details.getByRole('tab', { name: 'Grammar', selected: true })).toBeVisible()
 })
 
 it('reuses dictionary results when word details are closed and reopened', async () => {
@@ -90,11 +121,11 @@ it('reuses dictionary results when word details are closed and reopened', async 
   }))
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() })] })
   await user.click(word)
-  await user.click(screen.getByRole('button', { name: 'Expand dictionary' }))
+  await user.click(screen.getByRole('tab', { name: 'Dictionary' }))
   expect(await screen.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
   await user.click(screen.getByRole('button', { name: 'Close word meaning' }))
   await user.click(word)
-  await user.click(screen.getByRole('button', { name: 'Expand dictionary' }))
+  await user.click(screen.getByRole('tab', { name: 'Dictionary' }))
   expect(await screen.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
   expect(requests).toHaveLength(1)
 })
@@ -147,7 +178,7 @@ it.each(['chapter', 'page'])('shows word details from another %s after closing t
   expect(nextWord).toHaveAttribute('aria-pressed', 'false')
   await user.click(nextWord)
   expect(within(screen.getByRole('dialog', { name: 'Word meaning' }))
-    .getByText(`Al-Baqarah · 2:${change === 'chapter' ? 1 : 21}`)).toBeVisible()
+    .getByText(`Al-Baqarah · Verse ${change === 'chapter' ? 1 : 21}`)).toBeVisible()
 })
 
 it('disables Previous and Next when a verse contains one word', async () => {
@@ -167,7 +198,7 @@ it("shows when a word's meaning or pronunciation is unavailable", async () => {
   expect(details.getByText('Transliteration unavailable')).toBeVisible()
 })
 
-it('keeps source links in one reader section while expanding word grammar', async () => {
+it('keeps source links in one reader section while showing word grammar', async () => {
   const chapterRequests: string[] = []
   server.use(http.get('*/quran-data/morphology/1.json', ({ request }) => {
     chapterRequests.push(request.url)
@@ -180,7 +211,6 @@ it('keeps source links in one reader section while expanding word grammar', asyn
   expect(sources.getByRole('link', { name: 'Data notices' })).toHaveAttribute('href', `${import.meta.env.BASE_URL}quran-data/NOTICE.txt`)
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   expect(await details.findByText('Genitive')).toBeVisible()
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(details.getByText('Prefix · Preposition')).toBeVisible()
@@ -195,7 +225,7 @@ it('keeps source links in one reader section while expanding word grammar', asyn
   expect(screen.getAllByRole('link', { name: 'Data notices' })).toHaveLength(1)
 })
 
-it('offers recovery for temporarily unavailable grammar without hiding the meaning or fetching on expansion', async () => {
+it('offers recovery for temporarily unavailable grammar without hiding the meaning or fetching on opening', async () => {
   const chapterRequests: string[] = []
   server.use(http.get('*/quran-data/morphology/1.json', ({ request }) => {
     chapterRequests.push(request.url)
@@ -204,7 +234,6 @@ it('offers recovery for temporarily unavailable grammar without hiding the meani
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: { status: 'temporarily_unavailable' } })] })
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   expect(details.getByText('Analysis temporarily unavailable.')).toBeVisible()
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(details.getByRole('button', { name: 'Retry grammar' })).toBeVisible()
@@ -216,7 +245,6 @@ it('retries through the current verse page without losing meaning, reading posit
   await user.click(screen.getByRole('button', { name: 'Next verses' }))
   await user.click(await screen.findByRole('button', { name: 'بِسْمِ · 2:21:1' }))
   const details = within(screen.getByRole('dialog'))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   const pending = Promise.withResolvers<Response>()
   const requests: string[] = []
   server.use(
@@ -236,7 +264,7 @@ it('retries through the current verse page without losing meaning, reading posit
   expect(analysis).toHaveAttribute('aria-busy', 'true')
   expect(analysis.querySelector('[data-slot="skeleton"]')).toHaveAttribute('aria-hidden', 'true')
   expect(details.getByText('In (the) name')).toBeVisible()
-  expect(details.getByText('Al-Baqarah · 2:21')).toBeVisible()
+  expect(details.getByText('Al-Baqarah · Verse 21')).toBeVisible()
   expect(retry).toHaveAttribute('aria-disabled', 'true')
   expect(retry).toHaveFocus()
   pending.resolve(HttpResponse.json({
@@ -247,7 +275,7 @@ it('retries through the current verse page without losing meaning, reading posit
   expect(analysis).toHaveAttribute('aria-busy', 'false')
   expect(analysis.querySelector('[data-slot="skeleton"]')).not.toBeInTheDocument()
   expect(details.getByText('In (the) name')).toBeVisible()
-  expect(details.getByRole('button', { name: 'Collapse grammar' })).toHaveFocus()
+  expect(details.getByRole('region', { name: 'Grammar analysis' })).toHaveFocus()
 })
 
 it('keeps the meaning visible when a verse-based grammar retry fails and can recover on another retry', async () => {
@@ -255,7 +283,6 @@ it('keeps the meaning visible when a verse-based grammar retry fails and can rec
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: { status: 'temporarily_unavailable' } })] })
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   server.use(http.get(`${quranEndpoint}/verses`, () => pending.promise))
   await user.click(details.getByRole('button', { name: 'Retry grammar' }))
   expect(details.getByRole('status')).toHaveTextContent('Loading grammar…')
@@ -275,7 +302,6 @@ it('accurately labels a rootless particle without inventing a root or lemma', as
   ] })
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   expect(await details.findByText('Stem · Negative particle')).toBeVisible()
   expect(details.getByText('No root assigned by the corpus.')).toBeVisible()
   expect(details.getByText('لَم')).toHaveAttribute('lang', 'ar')
@@ -285,13 +311,12 @@ it('keeps the meaning and displays an unavailable analysis outcome from verse da
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: { status: 'unavailable' } })] })
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   expect(await details.findByText('Analysis unavailable.')).toBeVisible()
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(details.queryByText('سمو')).not.toBeInTheDocument()
 })
 
-it('keeps older verse responses readable without fetching a browser corpus on expansion', async () => {
+it('keeps older verse responses readable without fetching a browser corpus on opening', async () => {
   const requests: string[] = []
   server.use(http.get('*/quran-data/morphology/1.json', ({ request }) => {
     requests.push(request.url)
@@ -300,13 +325,12 @@ it('keeps older verse responses readable without fetching a browser corpus on ex
   const { user, word } = await renderWords()
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   expect(await details.findByText('Analysis unavailable.')).toBeVisible()
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(requests).toEqual([])
 })
 
-it('reuses received grammar and resets disclosure after moving between words and reopening the dialog', async () => {
+it('reuses received grammar after moving between words and reopening the dialog', async () => {
   const requests: string[] = []
   server.use(http.get('*/quran-data/morphology/1.json', ({ request }) => {
     requests.push(new URL(request.url).pathname)
@@ -316,15 +340,12 @@ it('reuses received grammar and resets disclosure after moving between words and
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
   expect(requests).toEqual([])
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   expect(await details.findByText('Genitive')).toBeVisible()
   await user.click(details.getByRole('button', { name: 'Next word' }))
-  expect(details.getByRole('button', { name: 'Expand grammar' })).toHaveAttribute('aria-expanded', 'false')
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
+  expect(details.getByRole('tab', { name: 'Grammar', selected: true })).toBeVisible()
   expect(await details.findByText('Analysis unavailable.')).toBeVisible()
   await user.click(details.getByRole('button', { name: 'Close word meaning' }))
   await user.click(word)
-  await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Expand grammar' }))
   expect(await within(screen.getByRole('dialog')).findByText('Genitive')).toBeVisible()
   expect(requests).toHaveLength(0)
 })
@@ -335,7 +356,6 @@ it('cancels a grammar retry when moving to another occurrence and ignores its la
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: { status: 'temporarily_unavailable' } }), buildWord({ position: 2, arabic: 'ٱللَّهِ', meaning: 'of Allah', grammar: { status: 'unavailable' } })] })
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   server.use(http.get(`${quranEndpoint}/verses`, ({ request }) => {
     started.resolve(request)
     return pending.promise
@@ -345,7 +365,6 @@ it('cancels a grammar retry when moving to another occurrence and ignores its la
   expect(details.getByRole('status')).toHaveTextContent('Loading grammar…')
   await user.click(details.getByRole('button', { name: 'Next word' }))
   expect(request.signal.aborted).toBe(true)
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   pending.resolve(HttpResponse.json({ verses: [{ number: 1, arabic: 'بِسْمِ', translationHtml: 'Translation', words: [buildWord({ grammar: grammarFixture() })] }], translationName: 'Translator', nextPage: null }))
   expect(await details.findByText('Analysis unavailable.')).toBeVisible()
   expect(details.getByText('of Allah')).toBeVisible()
@@ -356,7 +375,6 @@ it('retains recovered grammar when the same word is reopened', async () => {
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: { status: 'temporarily_unavailable' } })] })
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   server.use(http.get(`${quranEndpoint}/verses`, ({ request }) => {
     const params = new URL(request.url).searchParams
     if (params.get('chapter') !== '1' || params.get('page') !== '1') return HttpResponse.json({ error: 'Unexpected verse page' }, { status: 404 })
@@ -370,7 +388,6 @@ it('retains recovered grammar when the same word is reopened', async () => {
   await user.click(details.getByRole('button', { name: 'Close word meaning' }))
   await user.click(word)
   const reopened = within(screen.getByRole('dialog'))
-  await user.click(reopened.getByRole('button', { name: 'Expand grammar' }))
   expect(await reopened.findByText('Genitive')).toBeVisible()
   expect(reopened.getByText('In (the) name')).toBeVisible()
 })
@@ -384,7 +401,6 @@ it('retains recovered grammar for the selected occurrence when moving between wo
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
   await user.click(details.getByRole('button', { name: 'Next word' }))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   server.use(http.get(`${quranEndpoint}/verses`, ({ request }) => {
     const params = new URL(request.url).searchParams
     if (params.get('chapter') !== '1' || params.get('page') !== '1') return HttpResponse.json({ error: 'Unexpected verse page' }, { status: 404 })
@@ -396,11 +412,9 @@ it('retains recovered grammar for the selected occurrence when moving between wo
   await user.click(details.getByRole('button', { name: 'Retry grammar' }))
   expect(await details.findByText('Stem · Proper noun')).toBeVisible()
   await user.click(details.getByRole('button', { name: 'Previous word' }))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   expect(details.getByText('Analysis unavailable.')).toBeVisible()
   expect(details.getByText('In (the) name')).toBeVisible()
   await user.click(details.getByRole('button', { name: 'Next word' }))
-  await user.click(details.getByRole('button', { name: 'Expand grammar' }))
   expect(details.getByText('Stem · Proper noun')).toBeVisible()
   expect(details.getByText('of Allah')).toBeVisible()
 })

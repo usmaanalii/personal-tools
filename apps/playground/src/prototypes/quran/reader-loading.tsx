@@ -19,7 +19,7 @@ export function ReaderLoading({ message = 'Loading chapters…', failure }: {
   readonly message?: string
   readonly failure?: { readonly message: string; readonly onRetry: () => void }
 }) {
-  return <ReaderLayout topbar={<header className="flex min-h-15 items-center justify-between border-0 border-b border-solid border-ui-border bg-ui-surface px-4 py-2 sm:px-8">
+  return <ReaderLayout topbar={<header className="flex min-h-16 items-center justify-between border-0 border-b border-solid border-ui-border bg-ui-surface px-4 py-2 sm:px-8">
     <a href={import.meta.env.BASE_URL} className="text-xs font-bold text-ui-primary underline">← All playground pages</a>
     <div className="h-11 w-11">{!failure && <Skeleton className="h-full w-full"/>}</div>
   </header>}>
