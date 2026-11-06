@@ -67,7 +67,6 @@ export function WordGrammar({ word, onGrammarRecovered }: { readonly word: Quran
             <ul className="mt-3 pl-5">{segment.features.map(feature => <li key={feature}>{feature}</li>)}</ul>
           </li>)}
         </ol>
-        <p className="text-ui-muted">Grammar · <a className="underline" href="https://corpus.quran.com/">Quranic Arabic Corpus v0.4</a>. Text · <a className="underline" href="https://tanzil.net/">Tanzil</a>. <a className="underline" href={`${import.meta.env.BASE_URL}quran-data/NOTICE.txt`}>Data notices</a>.</p>
       </>}
     </div>
   </div>

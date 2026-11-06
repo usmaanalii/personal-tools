@@ -31,12 +31,6 @@ test('keeps keyboard focus in the word dialog and returns it to the last selecte
   await page.keyboard.press('Enter')
   await expect(dialog.getByText('Stem · Noun')).toBeVisible()
   expect(requests).toEqual([])
-  // Attribution uses a real built asset under the deployment prefix.
-  const notices = dialog.getByRole('link', { name: 'Data notices' })
-  await expect(notices).toHaveAttribute('href', '/personal-tools/quran-data/NOTICE.txt')
-  const noticeResponse = await page.request.get(await notices.getAttribute('href') ?? '')
-  expect(noticeResponse.ok()).toBe(true)
-  expect(await noticeResponse.text()).toContain('Copyright (C) 2011 Kais Dukes')
   const accessibility = await new AxeBuilder({ page }).include('[role="dialog"]').analyze()
   expect(accessibility.violations).toEqual([])
   await page.keyboard.press('Enter')
@@ -51,6 +45,15 @@ test('keeps keyboard focus in the word dialog and returns it to the last selecte
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
   await expect(page.getByRole('button', { name: 'اللَّهِ · 1:1:2' })).toBeFocused()
+  // Attribution uses a real built asset under the deployment prefix.
+  const sources = page.getByRole('region', { name: 'Sources' })
+  const notices = sources.getByRole('link', { name: 'Data notices' })
+  await expect(notices).toHaveAttribute('href', '/personal-tools/quran-data/NOTICE.txt')
+  const noticeResponse = await page.request.get(await notices.getAttribute('href') ?? '')
+  expect(noticeResponse.ok()).toBe(true)
+  expect(await noticeResponse.text()).toContain('Copyright (C) 2011 Kais Dukes')
+  const sourceAccessibility = await new AxeBuilder({ page }).include('section[aria-labelledby="reader-sources"]').analyze()
+  expect(sourceAccessibility.violations).toEqual([])
 })
 
 test('keeps long word details and their controls usable on narrow and landscape screens', async ({ page }) => {

@@ -70,6 +70,10 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
             <Button variant="ghost" className="min-w-0 flex-1 basis-40" disabled={!nextChapter} onClick={() => { if (nextChapter) openChapter(nextChapter.id) }}><span className="min-w-0 text-right wrap-anywhere"><span className="block text-xs whitespace-nowrap">NEXT</span>{nextChapter?.name ?? 'End of Quran'}</span><Icon name="next" size={17}/></Button>
           </div>
         </aside>
+        <section aria-labelledby="reader-sources" className="order-3 min-w-0 text-sm leading-relaxed text-ui-muted wrap-anywhere lg:col-span-2">
+          <h2 id="reader-sources" className="mt-0 mb-2 text-base font-semibold">Sources</h2>
+          <p className="m-0">Grammar · <a className="underline" href="https://corpus.quran.com/">Quranic Arabic Corpus v0.4</a>. Text · <a className="underline" href="https://tanzil.net/">Tanzil</a>. <a className="underline" href={`${import.meta.env.BASE_URL}quran-data/NOTICE.txt`}>Data notices</a>.</p>
+        </section>
       </div>
       <ReaderMobileNav onExplore={() => setSearchOpen(true)} onBookmarks={() => setTab('bookmarks')}/>
     </section>

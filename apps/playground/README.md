@@ -119,7 +119,8 @@ show **Analysis unavailable**. Older responses without grammar remain readable.
 
 The importer uses the unchanged Quranic Arabic Corpus v0.4 ZIP. It preserves both
 original notices in every generated chapter and in `quran-data/NOTICE.txt`.
-The expanded analysis links to the corpus, Tanzil and those notices. Supabase
+One **Sources** section below the reader links to the corpus, Tanzil and those
+notices. Word grammar panels do not repeat these links. Supabase
 reads compressed bundled chapters, verifies checksums and matches exact word
 occurrences. A provisional 200 ms budget limits added enrichment work after
 verse mapping. It preserves verses and meanings on failure. Synchronous parsing

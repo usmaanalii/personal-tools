@@ -135,13 +135,17 @@ it("shows when a word's meaning or pronunciation is unavailable", async () => {
   expect(details.getByText('Transliteration unavailable')).toBeVisible()
 })
 
-it('expands the selected word into attributed grammatical components while keeping its meaning visible', async () => {
+it('keeps source links in one reader section while expanding word grammar', async () => {
   const chapterRequests: string[] = []
   server.use(http.get('*/quran-data/morphology/1.json', ({ request }) => {
     chapterRequests.push(request.url)
     return HttpResponse.json(grammarChapter())
   }))
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() })] })
+  const sources = within(screen.getByRole('region', { name: 'Sources' }))
+  expect(sources.getByRole('link', { name: 'Quranic Arabic Corpus v0.4' })).toHaveAttribute('href', 'https://corpus.quran.com/')
+  expect(sources.getByRole('link', { name: 'Tanzil' })).toHaveAttribute('href', 'https://tanzil.net/')
+  expect(sources.getByRole('link', { name: 'Data notices' })).toHaveAttribute('href', `${import.meta.env.BASE_URL}quran-data/NOTICE.txt`)
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
   await user.click(details.getByRole('button', { name: 'Expand grammar' }))
@@ -151,10 +155,12 @@ it('expands the selected word into attributed grammatical components while keepi
   expect(details.getByText('Stem · Noun')).toBeVisible()
   expect(details.getByText('سمو')).toHaveAttribute('lang', 'ar')
   expect(details.getByText('ٱسْم')).toHaveAttribute('dir', 'rtl')
-  expect(details.getByRole('link', { name: 'Quranic Arabic Corpus v0.4' })).toHaveAttribute('href', 'https://corpus.quran.com/')
-  expect(details.getByRole('link', { name: 'Tanzil' })).toHaveAttribute('href', 'https://tanzil.net/')
-  expect(details.getByRole('link', { name: 'Data notices' })).toHaveAttribute('href', `${import.meta.env.BASE_URL}quran-data/NOTICE.txt`)
+  expect(details.queryByRole('link')).not.toBeInTheDocument()
   expect(chapterRequests).toEqual([])
+  await user.click(details.getByRole('button', { name: 'Close word meaning' }))
+  expect(screen.getAllByRole('link', { name: 'Quranic Arabic Corpus v0.4' })).toHaveLength(1)
+  expect(screen.getAllByRole('link', { name: 'Tanzil' })).toHaveLength(1)
+  expect(screen.getAllByRole('link', { name: 'Data notices' })).toHaveLength(1)
 })
 
 it('offers recovery for temporarily unavailable grammar without hiding the meaning or fetching on expansion', async () => {
