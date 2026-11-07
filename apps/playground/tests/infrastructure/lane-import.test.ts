@@ -2,11 +2,48 @@ import { execFileSync } from 'node:child_process'
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { gunzipSync } from 'node:zlib'
 import { expect, it } from 'vitest'
 import { LaneEntrySchema } from '@scratch-pages/api-contracts/quran'
-import { LaneIndexSchema } from '../../../../supabase/functions/quran/bundled-lane'
+import { LaneIndexSchema, LaneCatalogueSchema } from '../../../../supabase/functions/quran/bundled-lane'
 
 const importer = new URL('../../scripts/lane-data/import.py', import.meta.url).pathname
+
+async function expandedEntry(output: string, id: string) {
+  const catalogue = LaneCatalogueSchema.parse(JSON.parse(await readFile(join(output, 'catalogue.json'), 'utf8')))
+  const path = catalogue.entryFiles[id]
+  if (!path) throw new Error('Missing entry file')
+  const entries = JSON.parse(gunzipSync(await readFile(join(output, path))).toString('utf8'))
+  return LaneEntrySchema.parse(entries[id])
+}
+
+it('generates source-derived entries for the previously unsupported Quranic root نفق', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'lane-expanded-'))
+  try {
+    execFileSync('python3', [importer, '--expanded', '--output', output])
+    const index = LaneIndexSchema.parse(JSON.parse(await readFile(join(output, 'catalogue.json'), 'utf8')))
+    expect(index.roots['نفق']).toEqual(['n44080', 'n44081', 'n44082', 'n44083', 'n44084', 'n44085', 'n44086'])
+    const entry = await expandedEntry(output, 'n44080')
+    expect(entry).toMatchObject({ id: 'n44080', root: 'نفق', file: 'un1.xml' })
+    expect(entry.blocks.length).toBeGreaterThan(0)
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+}, 30_000)
+
+it('uses indexed headwords to keep a colliding source ID under its correct root', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'lane-collision-'))
+  try {
+    execFileSync('python3', [importer, '--expanded', '--output', output])
+    const index = LaneIndexSchema.parse(JSON.parse(await readFile(join(output, 'catalogue.json'), 'utf8')))
+    expect(index.roots['يسر']).toContain('n42477')
+    expect(index.roots['قبس']).not.toContain('n42477')
+    const entry = await expandedEntry(output, 'n42477')
+    expect(entry).toMatchObject({ root: 'يسر', headword: 'مَيْسِرَةٌ', file: 'u_Y0.xml' })
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+}, 30_000)
 
 it('imports the pinned Lane entry for name with its Arabic, senses and source references', async () => {
   const output = await mkdtemp(join(tmpdir(), 'lane-import-'))
@@ -37,6 +74,35 @@ it('imports the pinned Lane entry for name with its Arabic, senses and source re
     await rm(output, { recursive: true, force: true })
   }
 })
+
+it('reports full-source and verified Al-Baqarah coverage separately from the original mapping baseline', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'lane-coverage-'))
+  try {
+    execFileSync('python3', [importer, '--expanded', '--output', output])
+    const report: unknown = JSON.parse(await readFile(join(output, 'coverage.json'), 'utf8'))
+    expect(report).toMatchObject({
+      inventory: { words: 77429, roots: 1642, lemmas: 4817, rootlessStems: 27947, keylessStems: 3307 },
+      baseline: { verified: { words: 5250, matchedWords: 287, roots: 516, mappedRoots: 3, lemmas: 929, mappedLemmas: 2 }, baqarah: { words: 5221, matchedWords: 279, roots: 515, lemmas: 926 } },
+      wordAudit: { '2:3:8': { verified: true, association: 'source-associated' }, '112:3:1': { verified: false, association: expect.any(String) } },
+      roots: { mapped: expect.arrayContaining(['نفق', 'كتب']), unresolved: expect.arrayContaining([expect.objectContaining({ key: 'وقي' })]) },
+    })
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+}, 30_000)
+
+it('includes exact source-headword matches for rootless Quranic lemmas', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'lane-rootless-'))
+  try {
+    execFileSync('python3', [importer, '--expanded', '--output', output])
+    const index = LaneIndexSchema.parse(JSON.parse(await readFile(join(output, 'catalogue.json'), 'utf8')))
+    expect(index.lemmas['فِى']).toEqual(['n34892'])
+    expect(index.lemmas['لَا']).toEqual(['n43185'])
+    expect(index.lemmas['ٱسْم']).toEqual(['n20831'])
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+}, 30_000)
 
 it('rejects a lemma mapping absent from the pinned source index', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'lane-missing-id-'))

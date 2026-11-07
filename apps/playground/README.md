@@ -265,8 +265,10 @@ visible. Leaving the tab or changing word/grammar discards pending results.
 Successful responses remain cached while the verse is mounted, including closing
 and reopening the dialog. Changing the chapter/page clears that local cache.
 
-Initial coverage is eight entries through three root mappings and two lemma
-exceptions. This is not complete dictionary coverage. See [sources, mappings,
+The #44 import expands the original eight-entry baseline to source-derived root
+groups and exact rootless lemmas. The reader follows bounded continuation pages
+to display every result, including groups larger than 12. This remains incomplete
+dictionary coverage. See [sources, mappings,
 licence, import commands and journey states](data/lane/README.md).
 
 No new frontend environment variables are required. Generate backend files with
@@ -282,8 +284,8 @@ Entries expand inside the word sheet while its selected-word context stays visib
 Missing matches, ambiguous mappings and retryable failures have separate states.
 Meaning, grammar and Lane remain independently usable.
 
-The initial mapping set contains four inspected entries, three root keys and two
-lemma exceptions. It uses OpenITI’s cleaned `JK001150-ara1` version with exact
+The #44 mapping set contains 246 inspected entries, 238 root keys and eight
+lemma keys, preserving all four original entries. It uses OpenITI’s cleaned `JK001150-ara1` version with exact
 source ranges, page markers, checksum and attribution.
 The Arabic data and mapping adaptation use CC BY-NC-SA 4.0, including its
 non-commercial and ShareAlike conditions. No English translation is included.
@@ -295,6 +297,8 @@ The API delivery supersedes #21’s original static entry-asset proposal.
 It uses existing browser configuration and works independently of the Pages prefix.
 Backend version 10 includes the four entries. Publish the frontend through Pages
 after verifying the backend, then run the deployment smoke against the published site.
+Expanded backend version 11 is deployed and verified for #44.
+The Pages workflow publishes the #44 reader after the approved push.
 
 ## Default-guide adoption (#28)
 

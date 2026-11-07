@@ -216,9 +216,58 @@ Local Node/MSW and Deno/browser evidence does not prove hosted deployment.
 Version 10 includes the four entries. Live checks compare each hosted entry with
 the pinned import output before frontend publication.
 
+## Dictionary expansion (#44)
+
+The additive `/v2/dictionary/entries` route accepts exact `root`, `lemma` and optional `cursor` parameters.
+It returns at most 12 structured entries, the complete ordered `entryIds`, the catalogue checksum as `revision`, and nullable `nextCursor`.
+Send continuation cursors with the same lookup.
+Invalid, mismatched or expired cursors return 400.
+The legacy `/v2/dictionary` retains its original eight-entry mapping set and response contract.
+The reader fetches every page and preserves successful entries when continuation fails.
+
+Lane's expanded catalogue uses pinned XML root groups and exact indexed headwords.
+It contains 18,889 entries in 591 deterministic gzip packs of at most 32 entries.
+The Mufradāt catalogue combines the four original spans with 242 additional inspected spans.
+The legacy Mufradāt matched/missing/ambiguous response is preserved.
+The reader displays distinct successful stem matches separately and leaves uncertain associations ambiguous.
+The additive `/v2/mufradat/entries` route also returns `multiple` with every verified entry when one lookup has several results.
+The largest inspected Mufradāt group has two entries and needs no continuation.
+
+Generate morphology, Lane and Mufradāt together with the commands above before every release.
+Use the Docker bundler so `static_files` are included.
+The selected morphology, Lane and Mufradāt assets total 13,075,513 bytes before function code and bundler overhead.
+Offline dictionary occurrence reports are excluded from `static_files`.
+Browser builds contain attribution notices and API client code; they contain no dictionary packs or entry files.
+
+Each dictionary's `coverage.json` records the raw 114-chapter inventory, baseline and expanded associations, snapshot-verified denominators, unresolved keys and every word identity.
+The overlap command in [Mufradāt sources](../../../apps/playground/data/mufradat/README.md#reproducible-import-and-delivery) verifies common input identity and hashes both reports.
+The chapters 1–2 reference verifies 5,250 occurrences, including 5,221 in Al-Baqarah.
+Expanded Lane associates 3,105 Al-Baqarah words; Mufradāt associates 1,258.
+Both associate 1,099 of those words.
+These associations identify source-related reading, without selecting contextual senses.
+Unreviewed Mufradāt spans and production alignment beyond chapters 1–2 remain explicit gaps.
+
+One local Deno measurement of كتب returned 22 Lane entries over two pages.
+The first Lane page was 61,781 JSON bytes and took 43.5 ms cold and 0.4 ms warm.
+The Mufradāt response was 21,571 bytes and took 3.6 ms cold and 0.3 ms warm.
+These single-process measurements exclude gateway and network latency.
+Version 11 was deployed with the Docker bundler before frontend publication.
+The CLI reported a 12 MB script bundle.
+Live HTTP checks compared all Lane entries for كتب, رزق, نفق and علم with the pinned local packs.
+The same checks compared those four Mufradāt entries, both بعد entries and the original name/Allah entries with local imports.
+The largest Lane group, روح, also returned all 56 entries across five hosted pages with exact local-source equality.
+Rootless lookups, no-match, validation, methods, preflight/CORS and existing content/grammar checks passed.
+The hosted catalogue still contains chapters 1–2 only.
+
 ## Deployed history
 
-Current deployment: function `quran` version 10, released on 2026-11-07 for #21
+Current deployment: function `quran` version 11, released on 2026-11-07 for #44.
+It adds complete dictionary browsing with regenerated morphology and both lexicons.
+Twenty-nine unmocked HTTP checks and one preflight passed before frontend publication.
+Provider credentials, pre-live access and public JWT configuration remain unchanged.
+Frontend publication follows through the Pages workflow.
+
+Previous deployment: function `quran` version 10, released on 2026-11-07 for #21
 with the Docker bundler and regenerated morphology, Lane and Mufradāt assets.
 The four hosted Mufradāt entries match the pinned import output, including Arabic
 wording, raw source ranges and page markers. Eleven live HTTP checks also cover

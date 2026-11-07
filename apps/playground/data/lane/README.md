@@ -25,7 +25,8 @@ Source abbreviations and textual cross-references remain verbatim; no page numbe
 ## Matching and coverage
 
 [`mappings.json`](mappings.json) owns the inspected source mappings and their exception notes.
-The current set contains eight distinct entries, three root keys and two lemma keys:
+This original set contains eight distinct entries, three root keys and two lemma keys.
+It remains the lookup for the legacy dictionary route:
 
 | Corpus key | Matching policy | Lane entries |
 | --- | --- | --- |
@@ -47,6 +48,15 @@ Unreviewed roots, rootless/unmapped lemmas and unavailable grammar show an expli
 Dictionary senses remain separate from the contextual verse gloss.
 Root group membership does not establish historical etymology.
 
+The #44 expanded catalogue derives exact root-group associations from all pinned XML files.
+Each admitted `(entry ID, headword)` must also occur in the source index.
+For example, the unrelated قبس occurrence of `n42477` is excluded because its headword conflicts with the index.
+Exact source headwords also supply rootless lemma associations, including فِى and لَا.
+Reviewed lemma overrides still take precedence, including empty overrides.
+No general spelling normalisation or cross-reference traversal is applied.
+The generated catalogue contains 18,889 entries associated with 1,258 raw QAC roots and 158 exact lemma keys.
+Unresolved keys remain in the offline report.
+
 ## Reproducible import
 
 Use Python 3 with its standard library and install workspace dependencies from the repository root.
@@ -59,7 +69,10 @@ pnpm --filter playground lane:data --notices-only
 ```
 
 The full import defaults to `supabase/functions/quran/lane-data/`.
-It produces `index.json`, `lane/{entryId}.json`, `manifest.json` and `NOTICE.txt`.
+It produces the legacy `index.json` and `lane/{entryId}.json`, an expanded `catalogue.json`, compressed `packs/*.json.gz`, `coverage.json`, `manifest.json` and `NOTICE.txt`.
+Packs contain at most 32 entries and use deterministic gzip bytes.
+The catalogue maps each stable entry ID to its pack.
+The pnpm command enables `--expanded`; direct Python invocation without that option reproduces the original mapping set for compatibility checks.
 The manifest records the pinned commit, archive checksum, licence and individual output checksums.
 Imports validate IDs against both the source index and lexicon XML, validate root-group membership, and remove stale generated entries.
 The `--source` and `--mappings` options allow explicit input checks; changing the source requires reviewing and updating its checksum pin.
@@ -80,6 +93,21 @@ The function verifies checksums before parsing data and caches only successful r
 The browser caches successful results while the verse remains mounted, including closing/reopening word details.
 Failures remain retryable and do not replace successful entries or contextual word meaning.
 
+The additive `GET /functions/v1/quran/v2/dictionary/entries?root=كتب` route returns at most 12 entries per response.
+It also returns the complete `entryIds`, a catalogue `revision` and nullable `nextCursor`.
+Send the cursor with the same root/lemma to continue.
+Continuations are bound to the lookup and catalogue checksum; invalid or stale continuations return 400.
+The reader fetches all pages and retains successful entries if continuation fails.
+The legacy `/v2/dictionary` response remains unchanged.
+
+`coverage.json` audits all 77,429 QAC word identities before applying source associations.
+Its `sourceOnly` counts use raw source keys, including words without occurrence verification.
+Its `verified` and `baqarah` counts use the pinned Quran Foundation chapters 1–2 reference and the actual morphology occurrence check.
+The expanded set associates 3,105 of 5,221 verified Al-Baqarah words, compared with 279 at baseline.
+These counts do not prove live full-Quran alignment or contextual senses.
+The report includes all unresolved root/lemma keys and a per-word audit, including rootless and keyless stems.
+Keep reports out of the deployed bundle.
+
 Generate the Lane assets and the existing guarded morphology release package before deploying the complete Quran function with the Docker bundler.
 The `static_files` configuration includes both datasets.
 Deploy and verify the backend addition before publishing the frontend.
@@ -87,6 +115,9 @@ Backend version 9 was deployed on 2026-11-06 from [af358a5](https://github.com/u
 Live HTTP checks verified name/Allah matches, distinct mercy entries, no match, existing chapters and grammar, legacy chapters, CORS, validation, methods and preflight.
 Frontend publication uses the separate Pages workflow after push.
 See [function release instructions](../../../../supabase/functions/quran/README.md).
+The #44 expanded route is deployed in function version 11.
+Hosted entries for كتب, رزق, نفق and علم matched the generated pinned packs across every continuation page.
+Publish the #44 reader through the Pages workflow after the backend checks.
 
 ## User journeys and verification boundaries
 

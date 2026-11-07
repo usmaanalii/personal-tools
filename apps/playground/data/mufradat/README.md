@@ -48,7 +48,10 @@ No published English translation, generated definition or English summary of an 
 
 ## Verified mappings and limits
 
-[`mappings.json`](mappings.json) owns four inspected entries, three exact root keys and two lemma exceptions.
+[`mappings.json`](mappings.json) preserves the original four inspected entries, three exact root keys and two lemma exceptions.
+[`expanded-mappings.json`](expanded-mappings.json) adds 242 inspected spans and their association notes.
+Normal pnpm imports combine both files, preserving original overrides.
+The combined catalogue contains 246 entries, 238 root keys and eight lemma keys.
 These counts describe the reviewed mapping set, not Quran-wide occurrence coverage.
 
 | Corpus key | Source headword and ID | Reviewed range; next headword |
@@ -68,7 +71,25 @@ Only available, occurrence-verified grammar stem annotations supply lookup keys.
 Exact lemma mappings take precedence over root mappings, including an explicitly empty lemma mapping.
 No diacritic removal, surface guessing or fuzzy matching is used.
 Multiple candidate IDs produce an explicit ambiguous result without selecting an entry.
+Distinct successful matches from different verified stems are displayed as separate entries.
 Unreviewed keys and unavailable grammar produce a missing result.
+
+The additions include كتب, رزق, نفق and علم from Al-Baqarah.
+Explicit source-backed aliases cover امن→أمن, صلو→صلا, هدي→هدى and يقن→يقين.
+Rootless particles include إِلَىٰ, ثُمّ, حَتَّىٰ, لَم, لَا and هَل.
+Additional reviewed headwords map by exact equality with QAC root keys.
+Each association has a complete inspected source range and next-headword boundary.
+These spans contain lexical discussion and citations without a separate modern editorial section.
+This bounded inspection does not clear the rest of the book for import.
+
+Colon-prefixed paragraphs are not an entry catalogue.
+Internal قيل at line 149, ومثله at 6280 and الخامس at 12769 remain within their containing entries.
+The heading حزن at 4488 discusses الخزن and is excluded.
+The final ياء at 17109–17110 requires an explicit EOF boundary.
+The importer validates ordered non-overlapping ranges and accepts `next: null` only at the actual EOF.
+Genuine colonless headings use exact `opening` or `nextOpening` source anchors.
+Both بعد entries at 1592–1604 and 1605 are preserved separately.
+The complete-result API makes both readable; the legacy API retains its ambiguous response.
 
 ## Reproducible import and delivery
 
@@ -81,22 +102,43 @@ pnpm --filter playground mufradat:data --notices-only
 ```
 
 Imports are offline and verify the pinned source checksum before publishing data.
-They validate the reviewed start/next headings and all mapping references.
+They validate the reviewed start/next headings, non-overlapping ranges and all mapping references.
 Each entry retains its exact raw source span, source line range, stable ID and source link.
 Page markers include the page active at the beginning and markers occurring within the entry.
 The reading text unwraps continuation lines, removes technical `#`, `~~`, `@QB@`, `@QE@`, `ms`, poetry `%` and pipe markers, and moves page markers to the displayed provenance.
 Arabic wording, punctuation and source errors remain unchanged.
 Expansion restores the whole entry after the labelled initial excerpt.
 
-The default output is `supabase/functions/quran/mufradat-data/` with `index.json`, `entries/{entryId}.json`, `manifest.json` and `NOTICE.txt`.
+The default output is `supabase/functions/quran/mufradat-data/` with `index.json`, `entries/{entryId}.json`, `coverage.json`, `manifest.json` and `NOTICE.txt`.
+The pnpm command enables `--expanded`; direct Python invocation without it reproduces the original four-entry set.
 The manifest includes source/version/checksum/licence and per-file SHA-256 checksums.
 `--source` and `--mappings` support explicit input verification.
 Changing a mapping requires inspecting the complete source span and its next boundary.
 Changing the source requires a new edition, editorial-removal and checksum review.
 
+The offline report audits every raw QAC word and records unresolved keys explicitly.
+`sourceOnly` counts use source keys without requiring occurrence verification.
+`verified` and `baqarah` use the pinned chapters 1–2 reference and the actual morphology check.
+The inspected expansion associates 1,258 of 5,221 verified Al-Baqarah words, compared with 279 at baseline.
+Production access beyond those chapters remains unverified.
+Generate cross-dictionary overlap after regenerating both reports:
+
+```sh
+python3 apps/playground/scripts/quran-data/lexicon.py \
+  --lane supabase/functions/quran/lane-data/coverage.json \
+  --mufradat supabase/functions/quran/mufradat-data/coverage.json \
+  --output /tmp/lexicon-overlap.json
+```
+
+The comparison verifies shared input identity and records report hashes.
+Coverage reports stay outside the function's `static_files` selection and browser build.
+
 The owner’s implementation direction on #21 adopts the existing Supabase API pattern.
 It supersedes the issue’s proposed static GitHub Pages entry assets.
-The frontend calls `GET /functions/v1/quran/v2/mufradat?root=…&lemma=…` on demand.
+The frontend calls `GET /functions/v1/quran/v2/mufradat/entries?root=…&lemma=…` on demand.
+It accepts the original matched/missing/ambiguous shapes plus `multiple` with distinct verified `entries`.
+The original `/v2/mufradat` route and response remain available to older clients.
+The inspected catalogue's largest group has two entries, so it needs no continuation.
 Backend data is bundled through `static_files`, checksum-verified before parsing and cached after successful reads.
 Frontend results are cached while the verse remains mounted.
 Failures remain retryable and isolated from meaning, grammar and Lane.
@@ -106,6 +148,9 @@ Generate the morphology release package, Lane data and Mufradāt data before dep
 Deploy and verify the backend before publishing the frontend.
 Backend version 10 includes the four entries; frontend publication follows the
 approved push through Pages.
+Version 11 supersedes it with the inspected expansion and complete-result route.
+Live responses for the four new Al-Baqarah examples, both بعد entries and the original name/Allah selections matched the pinned imports.
+Publish the #44 reader through the Pages workflow after the backend checks.
 The [state inventory](journeys.md) records the reading journeys and responsive states.
 
 ## Verification boundaries

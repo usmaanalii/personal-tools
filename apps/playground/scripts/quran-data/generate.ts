@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { importCorpus } from './corpus.ts'
 import { z } from 'zod'
-import { WordOccurrenceSchema } from '../../../../supabase/functions/quran/morphology-data.ts'
+import { lookupMorphology, occurrenceKey, WordOccurrenceSchema } from '../../../../supabase/functions/quran/morphology-data.ts'
 
 const sourceZip = fileURLToPath(new URL('../../data/quran/source/quranic-corpus-morphology-0.4.zip', import.meta.url))
 const sha256 = (value: string | Uint8Array) => createHash('sha256').update(value).digest('hex')
@@ -27,6 +27,22 @@ export async function generateData({ outputDirectory, sourceArchive = sourceZip,
     if ((await readdir(outputDirectory)).some(name => name !== 'NOTICE.txt')) throw new Error('Move existing corpus assets out of the browser notices directory')
     await writeFile(join(outputDirectory, 'NOTICE.txt'), result.notices)
     return result.report
+  }
+  const references = Object.groupBy(reference?.words ?? [], occurrenceKey)
+  const words = Object.values(result.chapters).flatMap(chapter => Object.entries(chapter.words).map(([key, word]) => {
+    const occurrences = references[key] ?? []
+    const occurrence = occurrences.length === 1 ? occurrences[0] : undefined
+    return {
+      key, chapter: chapter.chapter,
+      verified: Boolean(occurrence && lookupMorphology(chapter, occurrence)),
+      stems: word.segments.filter(segment => segment.kind === 'stem').map(({ root, lemma }) => ({ root, lemma })),
+    }
+  }))
+  const inventory = {
+    version: 1, corpusSha256: sha256(zip), referenceSha256: referenceText ? sha256(referenceText) : null,
+    roots: [...new Set(words.flatMap(word => word.stems.flatMap(stem => stem.root ? [stem.root] : [])))].sort(),
+    lemmas: [...new Set(words.flatMap(word => word.stems.flatMap(stem => stem.lemma ? [stem.lemma] : [])))].sort(),
+    words,
   }
   await mkdir(join(outputDirectory, 'morphology'), { recursive: true })
   const chapters = await Promise.all(Object.values(result.chapters).map(async chapter => {
@@ -50,6 +66,7 @@ export async function generateData({ outputDirectory, sourceArchive = sourceZip,
     writeFile(join(outputDirectory, 'NOTICE.txt'), result.notices),
     writeFile(join(outputDirectory, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`),
     writeFile(join(outputDirectory, 'coverage.json'), `${JSON.stringify(result.report, null, 2)}\n`),
+    writeFile(join(outputDirectory, 'lexicon-inventory.json'), `${JSON.stringify(inventory)}\n`),
   ])
   return result.report
 }

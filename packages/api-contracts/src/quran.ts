@@ -83,12 +83,23 @@ export const LaneEntrySchema = z.object({
   })),
 })
 export type LaneEntry = z.infer<typeof LaneEntrySchema>
+export const LANE_PAGE_SIZE = 12
 export const LaneResponseSchema = z.object({
-  entries: z.array(z.object({ id: LaneEntryIdSchema, entry: LaneEntrySchema.nullable() })).max(12)
+  entries: z.array(z.object({ id: LaneEntryIdSchema, entry: LaneEntrySchema.nullable() })).max(LANE_PAGE_SIZE)
     .refine(entries => entries.every(item => !item.entry || item.entry.id === item.id), 'Entry identity mismatch')
     .refine(entries => new Set(entries.map(item => item.id)).size === entries.length, 'Duplicate entries'),
 })
 export type LaneResponse = z.infer<typeof LaneResponseSchema>
+
+const LaneCursorSchema = z.string().max(200).regex(/^[a-f0-9]{64}\.[1-9]\d*\.[a-f0-9]{64}$/)
+export const LanePageRequestSchema = LaneRequestSchema.safeExtend({ cursor: LaneCursorSchema.optional() })
+export type LanePageRequest = z.infer<typeof LanePageRequestSchema>
+export const LanePageResponseSchema = LaneResponseSchema.safeExtend({
+  entryIds: z.array(LaneEntryIdSchema),
+  revision: z.string().regex(/^[a-f0-9]{64}$/),
+  nextCursor: LaneCursorSchema.nullable(),
+})
+export type LanePageResponse = z.infer<typeof LanePageResponseSchema>
 
 export const MufradatRequestSchema = LaneRequestSchema
 export type MufradatRequest = z.infer<typeof MufradatRequestSchema>
@@ -110,3 +121,9 @@ export const MufradatResponseSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('ambiguous'), ids: z.array(MufradatEntryIdSchema).min(2).max(12) }),
 ])
 export type MufradatResponse = z.infer<typeof MufradatResponseSchema>
+export const MufradatCompleteResponseSchema = z.union([
+  MufradatResponseSchema,
+  z.object({ status: z.literal('multiple'), entries: z.array(MufradatEntrySchema).min(2)
+    .refine(entries => new Set(entries.map(entry => entry.id)).size === entries.length, 'Duplicate entries') }),
+])
+export type MufradatCompleteResponse = z.infer<typeof MufradatCompleteResponseSchema>

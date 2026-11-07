@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { MufradatEntryIdSchema, MufradatEntrySchema, MufradatResponseSchema, type MufradatEntry, type MufradatRequest } from '../../../packages/api-contracts/src/quran.ts'
+import { MufradatEntryIdSchema, MufradatEntrySchema, MufradatResponseSchema, MufradatCompleteResponseSchema, type MufradatEntry, type MufradatRequest } from '../../../packages/api-contracts/src/quran.ts'
 
 const IndexSchema = z.object({ roots: z.record(z.string(), z.array(MufradatEntryIdSchema)), lemmas: z.record(z.string(), z.array(MufradatEntryIdSchema)) })
 const ManifestSchema = z.object({ files: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)) })
@@ -8,7 +8,7 @@ export function createBundledMufradatReader(readFile: (path: URL) => Promise<Uin
   let cachedManifest: z.infer<typeof ManifestSchema> | null = null
   let cachedIndex: z.infer<typeof IndexSchema> | null = null
   const entries = new Map<string, MufradatEntry>()
-  return async (query: MufradatRequest, signal: AbortSignal) => {
+  const load = async (query: MufradatRequest, signal: AbortSignal, complete: boolean) => {
     signal.throwIfAborted()
     const manifest = cachedManifest ?? ManifestSchema.parse(JSON.parse(new TextDecoder().decode(await readFile(new URL('manifest.json', directory)))))
     cachedManifest = manifest
@@ -24,11 +24,15 @@ export function createBundledMufradatReader(readFile: (path: URL) => Promise<Uin
     cachedIndex = index
     const ids = (query.lemma ? index.lemmas[query.lemma] : undefined) ?? (query.root ? index.roots[query.root] : undefined) ?? []
     if (ids.length === 0) return MufradatResponseSchema.parse({ status: 'missing' })
-    if (ids.length > 1) return MufradatResponseSchema.parse({ status: 'ambiguous', ids })
-    const id = ids[0]
-    const entry = entries.get(id) ?? MufradatEntrySchema.parse(await read(`entries/${id}.json`))
-    if (entry.id !== id) throw new Error('Mufradat entry identity mismatch')
-    entries.set(id, entry)
-    return MufradatResponseSchema.parse({ status: 'matched', entry })
+    if (ids.length > 1 && !complete) return MufradatResponseSchema.parse({ status: 'ambiguous', ids })
+    const matches = await Promise.all(ids.map(async id => {
+      const entry = entries.get(id) ?? MufradatEntrySchema.parse(await read(`entries/${id}.json`))
+      if (entry.id !== id) throw new Error('Mufradat entry identity mismatch')
+      entries.set(id, entry)
+      return entry
+    }))
+    return MufradatCompleteResponseSchema.parse(matches.length === 1 ? { status: 'matched', entry: matches[0] } : { status: 'multiple', entries: matches })
   }
+  return Object.assign(async (query: MufradatRequest, signal: AbortSignal) => MufradatResponseSchema.parse(await load(query, signal, false)),
+    { all: (query: MufradatRequest, signal: AbortSignal) => load(query, signal, true) })
 }

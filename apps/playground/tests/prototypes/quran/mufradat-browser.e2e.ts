@@ -8,7 +8,7 @@ test('reads an original Mufradāt entry while retaining word context on narrow a
   await mockQuranContent(page)
   const requests: string[] = []
   page.on('request', request => {
-    if (new URL(request.url()).pathname === '/functions/v1/quran/v2/mufradat') requests.push(request.url())
+    if (new URL(request.url()).pathname === '/functions/v1/quran/v2/mufradat/entries') requests.push(request.url())
   })
   await page.goto('./quran/')
   await page.reload()

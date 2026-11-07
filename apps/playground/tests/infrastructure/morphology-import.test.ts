@@ -14,6 +14,25 @@ import { pathToFileURL } from 'node:url'
 // Verbatim v0.4 records. The complete unchanged source and notices live in data/quran/source/.
 const bismi = () => '(1:1:1:1)\tbi\tP\tPREFIX|bi+\n(1:1:1:2)\tsomi\tN\tSTEM|POS:N|LEM:{som|ROOT:smw|M|GEN'
 
+it('exports the full lexicon inventory while distinguishing verified words from source-only occurrences', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'lexicon-inventory-'))
+  try {
+    await generateData({ outputDirectory: directory, referenceFile: new URL('../../data/quran/foundation-chapters-1-2.json', import.meta.url).pathname })
+    const inventory: unknown = JSON.parse(await readFile(join(directory, 'lexicon-inventory.json'), 'utf8'))
+    expect(inventory).toMatchObject({
+      version: 1,
+      corpusSha256: 'fda26f87cc58b42fc992a3ad666a562805b636f34bcecb46326d048337ca7999',
+      roots: expect.arrayContaining(['نفق', 'كتب']),
+      words: expect.arrayContaining([
+        { key: '2:3:8', chapter: 2, verified: true, stems: [{ root: 'نفق', lemma: 'أَنفَقَ' }] },
+        expect.objectContaining({ key: '112:3:1', chapter: 112, verified: false, stems: [{ root: null, lemma: 'لَم' }] }),
+      ]),
+    })
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 async function writePublication(directory: string, permissionEvidence: string | null) {
   const path = join(directory, 'publication.json')
   await writeFile(path, JSON.stringify({ permissionEvidence }))

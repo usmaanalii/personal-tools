@@ -6,7 +6,7 @@ import { http, HttpResponse } from 'msw'
 import { WordGrammarSchema, type QuranWord, type VersesResponse } from '@scratch-pages/api-contracts/quran'
 import App from '../../app/app'
 import { server, quranEndpoint } from '../../test-server'
-import { buildWord, chapters } from './quran-fixtures.test-data'
+import { buildLanePage, buildWord, chapters } from './quran-fixtures.test-data'
 import { importCorpus } from '../../../scripts/quran-data/corpus'
 import { buildMufradatEntry } from './mufradat-fixtures.test-data'
 
@@ -54,7 +54,7 @@ afterEach(() => window.history.pushState({}, '', '/'))
 
 it('reuses a no-match result when word details are reopened', async () => {
   const requests: string[] = []
-  server.use(http.get(`${quranEndpoint}/mufradat`, ({ request }) => { requests.push(request.url); return HttpResponse.json({ status: 'missing' }) }))
+  server.use(http.get(`${quranEndpoint}/mufradat/entries`, ({ request }) => { requests.push(request.url); return HttpResponse.json({ status: 'missing' }) }))
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() })] })
   await user.click(word)
   await user.click(screen.getByRole('tab', { name: 'Mufradāt' }))
@@ -71,7 +71,7 @@ it('reuses a loaded entry when word details are reopened', async () => {
   const opening = entry.paragraphs[0]
   if (!opening) throw new Error('Expected an opening paragraph in the reviewed name entry')
   const requests: string[] = []
-  server.use(http.get(`${quranEndpoint}/mufradat`, ({ request }) => {
+  server.use(http.get(`${quranEndpoint}/mufradat/entries`, ({ request }) => {
     const query = new URL(request.url).searchParams
     if (query.get('root') !== 'سمو' || query.get('lemma') !== 'ٱسْم') return new HttpResponse(null, { status: 400 })
     requests.push(request.url)
@@ -90,7 +90,7 @@ it('reuses a loaded entry when word details are reopened', async () => {
 
 it('loads Mufradāt only when opened and leaves grammar and contextual meaning usable', async () => {
   const requests: string[] = []
-  server.use(http.get(`${quranEndpoint}/mufradat`, ({ request }) => { requests.push(request.url); return HttpResponse.json({ status: 'missing' }) }))
+  server.use(http.get(`${quranEndpoint}/mufradat/entries`, ({ request }) => { requests.push(request.url); return HttpResponse.json({ status: 'missing' }) }))
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() })] })
   await user.click(word)
   expect(requests).toEqual([])
@@ -105,9 +105,9 @@ it('loads Mufradāt only when opened and leaves grammar and contextual meaning u
 
 it('shows Grammar initially and retains Dictionary when the next word is selected', async () => {
   const requests: string[] = []
-  server.use(http.get(`${quranEndpoint}/dictionary`, ({ request }) => {
+  server.use(http.get(`${quranEndpoint}/dictionary/entries`, ({ request }) => {
     requests.push(request.url)
-    return HttpResponse.json({ entries: [] })
+    return HttpResponse.json(buildLanePage({ entries: [] }))
   }))
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() }), buildWord({ position: 2, arabic: 'ٱللَّهِ', meaning: 'of Allah' })] })
   await user.click(word)
@@ -176,9 +176,9 @@ it('retains Grammar for the next word after switching back from Dictionary', asy
 
 it('reuses dictionary results when word details are closed and reopened', async () => {
   const requests: string[] = []
-  server.use(http.get(`${quranEndpoint}/dictionary`, ({ request }) => {
+  server.use(http.get(`${quranEndpoint}/dictionary/entries`, ({ request }) => {
     requests.push(request.url)
-    return HttpResponse.json({ entries: [] })
+    return HttpResponse.json(buildLanePage({ entries: [] }))
   }))
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() })] })
   await user.click(word)

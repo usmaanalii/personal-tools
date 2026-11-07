@@ -37,6 +37,15 @@ The browser renders strings as text and uses only validated HTTPS source links.
 The mapping/index representation remains private to the backend.
 Deploy and verify this new backend route before publishing its frontend consumer.
 
+`LanePageRequestSchema` and `LanePageResponseSchema` own the additive
+`GET /functions/v1/quran/v2/dictionary/entries` contract.
+It returns at most `LANE_PAGE_SIZE` (12) entries, the complete ordered `entryIds`,
+a catalogue `revision`, and nullable `nextCursor`.
+Continue with the same exact root/lemma and the returned cursor.
+The backend rejects invalid, mismatched or stale cursors with 400.
+Clients fetch every page and keep successful entries retryable when continuation fails.
+The original dictionary route remains compatible with existing browser builds.
+
 `translationHtml` is explicitly untrusted provider markup. Playground extracts inert text and removes script, style, and footnote nodes; never insert this field directly into HTML. Attribution and translation selection belong to the backend. Component display models may differ from wire DTOs.
 
 Quran v2 verses may include selectable `words`. Each word carries its chapter,
@@ -59,6 +68,14 @@ Entry data includes an ID, Arabic headword, full paragraphs, the original raw sp
 actual page markers and a pinned source link with line numbers.
 Backend read/validation failures use the existing safe JSON error with HTTP 503.
 The route is an additive local implementation; deploy it before publishing its client.
+
+`MufradatCompleteResponseSchema` owns the additive
+`GET /functions/v1/quran/v2/mufradat/entries` response.
+It accepts all original response shapes and adds `multiple` with distinct verified
+`entries`. Multiple source-backed results remain readable without selecting a
+contextual sense. The inspected catalogue currently has at most two entries per
+lookup, so it requires no pagination. The legacy route retains its original
+matched/missing/ambiguous contract.
 
 ## Verification and deployment
 

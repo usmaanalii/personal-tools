@@ -1,10 +1,11 @@
-import { VERSES_PER_PAGE, VersesRequestSchema, LaneRequestSchema, LaneResponseSchema, type LaneRequest } from '../../../packages/api-contracts/src/quran.ts'
+import { VERSES_PER_PAGE, VersesRequestSchema, LaneRequestSchema, LaneResponseSchema, LanePageRequestSchema, LanePageResponseSchema, type LanePageRequest, type LaneRequest } from '../../../packages/api-contracts/src/quran.ts'
 import { ApiErrorSchema } from '../../../packages/api-contracts/src/error.ts'
 import { mapChapters, mapVerses } from './provider.ts'
 import { enrichGrammar, type MorphologyReader } from './morphology.ts'
-import { MufradatRequestSchema, MufradatResponseSchema, type MufradatRequest } from '../../../packages/api-contracts/src/quran.ts'
+import { MufradatRequestSchema, MufradatResponseSchema, MufradatCompleteResponseSchema, type MufradatRequest } from '../../../packages/api-contracts/src/quran.ts'
+import { InvalidLaneCursor } from './bundled-lane.ts'
 
-type Config = { clientId: string; clientSecret: string; environment: string; origins: string[]; timeoutMs?: number; readMorphology?: MorphologyReader; readDictionary?: (query: LaneRequest, signal: AbortSignal) => Promise<unknown>; readMufradat?: (query: MufradatRequest, signal: AbortSignal) => Promise<unknown> }
+type Config = { clientId: string; clientSecret: string; environment: string; origins: string[]; timeoutMs?: number; readMorphology?: MorphologyReader; readDictionary?: (query: LaneRequest, signal: AbortSignal) => Promise<unknown>; readDictionaryPage?: (query: LanePageRequest, signal: AbortSignal) => Promise<unknown>; readMufradat?: (query: MufradatRequest, signal: AbortSignal) => Promise<unknown>; readMufradatEntries?: (query: MufradatRequest, signal: AbortSignal) => Promise<unknown> }
 
 export function createQuranHandler(config: Config) {
   const authBase = config.environment === 'production' ? 'https://oauth2.quran.foundation' : 'https://prelive-oauth2.quran.foundation'
@@ -44,22 +45,37 @@ export function createQuranHandler(config: Config) {
     const route = ownedContract ? pathRoute.slice(3) : pathRoute
     const chapter = url.searchParams.get('chapter') ?? ''
     const page = url.searchParams.get('page') ?? '1'
-    const mufradat = ownedContract && route === 'mufradat'
-    const dictionary = ownedContract && (route === 'dictionary' || mufradat)
-    const allowed = dictionary ? ['root', 'lemma'] : route === 'chapters' ? [] : ['chapter', 'page']
+    const completeMufradat = ownedContract && route === 'mufradat/entries'
+    const mufradat = ownedContract && (route === 'mufradat' || completeMufradat)
+    const dictionaryPage = ownedContract && route === 'dictionary/entries'
+    const dictionary = ownedContract && (route === 'dictionary' || dictionaryPage || mufradat)
+    const allowed = dictionaryPage ? ['root', 'lemma', 'cursor'] : dictionary ? ['root', 'lemma'] : route === 'chapters' ? [] : ['chapter', 'page']
     if ((!dictionary && route !== 'chapters' && route !== 'verses') || [...url.searchParams.keys()].some(key => !allowed.includes(key) || url.searchParams.getAll(key).length !== 1)) return error('Invalid content request.', 400)
     if (route === 'verses' && (!/^[1-9]\d{0,2}$/.test(chapter) || !/^[1-9]\d?$/.test(page) || !VersesRequestSchema.safeParse({ chapter: Number(chapter), page: Number(page) }).success)) return error('Invalid chapter or page.', 400)
     if (!dictionary && (!config.clientId || !config.clientSecret || !['prelive', 'production'].includes(config.environment))) return error('Quran content is not configured yet.', 503)
     if (Date.now() - windowStart >= 60_000) { windowStart = Date.now(); requests = 0 }
     // A bounded per-isolate budget, not a global or per-user rate limiter.
     if (++requests > 60) return Response.json(ApiErrorSchema.parse({ error: 'Too many requests. Please try again shortly.' }), { status: 429, headers: { ...headers, 'Retry-After': '60' } })
+    if (dictionaryPage) {
+      const query = LanePageRequestSchema.safeParse(Object.fromEntries(url.searchParams))
+      if (!query.success) return error('Invalid dictionary request.', 400)
+      if (!config.readDictionaryPage) return error('Dictionary temporarily unavailable.', 503)
+      try {
+        const signal = AbortSignal.any([request.signal, AbortSignal.timeout(config.timeoutMs ?? 8_000)])
+        return Response.json(LanePageResponseSchema.parse(await config.readDictionaryPage(query.data, signal)), { headers })
+      } catch (cause) {
+        if (cause instanceof InvalidLaneCursor) return error('Invalid or expired dictionary continuation.', 400)
+        return error('Dictionary temporarily unavailable.', 503)
+      }
+    }
     if (mufradat) {
       const query = MufradatRequestSchema.safeParse(Object.fromEntries(url.searchParams))
       if (!query.success) return error('Invalid Mufradat request.', 400)
-      if (!config.readMufradat) return error('Mufradat temporarily unavailable.', 503)
+      const read = completeMufradat ? config.readMufradatEntries : config.readMufradat
+      if (!read) return error('Mufradat temporarily unavailable.', 503)
       try {
         const signal = AbortSignal.any([request.signal, AbortSignal.timeout(config.timeoutMs ?? 8_000)])
-        return Response.json(MufradatResponseSchema.parse(await config.readMufradat(query.data, signal)), { headers })
+        return Response.json((completeMufradat ? MufradatCompleteResponseSchema : MufradatResponseSchema).parse(await read(query.data, signal)), { headers })
       } catch {
         return error('Mufradat temporarily unavailable.', 503)
       }

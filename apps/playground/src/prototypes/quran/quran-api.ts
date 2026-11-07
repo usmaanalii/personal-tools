@@ -1,5 +1,5 @@
-import { ChaptersResponseSchema, VersesRequestSchema, VersesResponseSchema, LaneRequestSchema, LaneResponseSchema, type LaneRequest, type Chapter, type VersesResponse, type QuranWord } from '@scratch-pages/api-contracts/quran'
-import { MufradatRequestSchema, MufradatResponseSchema, type MufradatRequest } from '@scratch-pages/api-contracts/quran'
+import { ChaptersResponseSchema, VersesRequestSchema, VersesResponseSchema, LaneRequestSchema, LanePageResponseSchema, type LanePageResponse, type LaneRequest, type Chapter, type VersesResponse, type QuranWord } from '@scratch-pages/api-contracts/quran'
+import { MufradatRequestSchema, MufradatCompleteResponseSchema, type MufradatRequest } from '@scratch-pages/api-contracts/quran'
 
 export type { Chapter }
 export type Ayah = { number: number; arabic: string; translation: string; words?: QuranWord[] }
@@ -27,13 +27,26 @@ export async function getChapters(signal: AbortSignal): Promise<[Chapter, ...Cha
 export async function getLaneEntries(query: LaneRequest, signal: AbortSignal) {
   const input = LaneRequestSchema.parse(query)
   const params = new URLSearchParams(Object.entries(input))
-  return LaneResponseSchema.parse(await getContent(`dictionary?${params}`, signal))
+  async function page(cursor?: string, previous?: LanePageResponse): Promise<LanePageResponse['entries']> {
+    const query = new URLSearchParams(params)
+    if (cursor) query.set('cursor', cursor)
+    const result = LanePageResponseSchema.parse(await getContent(`dictionary/entries?${query}`, signal))
+    if (previous && result.revision !== previous.revision) throw new Error(formatError)
+    if (cursor && result.nextCursor === cursor) throw new Error(formatError)
+    if (!result.nextCursor) return result.entries
+    const remaining = await page(result.nextCursor, result).catch(() => {
+      signal.throwIfAborted()
+      return result.entryIds.filter(id => !result.entries.some(item => item.id === id)).map(id => ({ id, entry: null }))
+    })
+    return [...result.entries, ...remaining]
+  }
+  return { entries: await page() }
 }
 
 export async function getMufradatEntry(query: MufradatRequest, signal: AbortSignal) {
   const input = MufradatRequestSchema.parse(query)
   const params = new URLSearchParams(Object.entries(input))
-  return MufradatResponseSchema.parse(await getContent(`mufradat?${params}`, signal))
+  return MufradatCompleteResponseSchema.parse(await getContent(`mufradat/entries?${params}`, signal))
 }
 
 export async function getVerses(chapter: number, page: number, signal: AbortSignal): Promise<VersePage> {

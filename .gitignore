@@ -2,6 +2,7 @@ node_modules/
 dist/
 storybook-static/
 *.tsbuildinfo
+__pycache__/
 .DS_Store
 
 # End-to-end test artifacts

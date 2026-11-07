@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import type { MufradatResponse, QuranWord } from '@scratch-pages/api-contracts/quran'
-import { createMufradatReader } from './mufradat-data'
+import type { MufradatEntry, QuranWord } from '@scratch-pages/api-contracts/quran'
+import { createMufradatReader, type MufradatResult } from './mufradat-data'
 import { Button } from '@scratch-pages/ui'
 
 export function WordMufradat({ word, reader: suppliedReader }: { readonly word: QuranWord; readonly reader?: ReturnType<typeof createMufradatReader> }) {
@@ -10,12 +10,10 @@ export function WordMufradat({ word, reader: suppliedReader }: { readonly word: 
 }
 
 function MufradatPanel({ word, reader }: { readonly word: QuranWord; readonly reader: ReturnType<typeof createMufradatReader> }) {
-  const [result, setResult] = useState<MufradatResponse | null>(null)
-  const [full, setFull] = useState(false)
+  const [result, setResult] = useState<MufradatResult | null>(null)
   const [status, setStatus] = useState<'loading' | 'failed' | 'ready'>('loading')
   const pending = useRef<AbortController | null>(null)
   const section = useRef<HTMLElement>(null)
-  const id = useId()
   const load = useCallback(async (controller: AbortController, trigger?: HTMLButtonElement) => {
     if (pending.current) return
     pending.current = controller
@@ -37,10 +35,7 @@ function MufradatPanel({ word, reader }: { readonly word: QuranWord; readonly re
     void load(controller)
     return () => { pending.current?.abort(); pending.current = null }
   }, [load])
-  const entry = result?.status === 'matched' ? result.entry : null
-  const paragraphs = entry?.paragraphs ?? []
-  const excerpt = paragraphs[0] ?? ''
-  const visibleParagraphs = full ? paragraphs : [excerpt.length > 320 ? `${excerpt.slice(0, 320)}…` : excerpt]
+  const entries = result?.status === 'matched' ? [result.entry] : result?.status === 'multiple' ? result.entries : []
   return <div className="my-5 text-base leading-relaxed wrap-anywhere">
     {/* biome-ignore lint/a11y/noNoninteractiveTabindex: The dictionary receives focus after retry and supports keyboard scrolling. */}
     <section ref={section} aria-label="Mufradāt dictionary" tabIndex={0}>
@@ -49,7 +44,17 @@ function MufradatPanel({ word, reader }: { readonly word: QuranWord; readonly re
     {result?.status === 'missing' && <p role="status">No verified Mufradāt entry is available for this word.</p>}
     {result?.status === 'ambiguous' && <p role="status">More than one Mufradāt entry may match. No entry has been selected.</p>}
     {status !== 'ready' && <Button variant="outline" aria-disabled={status === 'loading'} onClick={event => void load(new AbortController(), event.currentTarget)}>Retry Mufradāt</Button>}
-    {entry && <><article aria-labelledby={id}>
+    {entries.map(entry => <MufradatArticle key={entry.id} entry={entry} />)}
+    </section>
+  </div>
+}
+
+function MufradatArticle({ entry }: { readonly entry: MufradatEntry }) {
+  const id = useId()
+  const [full, setFull] = useState(false)
+  const excerpt = entry.paragraphs[0] ?? ''
+  const visibleParagraphs = full ? entry.paragraphs : [excerpt.length > 320 ? `${excerpt.slice(0, 320)}…` : excerpt]
+  return <><article aria-labelledby={id}>
       <h3 id={id} lang="ar" dir="rtl" translate="no" className="text-xl">{entry.headword}</h3>
       {visibleParagraphs.map((text, index) =>
         // biome-ignore lint/suspicious/noArrayIndexKey: Pinned source paragraphs retain their order; expansion only appends paragraphs.
@@ -62,7 +67,5 @@ function MufradatPanel({ word, reader }: { readonly word: QuranWord; readonly re
       <p>{entry.pages.join(' · ')}</p>
       <p><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> · Non-commercial use · Arabic excerpt adaptation</p>
       <p>This source’s lexical explanation is separate from the contextual meaning. Root relationships do not establish historical etymology.</p>
-    </div></>}
-    </section>
-  </div>
+    </div></>
 }

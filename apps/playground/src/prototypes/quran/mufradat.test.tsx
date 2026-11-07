@@ -7,7 +7,7 @@ import { WordMufradat } from './word-mufradat'
 import { buildMufradatEntry } from './mufradat-fixtures.test-data'
 import userEvent from '@testing-library/user-event'
 
-const endpoint = `${quranEndpoint}/mufradat`
+const endpoint = `${quranEndpoint}/mufradat/entries`
 function word() {
   return buildWord({ position: 4, arabic: 'ٱلرَّحِيمِ', meaning: 'the Most Merciful', transliteration: 'r-raḥīmi', grammar: { status: 'available', segments: [{ kind: 'stem', arabic: 'رحيم', partOfSpeech: 'ADJ', root: 'رحم', lemma: 'رَحِيم', features: [] }] } })
 }
@@ -31,7 +31,16 @@ it('shows the Arabic entry and its source', async () => {
   expect(screen.getByRole('link', { name: 'CC BY-NC-SA 4.0' })).toBeVisible()
 })
 
-it('shows an ambiguous match when a word has different stem entries', async () => {
+it('renders every verified entry returned by the complete-result API', async () => {
+  server.use(http.get(`${quranEndpoint}/mufradat/entries`, () => HttpResponse.json({ status: 'multiple', entries: [buildMufradatEntry(), buildMufradatEntry('jk-l3990')] })))
+  render(<WordMufradat word={word()} />)
+  expect(await screen.findByRole('article', { name: 'رحم' })).toBeVisible()
+  expect(screen.getByRole('article', { name: 'حمد' })).toBeVisible()
+  expect(screen.getByRole('link', { name: /OpenITI original · jk-l5840/ })).toBeVisible()
+  expect(screen.getByRole('link', { name: /OpenITI original · jk-l3990/ })).toBeVisible()
+})
+
+it('shows distinct verified entries when a word has different stem matches', async () => {
   server.use(http.get(endpoint, ({ request }) => {
     const root = new URL(request.url).searchParams.get('root')
     if (root === 'حمد') return HttpResponse.json({ status: 'matched', entry: buildMufradatEntry('jk-l3990') })
@@ -41,8 +50,9 @@ it('shows an ambiguous match when a word has different stem entries', async () =
   const selected = word()
   if (selected.grammar?.status !== 'available') throw new Error('Expected available grammar fixture')
   render(<WordMufradat word={buildWord({ grammar: { status: 'available', segments: [...selected.grammar.segments, { kind: 'stem', arabic: 'حمد', partOfSpeech: 'N', root: 'حمد', lemma: 'حَمْد', features: [] }] } })} />)
-  expect(await screen.findByText('More than one Mufradāt entry may match. No entry has been selected.')).toBeVisible()
-  expect(screen.queryByRole('article')).not.toBeInTheDocument()
+  expect(await screen.findByRole('article', { name: 'رحم' })).toBeVisible()
+  expect(screen.getByRole('article', { name: 'حمد' })).toBeVisible()
+  expect(screen.queryByText('More than one Mufradāt entry may match. No entry has been selected.')).not.toBeInTheDocument()
 })
 
 it('hides the previous entry when another word is selected', async () => {

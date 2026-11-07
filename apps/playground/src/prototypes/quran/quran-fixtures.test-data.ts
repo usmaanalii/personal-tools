@@ -1,5 +1,9 @@
-import { WordSchema, type QuranWord } from '@scratch-pages/api-contracts/quran'
+import { WordSchema, LanePageResponseSchema, type LanePageResponse, type QuranWord } from '@scratch-pages/api-contracts/quran'
 import type { Chapter, Ayah } from './quran-api'
+
+export function buildLanePage(overrides: Partial<LanePageResponse> = {}): LanePageResponse {
+  return LanePageResponseSchema.parse({ entries: [], entryIds: overrides.entries?.map(item => item.id) ?? [], revision: 'a'.repeat(64), nextCursor: null, ...overrides })
+}
 
 export const chapters: [Chapter, ...Chapter[]] = [
   { id: 1, name: 'Al-Fātiḥah', arabic: 'الفاتحة', meaning: 'The Opening', verses: 7, place: 'Meccan' },

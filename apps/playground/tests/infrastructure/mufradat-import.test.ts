@@ -9,6 +9,138 @@ import { reviewedMufradatEntries } from '../../data/mufradat/reviewed-entries.te
 
 const importer = new URL('../../scripts/mufradat-data/import.py', import.meta.url).pathname
 
+it('validates an exact inspected opening for a genuine colonless lexical heading', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'mufradat-opening-'))
+  try {
+    const mappings = join(output, 'mappings.json')
+    await writeFile(mappings, JSON.stringify({ entries: [{ start: 13340, end: 13417, headword: 'كفر', next: 'كفل', opening: '# كفر الكفر في اللغة ستر الشيء : ووصف الليل بالكافر لستره الأشخاص ،' }], roots: { كفر: ['jk-l13340'] }, lemmas: {} }))
+    execFileSync('python3', [importer, '--mappings', mappings, '--output', join(output, 'data')])
+    const entry = MufradatEntrySchema.parse(JSON.parse(await readFile(join(output, 'data/entries/jk-l13340.json'), 'utf8')))
+    expect(entry).toMatchObject({ id: 'jk-l13340', headword: 'كفر', startLine: 13340, endLine: 13417 })
+    expect(entry.raw).toMatch(/^# كفر الكفر في اللغة ستر الشيء :/)
+    expect(entry.raw).not.toContain('# كفل :')
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+})
+
+it('rejects an explicit opening whose printed headword differs from the catalogue', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'mufradat-wrong-opening-'))
+  try {
+    const mappings = join(output, 'mappings.json')
+    await writeFile(mappings, JSON.stringify({ entries: [{ start: 13340, end: 13417, headword: 'كتب', next: 'كفل', opening: '# كفر الكفر في اللغة ستر الشيء : ووصف الليل بالكافر لستره الأشخاص ،' }], roots: { كتب: ['jk-l13340'] }, lemmas: {} }))
+    expect(() => execFileSync('python3', [importer, '--mappings', mappings, '--output', join(output, 'data')], { stdio: 'pipe' })).toThrow(/Entry boundary mismatch/)
+    expect(await readdir(output)).not.toContain('data')
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+})
+
+it('validates the exact next opening when the following lexical heading has no colon', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'mufradat-next-opening-'))
+  try {
+    const mappings = join(output, 'mappings.json')
+    await writeFile(mappings, JSON.stringify({ entries: [{ start: 1688, end: 1698, headword: 'بقر', next: 'بقل', nextOpening: '# بقل قوله تعالى : @QB@ بقلها وقثائها @QE@ البقل ما لا ينبت أصله وفرعه' }], roots: { بقر: ['jk-l1688'] }, lemmas: {} }))
+    execFileSync('python3', [importer, '--mappings', mappings, '--output', join(output, 'data')])
+    const entry = MufradatEntrySchema.parse(JSON.parse(await readFile(join(output, 'data/entries/jk-l1688.json'), 'utf8')))
+    expect(entry).toMatchObject({ id: 'jk-l1688', headword: 'بقر', endLine: 1698 })
+    expect(entry.raw).not.toContain('# بقل')
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+})
+
+it('imports the inspected Al-Baqarah expansion while preserving the original lemma exceptions', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'mufradat-expanded-'))
+  try {
+    execFileSync('python3', [importer, '--expanded', '--output', output])
+    const index: unknown = JSON.parse(await readFile(join(output, 'index.json'), 'utf8'))
+    expect(index).toMatchObject({ roots: { كتب: ['jk-l13005'], رزق: ['jk-l5926'], نفق: ['jk-l15505'], علم: ['jk-l10519'] }, lemmas: { 'ٱسْم': ['jk-l7446'], 'ٱللَّه': ['jk-l575'] } })
+    const entry = MufradatEntrySchema.parse(JSON.parse(await readFile(join(output, 'entries/jk-l15505.json'), 'utf8')))
+    expect(entry).toMatchObject({ id: 'jk-l15505', headword: 'نفق', startLine: 15505, endLine: 15522 })
+    expect(entry.raw).toContain('# نفق :')
+    expect(entry.raw).not.toContain('# نفل :')
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+})
+
+it('provides reviewed entries for exact rootless particle lemmas without inventing roots', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'mufradat-particles-'))
+  try {
+    execFileSync('python3', [importer, '--expanded', '--output', output])
+    const index: unknown = JSON.parse(await readFile(join(output, 'index.json'), 'utf8'))
+    expect(index).toMatchObject({ lemmas: {
+      'إِلَىٰ': ['jk-l594'], 'لَا': ['jk-l14106'], 'لَم': ['jk-l13969'],
+      'ثُمّ': ['jk-l2442'], 'حَتَّىٰ': ['jk-l3241'], 'هَل': ['jk-l16834'],
+    } })
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+})
+
+it('maps reviewed weak and hamza root spellings to their complete source entries', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'mufradat-aliases-'))
+  try {
+    execFileSync('python3', [importer, '--expanded', '--output', output])
+    const index: unknown = JSON.parse(await readFile(join(output, 'index.json'), 'utf8'))
+    expect(index).toMatchObject({ roots: { امن: ['jk-l717'], يقن: ['jk-l17063'], صلو: ['jk-l8737'], هدي: ['jk-l16632'] } })
+    const entry = MufradatEntrySchema.parse(JSON.parse(await readFile(join(output, 'entries/jk-l8737.json'), 'utf8')))
+    expect(entry).toMatchObject({ headword: 'صلا', startLine: 8737, endLine: 8773 })
+    expect(entry.raw).toContain('الصلاة')
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+})
+
+it('imports an explicitly reviewed final entry ending at the pinned source EOF', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'mufradat-eof-'))
+  try {
+    const mappings = join(output, 'mappings.json')
+    await writeFile(mappings, JSON.stringify({ entries: [{ start: 17109, end: 17110, headword: 'ياء', next: null }], roots: {}, lemmas: {} }))
+    execFileSync('python3', [importer, '--mappings', mappings, '--output', join(output, 'data')])
+    const entry = MufradatEntrySchema.parse(JSON.parse(await readFile(join(output, 'data/entries/jk-l17109.json'), 'utf8')))
+    expect(entry).toMatchObject({ headword: 'ياء', startLine: 17109, endLine: 17110, pages: ['PageV01P553', 'PageV01P554'] })
+    expect(entry.raw).toContain('PageV01P554')
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+})
+
+it('rejects an internal prose heading that overlaps its containing lexical entry before publishing data', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'mufradat-overlap-'))
+  try {
+    const mappings = join(output, 'mappings.json')
+    await writeFile(mappings, JSON.stringify({ entries: [
+      { start: 6273, end: 6288, headword: 'ريب', next: 'روح' },
+      { start: 6280, end: 6288, headword: 'ومثله', next: 'روح' },
+    ], roots: { ريب: ['jk-l6273'] }, lemmas: {} }))
+    expect(() => execFileSync('python3', [importer, '--mappings', mappings, '--output', join(output, 'data')], { stdio: 'pipe' })).toThrow(/Overlapping entry ranges/)
+    expect(await readdir(output)).not.toContain('data')
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+})
+
+it('audits every source word and leaves unreviewed Mufradat associations unresolved', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'mufradat-coverage-'))
+  try {
+    execFileSync('python3', [importer, '--expanded', '--output', output])
+    const report: unknown = JSON.parse(await readFile(join(output, 'coverage.json'), 'utf8'))
+    expect(report).toMatchObject({
+      inventory: { words: 77429, roots: 1642, lemmas: 4817 },
+      baseline: { baqarah: { words: 5221, matchedWords: 279 } },
+      wordAudit: { '2:3:8': { verified: true, association: 'source-associated' }, '112:3:1': { verified: false, association: 'source-associated' } },
+      roots: { mapped: expect.arrayContaining(['حزن', 'بصر', 'رسل', 'كفر', 'مرض', 'يتم', 'ريب']), unresolved: expect.arrayContaining([expect.objectContaining({ key: 'خزن' })]) },
+    })
+    const index: unknown = JSON.parse(await readFile(join(output, 'index.json'), 'utf8'))
+    expect(index).toMatchObject({ roots: { حزن: ['jk-l3508'], بقر: ['jk-l1688'], بعد: ['jk-l1592', 'jk-l1605'] } })
+    expect(await readdir(join(output, 'entries'))).not.toContain('jk-l4488.json')
+  } finally {
+    await rm(output, { recursive: true, force: true })
+  }
+})
+
 async function importedFiles(directory: string, relative = ''): Promise<{ path: string; bytes: Buffer }[]> {
   const entries = await readdir(join(directory, relative), { withFileTypes: true })
   const files = await Promise.all(entries.map(async entry => {

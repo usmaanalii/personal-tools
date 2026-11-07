@@ -1,6 +1,6 @@
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { createQuranHandler } from '../../quran/handler.ts'
-import { LaneResponseSchema } from '../../../../packages/api-contracts/src/quran.ts'
+import { LaneResponseSchema, LanePageResponseSchema } from '../../../../packages/api-contracts/src/quran.ts'
 import { createBundledLaneReader } from '../../quran/bundled-lane.ts'
 import { execFileSync } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -16,15 +16,82 @@ function request(query = 'root=%D8%B3%D9%85%D9%88&lemma=%D9%B1%D8%B3%D9%92%D9%85
   return new Request(`https://example.com/functions/v1/quran/v2/dictionary?${query}`, { headers: { Origin: origin } })
 }
 
-async function withLaneData(run: (reader: ReturnType<typeof createBundledLaneReader>, directory: string) => Promise<void>) {
+async function withLaneData(run: (reader: ReturnType<typeof createBundledLaneReader>, directory: string) => Promise<void>, expanded = false) {
   const directory = await mkdtemp(join(tmpdir(), 'lane-backend-'))
   try {
-    execFileSync('python3', [new URL('../../../../apps/playground/scripts/lane-data/import.py', import.meta.url).pathname, '--output', directory])
+    if (expanded) execFileSync('pnpm', ['--filter', 'playground', 'lane:data', '--output', directory], { stdio: 'pipe' })
+    else execFileSync('python3', [new URL('../../../../apps/playground/scripts/lane-data/import.py', import.meta.url).pathname, '--output', directory])
     await run(createBundledLaneReader(readFile, pathToFileURL(`${directory}/`)), directory)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 }
+
+it('registers the deployed entry point with expanded dictionary delivery', async () => {
+  await withLaneData(async (_reader, directory) => {
+    const registered = Promise.withResolvers<(request: Request) => Promise<Response>>()
+    const packaged = new URL('../../quran/lane-data/', import.meta.url)
+    vi.stubGlobal('Deno', {
+      env: { get: () => undefined },
+      serve: (handler: (request: Request) => Promise<Response>) => registered.resolve(handler),
+      readFile: (path: URL) => {
+        if (!path.href.startsWith(packaged.href)) throw new Error('Unexpected asset path')
+        return readFile(new URL(path.href.slice(packaged.href.length), pathToFileURL(`${directory}/`)))
+      },
+    })
+    try {
+      vi.resetModules()
+      await import('../../quran/index.ts')
+      const response = await (await registered.promise)(new Request('https://example.com/functions/v1/quran/v2/dictionary/entries?root=نفق', { headers: { Origin: origin } }))
+      expect(response.status).toBe(200)
+      expect(LanePageResponseSchema.parse(await response.json()).entries).toEqual(expect.arrayContaining([expect.objectContaining({ entry: expect.objectContaining({ root: 'نفق' }) })]))
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  }, true)
+}, 30_000)
+
+it('serves every entry in a large expanded root through bounded pages while retaining the legacy response', async () => {
+  await withLaneData(async reader => {
+    const handler = createHandler({ readDictionary: reader, readDictionaryPage: reader.page })
+    const firstResponse = await handler(new Request('https://example.com/functions/v1/quran/v2/dictionary/entries?root=كتب', { headers: { Origin: origin } }))
+    expect(firstResponse.status).toBe(200)
+    const first = LanePageResponseSchema.parse(await firstResponse.json())
+    expect(first.entries).toHaveLength(12)
+    expect(first.entryIds.length).toBeGreaterThan(12)
+    expect(first.nextCursor).not.toBeNull()
+    async function remaining(cursor: string | null): Promise<string[]> {
+      if (!cursor) return []
+      const response = await handler(new Request(`https://example.com/functions/v1/quran/v2/dictionary/entries?${new URLSearchParams({ root: 'كتب', cursor })}`, { headers: { Origin: origin } }))
+      expect(response.status).toBe(200)
+      const page = LanePageResponseSchema.parse(await response.json())
+      expect(page.revision).toBe(first.revision)
+      return [...page.entries.map(item => item.id), ...await remaining(page.nextCursor)]
+    }
+    expect([...first.entries.map(item => item.id), ...await remaining(first.nextCursor)]).toEqual(first.entryIds)
+    expect(first.entries.every(item => item.entry?.root === 'كتب')).toBe(true)
+    const legacy = await handler(request('root=رحم'))
+    expect(LaneResponseSchema.parse(await legacy.json()).entries.map(item => item.id)).toEqual(['n15076', 'n15091', 'n15096'])
+  }, true)
+}, 30_000)
+
+it('rejects dictionary continuations belonging to another lookup or dataset revision', async () => {
+  await withLaneData(async reader => {
+    const handler = createHandler({ readDictionaryPage: reader.page })
+    const response = await handler(new Request('https://example.com/functions/v1/quran/v2/dictionary/entries?root=كتب', { headers: { Origin: origin } }))
+    const first = LanePageResponseSchema.parse(await response.json())
+    const cursor = first.nextCursor
+    if (!cursor) throw new Error('The real root must require continuation')
+    const responses = await Promise.all([
+      { root: 'علم', cursor },
+      { root: 'كتب', cursor: cursor.replace(/^[^.]+/, '0'.repeat(64)) },
+      { root: 'كتب', cursor: 'invalid' },
+      { root: 'كتب', cursor: '' },
+      { root: 'كتب', cursor: `${cursor}.extra` },
+    ].map(query => handler(new Request(`https://example.com/functions/v1/quran/v2/dictionary/entries?${new URLSearchParams(query)}`, { headers: { Origin: origin } }))))
+    expect(responses.map(result => result.status)).toEqual([400, 400, 400, 400, 400])
+  }, true)
+}, 30_000)
 
 it('serves owned Lane entries on demand without requesting Quran Foundation content', async () => {
   const handler = createHandler({
