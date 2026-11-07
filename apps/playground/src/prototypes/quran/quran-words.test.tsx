@@ -8,6 +8,7 @@ import App from '../../app/app'
 import { server, quranEndpoint } from '../../test-server'
 import { buildWord, chapters } from './quran-fixtures.test-data'
 import { importCorpus } from '../../../scripts/quran-data/corpus'
+import { buildMufradatEntry } from './mufradat-fixtures.test-data'
 
 function grammarChapter() {
   const chapter = importCorpus('(1:1:1:1)\tbi\tP\tPREFIX|bi+\n(1:1:1:2)\tsomi\tN\tSTEM|POS:N|LEM:{som|ROOT:smw|M|GEN').chapters['1']
@@ -50,6 +51,57 @@ async function renderWords({ verseWords = words(), chapter = 1, verseNumber = 1 
   return { user, word }
 }
 afterEach(() => window.history.pushState({}, '', '/'))
+
+it('reuses a no-match result when word details are reopened', async () => {
+  const requests: string[] = []
+  server.use(http.get(`${quranEndpoint}/mufradat`, ({ request }) => { requests.push(request.url); return HttpResponse.json({ status: 'missing' }) }))
+  const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() })] })
+  await user.click(word)
+  await user.click(screen.getByRole('tab', { name: 'Mufradāt' }))
+  await screen.findByText('No verified Mufradāt entry is available for this word.')
+  await user.click(screen.getByRole('button', { name: 'Close word meaning' }))
+  await user.click(word)
+  await user.click(screen.getByRole('tab', { name: 'Mufradāt' }))
+  await screen.findByText('No verified Mufradāt entry is available for this word.')
+  expect(requests).toHaveLength(1)
+})
+
+it('reuses a loaded entry when word details are reopened', async () => {
+  const entry = buildMufradatEntry('jk-l7446')
+  const opening = entry.paragraphs[0]
+  if (!opening) throw new Error('Expected an opening paragraph in the reviewed name entry')
+  const requests: string[] = []
+  server.use(http.get(`${quranEndpoint}/mufradat`, ({ request }) => {
+    const query = new URL(request.url).searchParams
+    if (query.get('root') !== 'سمو' || query.get('lemma') !== 'ٱسْم') return new HttpResponse(null, { status: 400 })
+    requests.push(request.url)
+    return HttpResponse.json({ status: 'matched', entry })
+  }))
+  const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() })] })
+  await user.click(word)
+  await user.click(screen.getByRole('tab', { name: 'Mufradāt' }))
+  expect(within(await screen.findByRole('article', { name: entry.headword })).getByText(opening)).toBeVisible()
+  await user.click(screen.getByRole('button', { name: 'Close word meaning' }))
+  await user.click(word)
+  await user.click(screen.getByRole('tab', { name: 'Mufradāt' }))
+  expect(within(await screen.findByRole('article', { name: entry.headword })).getByText(opening)).toBeVisible()
+  expect(requests).toHaveLength(1)
+})
+
+it('loads Mufradāt only when opened and leaves grammar and contextual meaning usable', async () => {
+  const requests: string[] = []
+  server.use(http.get(`${quranEndpoint}/mufradat`, ({ request }) => { requests.push(request.url); return HttpResponse.json({ status: 'missing' }) }))
+  const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() })] })
+  await user.click(word)
+  expect(requests).toEqual([])
+  await user.click(screen.getByRole('tab', { name: 'Mufradāt' }))
+  const panel = within(screen.getByRole('tabpanel', { name: 'Mufradāt' }))
+  expect(await panel.findByText('No verified Mufradāt entry is available for this word.')).toBeVisible()
+  expect(panel.getByText('In (the) name')).toBeVisible()
+  expect(requests).toHaveLength(1)
+  await user.click(screen.getByRole('tab', { name: 'Grammar' }))
+  expect(screen.getByText('Stem · Noun')).toBeVisible()
+})
 
 it('shows Grammar initially and retains Dictionary when the next word is selected', async () => {
   const requests: string[] = []

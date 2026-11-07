@@ -268,10 +268,33 @@ and reopening the dialog. Changing the chapter/page clears that local cache.
 Initial coverage is eight entries through three root mappings and two lemma
 exceptions. This is not complete dictionary coverage. See [sources, mappings,
 licence, import commands and journey states](data/lane/README.md).
+
 No new frontend environment variables are required. Generate backend files with
 `pnpm --filter playground lane:data`, then deploy and verify the complete Quran
 function before publishing this frontend. Backend version 9 was deployed and verified
 on 2026-11-06 from `af358a5`; the Pages workflow publishes the frontend separately.
+
+### Original Arabic Mufradāt (#21)
+
+The Mufradāt tab loads al-Rāghib’s original Arabic explanation for reviewed
+root/lemma matches through the existing Supabase Quran function.
+Entries expand inside the word sheet while its selected-word context stays visible.
+Missing matches, ambiguous mappings and retryable failures have separate states.
+Meaning, grammar and Lane remain independently usable.
+
+The initial mapping set contains four inspected entries, three root keys and two
+lemma exceptions. It uses OpenITI’s cleaned `JK001150-ara1` version with exact
+source ranges, page markers, checksum and attribution.
+The Arabic data and mapping adaptation use CC BY-NC-SA 4.0, including its
+non-commercial and ShareAlike conditions. No English translation is included.
+See [edition comparison, review limits, imports and coverage](data/mufradat/README.md).
+
+Run `pnpm --filter playground mufradat:data` before bundling the Quran function.
+Frontend development/builds generate attribution notices only.
+The API delivery supersedes #21’s original static entry-asset proposal.
+It uses existing browser configuration and works independently of the Pages prefix.
+Backend version 10 includes the four entries. Publish the frontend through Pages
+after verifying the backend, then run the deployment smoke against the published site.
 
 ## Default-guide adoption (#28)
 

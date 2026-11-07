@@ -1,6 +1,7 @@
 import { createQuranHandler } from './handler.ts'
 import { createBundledMorphologyReader } from './bundled-morphology.ts'
 import { createBundledLaneReader } from './bundled-lane.ts'
+import { createBundledMufradatReader } from './bundled-mufradat.ts'
 
 const handler = createQuranHandler({
   clientId: Deno.env.get('QF_CLIENT_ID') ?? '',
@@ -9,6 +10,7 @@ const handler = createQuranHandler({
   origins: (Deno.env.get('QF_ALLOWED_ORIGINS') ?? 'https://usmaanalii.github.io').split(',').map(origin => origin.trim()).filter(Boolean),
   readMorphology: createBundledMorphologyReader(Deno.readFile),
   readDictionary: createBundledLaneReader(Deno.readFile),
+  readMufradat: createBundledMufradatReader(Deno.readFile),
 })
 
 Deno.serve(handler)

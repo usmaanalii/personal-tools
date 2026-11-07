@@ -51,6 +51,15 @@ Older v2 responses without grammar remain valid. `VERSES_PER_PAGE` owns the
 
 Ordinary Zod objects accept and strip unknown response fields so additive server changes remain compatible. Do not use strict response objects. Removing fields, changing types, requiring new inputs, and expanding exhaustively handled enums require compatibility planning. Keep the legacy Quran routes available until their consumers have migrated; package versions alone do not protect existing browser builds.
 
+Mufradāt uses `MufradatRequestSchema` with the same bounded exact root/lemma
+query contract as Lane. `GET /functions/v1/quran/v2/mufradat` returns a
+`MufradatResponseSchema`: `matched` with one original Arabic entry, `missing`, or
+`ambiguous` with candidate IDs. No candidate is silently selected.
+Entry data includes an ID, Arabic headword, full paragraphs, the original raw span,
+actual page markers and a pinned source link with line numbers.
+Backend read/validation failures use the existing safe JSON error with HTTP 503.
+The route is an additive local implementation; deploy it before publishing its client.
+
 ## Verification and deployment
 
 From the repository root:

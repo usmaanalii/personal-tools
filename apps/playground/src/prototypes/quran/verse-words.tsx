@@ -6,6 +6,8 @@ import { WordContent } from './word-content'
 import { WordDialog } from './word-dialog'
 import { WordGrammar } from './word-grammar'
 import { WordDictionary } from './word-dictionary'
+import { WordMufradat } from './word-mufradat'
+import { createMufradatReader } from './mufradat-data'
 import { createLaneReader } from './lane-data'
 import type { GrammarRecovery } from './use-reader'
 
@@ -14,6 +16,7 @@ export function VerseWords({ verse, chapterName, readingFocusRef, onGrammarRecov
 }) {
   const selection = useWordSelection(verse.words)
   const [dictionaryReader] = useState(createLaneReader)
+  const [mufradatReader] = useState(createMufradatReader)
   const buttons = useRef(new Map<number, HTMLButtonElement>())
   const { word } = selection
   return <>
@@ -28,13 +31,19 @@ export function VerseWords({ verse, chapterName, readingFocusRef, onGrammarRecov
     {word && <WordDialog dismiss={selection.clear} getReturnFocusTarget={() => buttons.current.get(word.position)} fallbackFocusRef={readingFocusRef}
       summary={<WordContent word={word} chapterName={chapterName}/> }>
       <TabsRoot defaultValue="grammar" activationMode="manual" className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)]">
-        <TabsList aria-label="Word details" className="flex border-b border-ui-border">
+        <TabsList aria-label="Word details" className="flex border-b border-ui-border [&>button]:flex-1 [&>button]:whitespace-nowrap [&>button]:px-2">
           <TabsTrigger value="grammar">Grammar</TabsTrigger>
           <TabsTrigger value="dictionary">Dictionary</TabsTrigger>
+          <TabsTrigger value="mufradat">Mufradāt</TabsTrigger>
         </TabsList>
         <TabsContent key={`grammar:${word.position}`} value="grammar" className="min-h-0 overflow-auto px-1 [scrollbar-gutter:stable]">
           <p className="mt-3 text-base font-semibold">{word.meaning ?? 'Meaning unavailable for this word.'}</p>
           <WordGrammar word={word} onGrammarRecovered={onGrammarRecovered}/>
+          <div role="note" aria-label="Word sources" className="mt-6 border-t border-ui-border pt-3 text-sm text-ui-muted">English word data · Quran Foundation</div>
+        </TabsContent>
+        <TabsContent key={`mufradat:${word.position}`} value="mufradat" className="min-h-0 overflow-auto px-1 [scrollbar-gutter:stable]">
+          <p className="mt-3 text-base font-semibold">{word.meaning ?? 'Meaning unavailable for this word.'}</p>
+          <WordMufradat word={word} reader={mufradatReader}/>
           <div role="note" aria-label="Word sources" className="mt-6 border-t border-ui-border pt-3 text-sm text-ui-muted">English word data · Quran Foundation</div>
         </TabsContent>
         <TabsContent key={`dictionary:${word.position}`} value="dictionary" className="min-h-0 overflow-auto px-1 [scrollbar-gutter:stable]">

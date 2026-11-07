@@ -23,6 +23,9 @@ test('reads Quran content from the deployed app and backend after refresh', asyn
   await expect(entry).toBeVisible()
   await entry.getByRole('button', { name: 'Read full entry' }).click()
   await expect(entry.getByText('name', { exact: true }).first()).toBeVisible()
+  // Confirms the published client can read the Mufradat files bundled on Supabase.
+  await word.getByRole('tab', { name: 'Mufradāt', exact: true }).click()
+  await expect(word.getByRole('article', { name: 'سما', exact: true })).toBeVisible()
   await word.getByRole('button', { name: 'Close word meaning' }).click()
   const sources = page.getByRole('region', { name: 'Sources' })
   await expect(sources.getByRole('link', { name: 'Quranic Arabic Corpus v0.4' })).toBeVisible()

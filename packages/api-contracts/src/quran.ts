@@ -89,3 +89,24 @@ export const LaneResponseSchema = z.object({
     .refine(entries => new Set(entries.map(item => item.id)).size === entries.length, 'Duplicate entries'),
 })
 export type LaneResponse = z.infer<typeof LaneResponseSchema>
+
+export const MufradatRequestSchema = LaneRequestSchema
+export type MufradatRequest = z.infer<typeof MufradatRequestSchema>
+export const MufradatEntryIdSchema = z.string().regex(/^jk-l[1-9]\d*$/)
+export const MufradatEntrySchema = z.object({
+  id: MufradatEntryIdSchema,
+  headword: z.string().min(1),
+  startLine: z.number().int().positive(),
+  endLine: z.number().int().positive(),
+  sourceUrl: z.string().regex(/^https:\/\/github\.com\/OpenITI\/0525AH\/blob\/[a-f0-9]{40}\/data\/0502RaghibIsbahani\/0502RaghibIsbahani.Mufradat\/0502RaghibIsbahani.Mufradat.JK001150-ara1#L\d+-L\d+$/),
+  raw: z.string().min(1),
+  pages: z.array(z.string().regex(/^PageV\d+P\d+$/)),
+  paragraphs: z.array(z.string().min(1)).min(1),
+})
+export type MufradatEntry = z.infer<typeof MufradatEntrySchema>
+export const MufradatResponseSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('matched'), entry: MufradatEntrySchema }),
+  z.object({ status: z.literal('missing') }),
+  z.object({ status: z.literal('ambiguous'), ids: z.array(MufradatEntryIdSchema).min(2).max(12) }),
+])
+export type MufradatResponse = z.infer<typeof MufradatResponseSchema>

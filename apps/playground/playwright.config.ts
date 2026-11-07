@@ -20,7 +20,7 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['Pixel 7'], defaultBrowserType: 'chromium' } },
   ],
   webServer: [{
-    command: 'pnpm lane:data && deno run --frozen --config ../../supabase/functions/quran/deno.json --allow-env=QF_CLIENT_ID,QF_CLIENT_SECRET,QF_ENV,QF_ALLOWED_ORIGINS,NODE_ENV --allow-read=../../supabase/functions/quran --allow-net=0.0.0.0:8000 ../../supabase/functions/quran/index.ts',
+    command: 'pnpm lane:data && pnpm mufradat:data && deno run --frozen --config ../../supabase/functions/quran/deno.json --allow-env=QF_CLIENT_ID,QF_CLIENT_SECRET,QF_ENV,QF_ALLOWED_ORIGINS,NODE_ENV --allow-read=../../supabase/functions/quran --allow-net=0.0.0.0:8000 ../../supabase/functions/quran/index.ts',
     env: { QF_CLIENT_ID: '', QF_CLIENT_SECRET: '', QF_ENV: 'prelive', QF_ALLOWED_ORIGINS: 'http://127.0.0.1:5173' },
     url: 'http://127.0.0.1:8000/',
     reuseExistingServer: false,

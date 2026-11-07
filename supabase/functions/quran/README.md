@@ -184,9 +184,49 @@ Deploy and verify name/Allah matches, multiple mercy entries, no-match and retry
 outcomes, CORS and existing content before frontend publication.
 The #20 route is available in function version 9, recorded below.
 
+## Mufradāt (#21, local implementation)
+
+`GET /functions/v1/quran/v2/mufradat?root=رحم` serves the inspected original
+Arabic entry through this function’s existing public read-only API pattern.
+It accepts exact root and/or lemma keys with Lane’s request bounds.
+The route requires no Quran Foundation call or credentials.
+It shares the existing CORS, methods, safe errors, timeout and per-instance budget.
+Successful responses distinguish matched, missing and ambiguous data.
+Source/index/entry read failures return a safe 503 and remain retryable.
+
+`bundled-mufradat.ts` checks asset checksums and caches successfully validated data.
+The source review, four-entry mapping set and CC BY-NC-SA 4.0 conditions are
+documented in [Mufradāt sources](../../../apps/playground/data/mufradat/README.md).
+Only original Arabic is distributed. No published English translation is included.
+
+Before deployment, generate all three datasets:
+
+```sh
+pnpm --filter playground quran:backend
+pnpm --filter playground lane:data
+pnpm --filter playground mufradat:data
+```
+
+The last command uses Python 3 and pinned offline inputs.
+`static_files` includes `mufradat-data/entries/*.json`, the index, manifest and notice.
+Deploy the complete function with the Docker bundler.
+Verify name/Allah exceptions, رحم and حمد, missing data, invalid input, CORS,
+existing Lane/content routes and bundle inclusion before frontend publication.
+Local Node/MSW and Deno/browser evidence does not prove hosted deployment.
+Version 10 includes the four entries. Live checks compare each hosted entry with
+the pinned import output before frontend publication.
+
 ## Deployed history
 
-Current deployment: function `quran` version 9, released on 2026-11-06 from
+Current deployment: function `quran` version 10, released on 2026-11-07 for #21
+with the Docker bundler and regenerated morphology, Lane and Mufradāt assets.
+The four hosted Mufradāt entries match the pinned import output, including Arabic
+wording, raw source ranges and page markers. Eleven live HTTP checks also cover
+missing matches, invalid input, preflight/CORS, Lane, pre-live chapter content,
+verse grammar and the legacy catalogue. The provider remains in pre-live.
+Frontend publication follows through Pages.
+
+Previous deployment: function `quran` version 9, released on 2026-11-06 from
 [af358a5](https://github.com/usmaanalii/personal-tools/commit/af358a5626b42194769736ddaadc514b01928487)
 with the Docker bundler and regenerated morphology/Lane assets. Eleven live HTTP
 checks verified name/Allah matches, distinct mercy entries, no match, v2 chapters,

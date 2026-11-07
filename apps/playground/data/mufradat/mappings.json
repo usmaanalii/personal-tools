@@ -1,0 +1,16 @@
+{
+  "entries": [
+    { "start": 575, "end": 593, "headword": "اله", "next": "إلى" },
+    { "start": 3990, "end": 4004, "headword": "حمد", "next": "حمر" },
+    { "start": 5840, "end": 5860, "headword": "رحم", "next": "رخا" },
+    { "start": 7446, "end": 7489, "headword": "سما", "next": "سنن" }
+  ],
+  "roots": { "حمد": ["jk-l3990"], "رحم": ["jk-l5840"], "سمو": ["jk-l7446"] },
+  "lemmas": { "ٱسْم": ["jk-l7446"], "ٱللَّه": ["jk-l575"] },
+  "notes": {
+    "سمو": "The source headword سما explicitly explains الاسم from سمو at lines 7461–7464. Do not match بسم (smiling).",
+    "ٱللَّه": "The source headword اله begins with الله and discusses إله at lines 575–593. This is the source's explanation, not a verified historical etymology.",
+    "حمد": "Exact root/headword at lines 3990–4004. Ends before حمر, not حمل.",
+    "رحم": "Exact root/headword at lines 5840–5860. Includes الرحمن والرحيم. Ends before رخا."
+  }
+}

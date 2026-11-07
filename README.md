@@ -33,6 +33,12 @@ existing Supabase Quran function. Its initial reviewed mapping set covers eight
 entries. Backend version 9 was deployed and verified before frontend publication.
 See [dictionary sources and coverage](apps/playground/data/lane/README.md).
 
+The #21 implementation adds original Arabic Mufradāt entries through the
+same Supabase function. It includes four inspected entries from OpenITI’s cleaned
+JK edition. Backend version 10 includes the four entries; frontend publication
+follows the approved push through Pages.
+See [edition review, licence and mappings](apps/playground/data/mufradat/README.md).
+
 - Search for a chapter by name or English meaning.
 - Open a chapter to read Arabic text with an English translation.
 - Tap an Arabic word for its English meaning and transliteration, then move between words in the verse.
