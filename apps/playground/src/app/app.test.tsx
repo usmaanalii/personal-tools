@@ -37,4 +37,15 @@ describe('Playground navigation', () => {
     expect(screen.getByRole('link', { name: /Supabase API demo/i }).getAttribute('href')).toMatch(/supabase\/$/)
   })
 
+  it('opens the word availability comparison from its own Playground destination', async () => {
+    renderAtPath('/')
+    const destination = screen.getByRole('link', { name: /Quran word availability/i })
+    const href = destination.getAttribute('href')
+    expect(href).toBe(`${import.meta.env.BASE_URL}quran-word-availability/`)
+
+    window.history.pushState({}, '', href)
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: 'Quran word availability' })).toBeVisible()
+  })
+
 })

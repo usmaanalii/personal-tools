@@ -3,6 +3,7 @@ import './home.css'
 const basePath = import.meta.env.BASE_URL
 const destinations = [
   { path: 'quran/', title: 'Quran reader', description: 'Explore chapters and read verses in a calm, phone-first layout.' },
+  { path: 'quran-word-availability/', title: 'Quran word availability', description: 'See which sources have data for each word in sample verses.' },
   { path: 'supabase/', title: 'Supabase API demo', description: 'Send a request to a public Edge Function and inspect its response.' },
 ] as const
 

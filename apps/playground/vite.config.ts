@@ -14,6 +14,7 @@ export default defineConfig({
       input: {
         main: resolve(appRoot, 'index.html'),
         quran: resolve(appRoot, 'quran/index.html'),
+        quranWordAvailability: resolve(appRoot, 'quran-word-availability/index.html'),
         supabase: resolve(appRoot, 'supabase/index.html'),
       },
     },

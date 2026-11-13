@@ -16,6 +16,8 @@ The Playground homepage, route-loading shells, Quran interface and two connectio
 
 The playground is a small collection of tools and experiments. Start at the [index page](https://usmaanalii.github.io/personal-tools/) to choose one.
 
+The Quran word availability prototype uses captured verses to show whether each of the three sources has data for a word. [Design decision and verification](apps/playground/src/prototypes/quran/word-availability-review.md)
+
 ### Quran reader
 
 **Page:** [Open the Quran reader](https://usmaanalii.github.io/personal-tools/quran/)
