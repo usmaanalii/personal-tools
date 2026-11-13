@@ -21,10 +21,11 @@ test('keeps dense verse controls within the built reader after direct load and r
   })
 
   await page.goto('./quran/')
-  const reading = page.getByRole('complementary', { name: 'Current chapter' })
+  const reading = page.getByRole('region', { name: 'Current chapter' })
   await expect(reading.getByRole('heading', { name: 'Al-Fātiḥah' })).toBeVisible()
   await page.reload()
   await expect(reading.getByRole('button', { name: / · 1:1:1$/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Chapters' }).click()
   await page.getByRole('button', { name: /^2\s*Al-Baqarah/ }).click()
 
   const verseRegion = reading.getByRole('region', { name: 'Verses' })

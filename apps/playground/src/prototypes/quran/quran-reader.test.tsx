@@ -16,10 +16,24 @@ async function renderReader() {
 
 afterEach(() => window.history.pushState({}, '', '/'))
 
+it('opens Read by default and shows only the selected destination', async () => {
+  const { user } = await renderReader()
+  const controls = within(screen.getByRole('navigation', { name: 'Reader controls' }))
+  expect(controls.getByRole('button', { name: 'Read', pressed: true })).toBeVisible()
+  expect(screen.queryByRole('heading', { name: /^Chapters/ })).not.toBeInTheDocument()
+  expect(screen.queryByText('A moment with the Quran.')).not.toBeInTheDocument()
+
+  await user.click(controls.getByRole('button', { name: 'Chapters' }))
+  expect(screen.getByRole('heading', { name: /^Chapters/ })).toHaveFocus()
+  expect(screen.queryByRole('region', { name: 'Verses' })).not.toBeInTheDocument()
+  await user.click(controls.getByRole('button', { name: 'Read' }))
+  expect(screen.getByRole('region', { name: 'Verses' })).toBeVisible()
+})
+
 it('shows the saved verse and focuses Bookmarks when Bookmarks is selected', async () => {
   const { user } = await renderReader()
   const header = within(screen.getByRole('navigation', { name: 'Reader controls' }))
-  expect(header.getByRole('button', { name: 'Chapters', pressed: true })).toBeVisible()
+  expect(header.getByRole('button', { name: 'Read', pressed: true })).toBeVisible()
   await user.click(screen.getByRole('button', { name: 'Bookmark verse 1' }))
   await user.click(header.getByRole('button', { name: /Bookmarks/ }))
   expect(screen.getByRole('heading', { name: 'Bookmarks 1' })).toHaveFocus()
@@ -32,17 +46,19 @@ it('keeps the reader shell visible and announces chapter loading', async () => {
   render(<App />)
 
   expect(await screen.findByText('Loading chapters…')).toHaveAttribute('role', 'status')
-  expect(screen.getByRole('heading', { name: 'A moment with the Quran.' })).toBeVisible()
+  expect(screen.getByRole('heading', { name: 'Quran reader' })).toBeVisible()
   expect(screen.getByRole('region', { name: 'Sources' })).toBeVisible()
-  const reading = screen.getByRole('complementary', { name: 'Current chapter' })
+  const reading = screen.getByRole('region', { name: 'Current chapter' })
   expect(reading).toHaveAttribute('aria-busy', 'true')
   expect(within(reading).queryByRole('button')).not.toBeInTheDocument()
 })
 
-it('opens Al-Baqarah when its chapter shortcut is selected', async () => {
+it('opens Al-Baqarah at the beginning when selected in Chapters', async () => {
   const { user } = await renderReader()
-  await user.click(screen.getByRole('button', { name: /^Open Al-Baqarah/ }))
-  expect(await screen.findByRole('heading', { name: 'Al-Baqarah' })).toBeVisible()
+  await user.click(screen.getByRole('button', { name: 'Chapters' }))
+  await user.click(screen.getByRole('button', { name: /Al-Baqarah/ }))
+  expect(await screen.findByRole('heading', { name: 'Al-Baqarah' })).toHaveFocus()
+  expect(screen.getByText('Page 1')).toBeVisible()
 })
 
 it('announces verse loading when changing chapters and shows the new translation when ready', async () => {
@@ -52,7 +68,7 @@ it('announces verse loading when changing chapters and shows the new translation
   await user.click(screen.getByRole('button', { name: /^NEXT/ }))
 
   expect(screen.getByRole('status')).toHaveTextContent('Loading verses…')
-  expect(screen.getByRole('complementary', { name: 'Current chapter' })).not.toContainElement(screen.getByRole('status'))
+  expect(screen.getByRole('region', { name: 'Current chapter' })).not.toContainElement(screen.getByRole('status'))
   const verses = screen.getByRole('region', { name: 'Verses' })
   expect(verses).toHaveAttribute('aria-busy', 'true')
   expect(screen.queryByText('All praise is for Allah—Lord of all worlds,')).not.toBeInTheDocument()
@@ -65,10 +81,10 @@ it('announces verse loading when changing chapters and shows the new translation
 describe('Quran reader bookmarks', () => {
   it('announces which chapter view is selected when switching to Bookmarks', async () => {
     const { user } = await renderReader()
-    expect(screen.getByRole('button', { name: 'Chapters', pressed: true })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Read', pressed: true })).toBeVisible()
     await user.click(screen.getByRole('button', { name: /Bookmarks/, pressed: false }))
     expect(screen.getByRole('button', { name: /Bookmarks/, pressed: true })).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Chapters', pressed: false })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Read', pressed: false })).toBeVisible()
     expect(screen.getByText('Your saved verses will find a home here.')).toBeVisible()
   })
 
@@ -86,6 +102,7 @@ describe('Quran reader chapter search', () => {
   it('announces no matching chapters and retains the query when changing views', async () => {
     const { user } = await renderReader()
     const url = window.location.href
+    await user.click(screen.getByRole('button', { name: 'Chapters' }))
     await user.click(screen.getByRole('button', { name: 'Search chapters' }))
     await user.type(screen.getByRole('textbox', { name: 'Search chapters' }), 'unknown chapter')
     expect(screen.getByRole('status')).toHaveTextContent('No chapters match this search.')
@@ -97,6 +114,7 @@ describe('Quran reader chapter search', () => {
 
   it('returns focus to Search chapters and clears the query when search is closed', async () => {
     const { user } = await renderReader()
+    await user.click(screen.getByRole('button', { name: 'Chapters' }))
     const toggle = screen.getByRole('button', { name: 'Search chapters' })
     await user.click(toggle)
     await user.type(screen.getByRole('textbox', { name: 'Search chapters' }), 'Yūnus')
@@ -111,6 +129,7 @@ describe('Quran reader chapter search', () => {
   it('shows matching chapters when a chapter name is entered in Search chapters', async () => {
     const { user } = await renderReader()
 
+    await user.click(screen.getByRole('button', { name: 'Chapters' }))
     await user.click(screen.getByRole('button', { name: 'Search chapters' }))
     const search = screen.getByRole('textbox', { name: 'Search chapters' })
     await user.type(search, 'Yūnus')
@@ -124,6 +143,7 @@ describe('Quran reader chapter navigation', () => {
   it('shows the next available chapter when Next is selected', async () => {
     const { user } = await renderReader()
 
+    await user.click(screen.getByRole('button', { name: 'Chapters' }))
     await user.click(screen.getByRole('button', { name: /Yūnus/ }))
     await user.click(screen.getByRole('button', { name: /NEXT/ }))
 
@@ -133,6 +153,17 @@ describe('Quran reader chapter navigation', () => {
 })
 
 describe('Quran reader chapter bookmark', () => {
+  it('keeps a saved chapter tied to its original chapter after reading another', async () => {
+    const { user } = await renderReader()
+    await user.click(screen.getByRole('button', { name: 'Bookmark this chapter' }))
+    await user.click(screen.getByRole('button', { name: /^NEXT/ }))
+    expect(screen.getByRole('button', { name: 'Bookmark this chapter', pressed: false })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Bookmarks' }))
+    await user.click(screen.getByRole('button', { name: /Al-Fātiḥah/ }))
+    expect(screen.getByRole('heading', { name: 'Al-Fātiḥah' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Bookmark this chapter', pressed: true })).toBeVisible()
+  })
+
   it('marks the chapter bookmark as pressed when Bookmark this chapter is selected', async () => {
     const { user } = await renderReader()
 
@@ -152,8 +183,9 @@ describe('Quran reader saved verse removal', () => {
     await user.click(screen.getByRole('button', { name: /Al-Fātiḥah 1:1/ }))
     await user.click(screen.getByRole('button', { name: 'Bookmark verse 1', pressed: true }))
 
-    expect(screen.getByText('Your saved verses will find a home here.')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Bookmark verse 1', pressed: false })).toBeVisible()
+    await user.click(within(screen.getByRole('navigation', { name: 'Reader controls' })).getByRole('button', { name: 'Bookmarks' }))
+    expect(screen.getByText('Your saved verses will find a home here.')).toBeVisible()
   })
 })
 
@@ -192,7 +224,8 @@ describe('Quran request recovery and pagination', () => {
     render(<App />)
     const signal = await olderRequest
 
-    await user.click(screen.getByRole('button', { name: /^Open Al-Baqarah/ }))
+    await user.click(screen.getByRole('button', { name: 'Chapters' }))
+    await user.click(screen.getByRole('button', { name: /Al-Baqarah/ }))
 
     expect(await screen.findByText('Translation for chapter 2.')).toBeVisible()
     expect(signal.aborted).toBe(true)
@@ -204,8 +237,8 @@ describe('Quran request recovery and pagination', () => {
     window.history.pushState({}, '', '/quran/')
     render(<App />)
     expect(await screen.findByRole('alert')).toHaveTextContent('Quran content is not configured yet.')
-    expect(screen.getByRole('heading', { name: 'A moment with the Quran.' })).toBeVisible()
-    const reading = screen.getByRole('complementary', { name: 'Current chapter' })
+    expect(screen.getByRole('heading', { name: 'Quran reader' })).toBeVisible()
+    const reading = screen.getByRole('region', { name: 'Current chapter' })
     expect(reading).toHaveAttribute('aria-busy', 'false')
     expect(screen.queryByText(/private server detail/)).not.toBeInTheDocument()
     server.resetHandlers()
@@ -225,6 +258,10 @@ describe('Quran request recovery and pagination', () => {
     await screen.findByText('Page 1 translation.')
     await user.click(screen.getByRole('button', { name: 'Next verses' }))
     expect(await screen.findByText('Page 2 translation.')).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Al-Baqarah' })).toHaveFocus()
+    await user.click(screen.getByRole('button', { name: 'Chapters' }))
+    await user.click(screen.getByRole('button', { name: 'Read' }))
+    expect(screen.getByText('Page 2 translation.')).toBeVisible()
     expect(screen.queryByText('Page 1 translation.')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Next verses' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Bookmark verse 21' }))

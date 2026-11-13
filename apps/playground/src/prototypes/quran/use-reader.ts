@@ -43,7 +43,7 @@ export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
   const [page, setPage] = useState(1)
   const [attempt, setAttempt] = useState(0)
   const [activeVerse, setActiveVerse] = useState<number | null>(null)
-  const [bookmarked, setBookmarked] = useState(false)
+  const [savedChapterIds, setSavedChapterIds] = useState<readonly number[]>([])
   const [savedVerses, setSavedVerses] = useState<readonly SavedVerse[]>([])
   const key = `${selected}:${page}:${attempt}`
   const [verseState, setVerseState] = useState<VersesState>({ key, status: 'loading' })
@@ -102,8 +102,10 @@ export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
       nextChapter: chapters[chapterIndex + 1],
     },
     bookmarks: {
-      bookmarked, savedVerses, isVerseSaved,
-      count: savedVerses.length + (bookmarked ? 1 : 0),
+      bookmarked: savedChapterIds.includes(selected),
+      savedChapters: chapters.filter(item => savedChapterIds.includes(item.id)),
+      savedVerses, isVerseSaved,
+      count: savedVerses.length + savedChapterIds.length,
     },
     actions: {
       retryGrammar,
@@ -113,7 +115,9 @@ export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
         setActiveVerse(verseNumber)
       },
       toggleSavedVerse,
-      toggleChapterBookmark: () => setBookmarked(value => !value),
+      toggleChapterBookmark: () => setSavedChapterIds(ids => ids.includes(selected)
+        ? ids.filter(id => id !== selected)
+        : [...ids, selected]),
       activateVerse: (verseNumber: number) => setActiveVerse(verseNumber),
       previousPage: () => setPage(value => value - 1),
       nextPage: () => {

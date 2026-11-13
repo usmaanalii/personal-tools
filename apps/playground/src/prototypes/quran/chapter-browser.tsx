@@ -24,10 +24,10 @@ export function ChapterBrowser({ total, search, children, headingRef, tab = 'cha
   readonly headingRef?: Ref<HTMLHeadingElement>
   readonly tab?: ChapterView
 }) {
-  return <section aria-label="Chapter browsing" className="order-3 min-w-0 lg:order-none">
-    <h2 ref={headingRef} tabIndex={-1} className="mt-0 mb-2 font-ui-heading text-xl font-semibold">{tab === 'chapters' ? 'Chapters' : 'Bookmarks'} <span className="ml-2 text-sm font-normal text-ui-muted">{total}</span></h2>
+  return <section aria-label="Chapter browsing" className="min-w-0">
+    <h1 ref={headingRef} tabIndex={-1} className="mt-0 mb-2 font-ui-heading text-xl font-semibold">{tab === 'chapters' ? 'Chapters' : 'Bookmarks'} <span className="ml-2 text-sm font-normal text-ui-muted">{total}</span></h1>
     {search && <div className="mb-3">{search}</div>}
-    <div className="max-h-[60dvh] overflow-y-auto overscroll-contain p-1 [scrollbar-gutter:stable] lg:max-h-96">{children}</div>
+    <div className="p-1">{children}</div>
   </section>
 }
 
@@ -42,15 +42,15 @@ export function ChapterSearch({ query, onQueryChange, onClose }: { query: string
   </div>
 }
 
-export function BookmarkList({ chapters, bookmarkedChapter, savedVerses, onOpenChapter, onOpenVerse }: {
+export function BookmarkList({ chapters, savedChapters, savedVerses, onOpenChapter, onOpenVerse }: {
   chapters: readonly Chapter[]
-  bookmarkedChapter: Chapter | null
+  savedChapters: readonly Chapter[]
   savedVerses: readonly SavedVerse[]
   onOpenChapter: (id: number) => void
   onOpenVerse: (chapterId: number, verseNumber: number) => void
 }) {
   return <>
-    {bookmarkedChapter && <ChapterChoice chapter={bookmarkedChapter} selected={false} onSelect={onOpenChapter}/>}
+    {savedChapters.map(chapter => <ChapterChoice key={chapter.id} chapter={chapter} selected={false} onSelect={onOpenChapter}/>)}
     {savedVerses.map(item => {
       const chapter = chapters.find(chapter => chapter.id === item.chapterId)
       if (!chapter) return null
@@ -60,7 +60,7 @@ export function BookmarkList({ chapters, bookmarkedChapter, savedVerses, onOpenC
         <span className="mt-2 block text-sm leading-relaxed wrap-anywhere text-ui-muted">{item.verse.translation}</span>
       </button>
     })}
-    {!bookmarkedChapter && savedVerses.length === 0 && <p className="m-0 p-6 text-sm leading-relaxed text-ui-muted">Your saved verses will find a home here.</p>}
+    {savedChapters.length === 0 && savedVerses.length === 0 && <p className="m-0 p-6 text-sm leading-relaxed text-ui-muted">Your saved verses will find a home here.</p>}
   </>
 }
 

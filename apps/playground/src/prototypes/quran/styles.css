@@ -1,11 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap');
 
 /* Page layout and generic controls use Tailwind. These rules retain Quran content rendering. */
-body:has(.quran-reader) { margin:0;min-width:320px; }
+body:has(.quran-reader) { margin:0; }
 .quran-reader, .quran-reader * { box-sizing:border-box; }
+.reader-navigation {
+  display:grid;
+  position:fixed;
+  z-index:10;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:.25rem;
+  inset:0 0 auto;
+  min-height:var(--reader-nav-space);
+  padding:calc(.25rem + env(safe-area-inset-top)) max(.5rem, env(safe-area-inset-right)) .25rem max(.5rem, env(safe-area-inset-left));
+}
+html:has(.reader-navigation) {
+  --reader-nav-space:calc(3.5rem + env(safe-area-inset-top));
+  scroll-padding-top:var(--reader-nav-space);
+}
+.quran-reader:has(.reader-navigation) {
+  padding-inline:env(safe-area-inset-left) env(safe-area-inset-right);
+  padding-top:var(--reader-nav-space);
+}
+@media(width >= 40rem) {
+  .reader-navigation {
+    display:flex;
+    justify-content:center;
+  }
+}
 .chapter-arabic { font:500 20px/1.8 'Noto Naskh Arabic',serif; }
-.card-arabic { position:absolute;right:22px;bottom:-17px;color:inherit;opacity:.06;font:600 92px 'Noto Naskh Arabic',serif;pointer-events:none; }
-.surah-heading { font:500 14px 'Noto Naskh Arabic',serif; }
 .bismillah { text-align:center;font:500 22px 'Noto Naskh Arabic',serif;color:var(--theme-foreground);padding:4px 0 10px }
 .arabic-text { font:500 27px/1.9 'Noto Naskh Arabic',serif;text-align:right;color:var(--theme-foreground);margin:4px 0 0;word-spacing:2px }
 .ayah-mark { font-size:15px;color:var(--theme-muted);white-space:nowrap;margin-right:7px }

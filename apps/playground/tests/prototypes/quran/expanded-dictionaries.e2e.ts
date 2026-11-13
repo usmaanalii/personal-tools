@@ -25,6 +25,7 @@ test('reads expanded Lane pages and original Mufradāt for an Al-Baqarah word', 
     if (new URL(request.url()).pathname.endsWith('/dictionary/entries')) requests.push(request.url())
   })
   await page.goto('./quran/')
+  await page.getByRole('button', { name: 'Chapters' }).click()
   await page.getByRole('button', { name: /^2\s*Al-Baqarah/ }).click()
   await page.getByRole('button', { name: `${word.arabic} · 2:2:2` }).click()
   const dialog = page.getByRole('dialog', { name: 'Word meaning' })

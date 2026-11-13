@@ -15,16 +15,17 @@ test('opens a shared button through Storybook and refreshes its direct link', as
 
 for (const [route, heading] of [
   ['./', 'Playground'],
-  ['./quran/', 'A moment with the Quran.'],
+  ['./quran/', 'Al-Fātiḥah'],
   ['./supabase/', 'Hello from GitHub Pages'],
 ]) {
   test(`preserves direct loading and refresh of ${route} in the combined artifact`, async ({ page }) => {
     // Assembly risk: publishing the catalogue must retain each existing static entry and its assets.
-    // Only the page shell is checked; this is not evidence of backend connectivity.
-    if (route === './quran/' && !process.env.PLAYWRIGHT_BASE_URL) await mockQuranContent(page)
+    const hostedReader = route === './quran/' && Boolean(process.env.PLAYWRIGHT_BASE_URL)
+    if (route === './quran/' && !hostedReader) await mockQuranContent(page)
+    const name = hostedReader ? 'Al-Fatihah' : heading
     await page.goto(route)
-    await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
     await page.reload()
-    await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
   })
 }

@@ -8,7 +8,7 @@ test('keeps selected chapter view text readable while hovered', async ({ page, i
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await mockQuranContent(page)
   await page.goto('quran/')
-  const selected = page.getByRole('button', { name: 'Chapters', pressed: true })
+  const selected = page.getByRole('button', { name: 'Read', pressed: true })
   await selected.hover()
   const accessibility = await new AxeBuilder({ page })
     .include('[aria-label="Reader controls"]')

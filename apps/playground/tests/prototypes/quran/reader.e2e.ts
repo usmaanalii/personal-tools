@@ -15,11 +15,16 @@ test('opens the Quran reader when its homepage link is selected', async ({ page 
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: /Quran reader/i })).toBeFocused()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('heading', { name: 'A moment with the Quran.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Al-Fātiḥah' })).toBeVisible()
   await expect(page).toHaveURL(/\/quran\/$/)
   await expect(page.getByRole('article').first()).toBeVisible()
   await page.reload()
   await expect(page.getByRole('article').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Chapters' }).click()
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: 'Playground' })).toBeVisible()
+  await page.goForward()
+  await expect(page.getByRole('button', { name: 'Read', pressed: true })).toBeVisible()
 
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
@@ -31,4 +36,10 @@ test('opens the Quran reader when its homepage link is selected', async ({ page 
   // Open word details retain their separate modal lifecycle and accessibility check.
   const accessibility = await new AxeBuilder({ page }).analyze()
   expect(accessibility.violations).toEqual([])
+
+  for (const destination of ['Chapters', 'Bookmarks']) {
+    await page.getByRole('button', { name: destination }).click()
+    await expect(page.getByRole('heading', { name: new RegExp(`^${destination}`) })).toBeFocused()
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
+  }
 })

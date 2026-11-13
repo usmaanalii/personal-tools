@@ -46,7 +46,10 @@ async function renderWords({ verseWords = words(), chapter = 1, verseNumber = 1 
   render(<App />)
   const user = userEvent.setup()
   await screen.findByRole('button', { name: `${firstWord.arabic} · 1:${verseNumber}:1` })
-  if (chapter !== 1) await user.click(screen.getByRole('button', { name: new RegExp(`^${chapter}\\s*${chapters.find(item => item.id === chapter)?.name}`) }))
+  if (chapter !== 1) {
+    await user.click(screen.getByRole('button', { name: 'Chapters' }))
+    await user.click(screen.getByRole('button', { name: new RegExp(`^${chapter}\\s*${chapters.find(item => item.id === chapter)?.name}`) }))
+  }
   const word = await screen.findByRole('button', { name: `${firstWord.arabic} · ${chapter}:${verseNumber}:1` })
   return { user, word }
 }
@@ -105,7 +108,7 @@ it('keeps words readable and identifies unreported availability in an older resp
 it('explains circle order and what a hollow circle means in the reading panel', async () => {
   await renderWords()
 
-  const reading = within(screen.getByRole('complementary', { name: 'Current chapter' }))
+  const reading = within(screen.getByRole('region', { name: 'Current chapter' }))
   expect(reading.getByText('Left to right: Corpus, Lane, Mufradāt.')).toBeVisible()
   expect(reading.getByText('Available or indexed')).toBeVisible()
   expect(reading.getByText('Missing, unknown, unreported or temporarily unavailable')).toBeVisible()

@@ -27,7 +27,7 @@ function ChapterBrowserExample({ state, width }: ExampleProps) {
         >
           {tab === 'chapters'
             ? <ChapterList chapters={available.filter(chapter => `${chapter.name} ${chapter.meaning} ${chapter.id}`.toLowerCase().includes(query.toLowerCase()))} selectedId={selected} onSelect={setSelected}/>
-            : <BookmarkList chapters={available} bookmarkedChapter={null} savedVerses={[]} onOpenChapter={setSelected} onOpenVerse={() => undefined}/>
+            : <BookmarkList chapters={available} savedChapters={[]} savedVerses={[]} onOpenChapter={setSelected} onOpenVerse={() => undefined}/>
           }
         </ChapterBrowser></>}
   </div>
