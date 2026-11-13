@@ -9,6 +9,10 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const origin = 'https://usmaanalii.github.io'
+function laneWithLegacy(legacy: ReturnType<typeof createBundledLaneReader>['legacy']) {
+  return { ...createBundledLaneReader(async () => { throw new Error('Unexpected bundled data read') }), legacy }
+}
+
 function createHandler(overrides: Partial<Parameters<typeof createQuranHandler>[0]> = {}) {
   return createQuranHandler({ clientId: '', clientSecret: '', environment: 'prelive', origins: [origin], ...overrides })
 }
@@ -37,7 +41,7 @@ it.each([
   { root: 'اله', lemma: 'ٱللَّه', id: 'n1123' },
 ])('identifies the reviewed $lemma selection on the complete HTTP route before considering roots', async ({ root, lemma, id }) => {
   await withLaneData(async reader => {
-    const handler = createHandler({ readDictionaryPage: reader.page })
+    const handler = createHandler({ lane: reader })
     const response = await handler(new Request(`https://example.com/functions/v1/quran/v2/dictionary/entries?${new URLSearchParams({ root, lemma })}`, { headers: { Origin: origin } }))
     expect(response.status).toBe(200)
     const result = LanePageResponseSchema.parse(await response.json())
@@ -47,7 +51,7 @@ it.each([
 
 it('withholds unresolved roots and explicitly empty lemma overrides without falling back to a mapped root', async () => {
   await withLaneData(async reader => {
-    const handler = createHandler({ readDictionaryPage: reader.page })
+    const handler = createHandler({ lane: reader })
     const results = await Promise.all([
       { root: 'وقي' },
       { root: 'سمو', lemma: 'ٱسْم' },
@@ -89,7 +93,7 @@ it('registers the deployed entry point with expanded dictionary delivery', async
 
 it('serves every entry in a large expanded root through bounded pages while retaining the legacy response', async () => {
   await withLaneData(async reader => {
-    const handler = createHandler({ readDictionary: reader, readDictionaryPage: reader.page })
+    const handler = createHandler({ lane: reader })
     const firstResponse = await handler(new Request('https://example.com/functions/v1/quran/v2/dictionary/entries?root=كتب&lemma=كِتَٰب', { headers: { Origin: origin } }))
     expect(firstResponse.status).toBe(200)
     const first = LanePageResponseSchema.parse(await firstResponse.json())
@@ -115,7 +119,7 @@ it('serves every entry in a large expanded root through bounded pages while reta
 
 it('rejects dictionary continuations belonging to another lookup or dataset revision', async () => {
   await withLaneData(async reader => {
-    const handler = createHandler({ readDictionaryPage: reader.page })
+    const handler = createHandler({ lane: reader })
     const response = await handler(new Request('https://example.com/functions/v1/quran/v2/dictionary/entries?root=كتب', { headers: { Origin: origin } }))
     const first = LanePageResponseSchema.parse(await response.json())
     const cursor = first.nextCursor
@@ -133,14 +137,14 @@ it('rejects dictionary continuations belonging to another lookup or dataset revi
 
 it('serves owned Lane entries on demand without requesting Quran Foundation content', async () => {
   const handler = createHandler({
-    readDictionary: async query => {
+    lane: laneWithLegacy(async query => {
       expect(query).toEqual({ root: 'سمو', lemma: 'ٱسْم' })
       return { entries: [{ id: 'n20831', entry: {
         id: 'n20831', headword: 'اِسْمٌ', root: 'سمو', file: 'us0.xml',
         sourceUrl: 'https://github.com/alpheios-project/lan/blob/7dd04e1182c13a4b0883978867d2a3b04616542a/db/lexica/ara/lan/us0.xml',
         blocks: [{ kind: 'text', label: '', runs: [{ text: 'The name of a thing.', lang: null, emphasis: false }] }],
       } }] }
-    },
+    }),
   })
   const response = await handler(request())
   expect(response.status).toBe(200)
@@ -163,7 +167,7 @@ it.each([
   { reason: 'surface matching is requested', query: 'lemma=ٱسْم&surface=بسم', status: 400 },
   { reason: 'an external URL is supplied', query: 'url=https://untrusted.example', status: 400 },
 ])('returns HTTP $status when $reason', async ({ query, status }) => {
-  const handler = createHandler({ readDictionary: async () => ({ entries: [] }) })
+  const handler = createHandler({ lane: laneWithLegacy(async () => ({ entries: [] })) })
   const response = await handler(request(query))
   expect(response.status).toBe(status)
   expect(await response.json()).toEqual(status === 200 ? { entries: [] } : { error: expect.any(String) })
@@ -187,7 +191,7 @@ it('allows a dictionary preflight from a trusted origin', async () => {
 })
 
 it('returns a safe error when reading dictionary data fails', async () => {
-  const handler = createHandler({ readDictionary: async () => { throw new Error('Private server filename') } })
+  const handler = createHandler({ lane: createBundledLaneReader(async () => { throw new Error('Private server filename') }) })
   const response = await handler(request())
   expect(response.status).toBe(503)
   expect(await response.json()).toEqual({ error: 'Dictionary temporarily unavailable.' })
@@ -196,13 +200,13 @@ it('returns a safe error when reading dictionary data fails', async () => {
 it('reuses validated bundled data within a function instance and returns no match for unreviewed roots', async () => {
   await withLaneData(async (reader, directory) => {
     const query = { lemma: 'ٱسْم' }
-    const original = await reader(query, new AbortController().signal)
-    expect(await reader({ root: 'بسم' }, new AbortController().signal)).toEqual({ entries: [] })
+    const original = await reader.legacy(query, new AbortController().signal)
+    expect(await reader.legacy({ root: 'بسم' }, new AbortController().signal)).toEqual({ entries: [] })
     await writeFile(join(directory, 'index.json'), 'changed index')
     await writeFile(join(directory, 'lane/n20831.json'), 'changed entry')
-    expect(await reader(query, new AbortController().signal)).toEqual(original)
+    expect(await reader.legacy(query, new AbortController().signal)).toEqual(original)
     const fresh = createBundledLaneReader(readFile, pathToFileURL(`${directory}/`))
-    await expect(fresh(query, new AbortController().signal)).rejects.toThrow('Lane asset checksum mismatch')
+    await expect(fresh.legacy(query, new AbortController().signal)).rejects.toThrow('Lane asset checksum mismatch')
   })
 })
 
@@ -212,7 +216,7 @@ it('withholds a changed bundled entry while keeping the other relevant entries d
     const source: unknown = JSON.parse(await readFile(path, 'utf8'))
     const parsed = LaneResponseSchema.parse({ entries: [{ id: 'n15091', entry: source }] }).entries[0]?.entry
     await writeFile(path, JSON.stringify({ ...parsed, headword: 'Changed source text' }))
-    const result = await reader({ root: 'رحم' }, new AbortController().signal)
+    const result = await reader.legacy({ root: 'رحم' }, new AbortController().signal)
     expect(result.entries.map(item => [item.id, item.entry?.headword ?? null])).toEqual([
       ['n15076', 'رَحِمَهُ'], ['n15091', null], ['n15096', 'رَحِيمُ'],
     ])
@@ -221,7 +225,7 @@ it('withholds a changed bundled entry while keeping the other relevant entries d
 
 it('matches the reviewed name exception from real pinned Lane data and retains source structure', async () => {
   await withLaneData(async reader => {
-    const result = LaneResponseSchema.parse(await reader({ root: 'سمو', lemma: 'ٱسْم' }, new AbortController().signal))
+    const result = LaneResponseSchema.parse(await reader.legacy({ root: 'سمو', lemma: 'ٱسْم' }, new AbortController().signal))
     expect(result.entries.map(item => item.id)).toEqual(['n20831'])
     const entry = result.entries[0]?.entry
     expect(entry).toMatchObject({

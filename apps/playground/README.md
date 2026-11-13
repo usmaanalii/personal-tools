@@ -127,6 +127,9 @@ analysis if Retry still has focus. Leaving the panel or occurrence cancels a pen
 Recovered grammar stays with the current
 verse page, so closing the dialog or moving between words preserves it. Recovery
 updates only the matching occurrence's grammar and leaves its meaning intact.
+The Reader owns the retry request and checks the Word occurrence before
+updating the active page. The grammar panel owns cancellation, loading feedback
+and focus.
 Missing, mismatched or withheld analyses
 show **Analysis unavailable**. Older responses without grammar remain readable.
 

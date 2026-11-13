@@ -3,7 +3,12 @@ import { VERSES_PER_PAGE, type QuranWord, type WordGrammar } from '@scratch-page
 import { getChapters, getVerses, type Chapter, type Ayah, type VersePage } from './quran-api'
 
 export type SavedVerse = { readonly chapterId: number; readonly verse: Ayah }
-export type GrammarRecovery = (word: QuranWord, grammar: WordGrammar) => void
+export type RetryGrammar = (word: QuranWord, signal: AbortSignal) => Promise<'recovered' | 'failed'>
+
+function sameOccurrence(word: QuranWord, candidate: QuranWord) {
+  return candidate.chapter === word.chapter && candidate.verse === word.verse
+    && candidate.position === word.position && candidate.arabic === word.arabic
+}
 
 type ChaptersState =
   | { readonly status: 'loading' }
@@ -62,17 +67,23 @@ export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
     setActiveVerse(null)
   }
   const isVerseSaved = (verse: Ayah) => savedVerses.some(item => item.chapterId === selected && item.verse.number === verse.number)
-  const recoverGrammar: GrammarRecovery = (word, grammar) => {
+  const retryGrammar: RetryGrammar = async (word, signal) => {
+    const refreshed = await getVerses(word.chapter, Math.ceil(word.verse / VERSES_PER_PAGE), signal)
+    signal.throwIfAborted()
+    const occurrence = refreshed.verses.find(verse => verse.number === word.verse)?.words?.find(item => sameOccurrence(word, item))
+    const grammar: WordGrammar = occurrence?.grammar ?? { status: 'unavailable' }
+    if (grammar.status === 'temporarily_unavailable') return 'failed'
+
     setVerseState(state => {
       if (state.key !== key || state.status !== 'ready') return state
       return { ...state, data: { ...state.data, verses: state.data.verses.map(verse => {
         if (verse.number !== word.verse || !verse.words) return verse
         return { ...verse, words: verse.words.map(item =>
-          item.chapter === word.chapter && item.verse === word.verse && item.position === word.position && item.arabic === word.arabic
-            ? { ...item, grammar } : item,
+          sameOccurrence(word, item) ? { ...item, grammar } : item,
         ) }
       }) } }
     })
+    return 'recovered'
   }
   const toggleSavedVerse = (verse: Ayah) => {
     setSavedVerses(current => {
@@ -95,7 +106,7 @@ export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
       count: savedVerses.length + (bookmarked ? 1 : 0),
     },
     actions: {
-      recoverGrammar,
+      retryGrammar,
       openChapter,
       openSavedVerse: (chapterId: number, verseNumber: number) => {
         openChapter(chapterId, verseNumber)

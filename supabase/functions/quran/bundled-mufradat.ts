@@ -35,9 +35,12 @@ export function createBundledMufradatReader(readFile: (path: URL) => Promise<Uin
     }))
     return MufradatCompleteResponseSchema.parse(matches.length === 1 ? { status: 'matched', entry: matches[0] } : { status: 'multiple', entries: matches })
   }
-  return Object.assign(async (query: MufradatRequest, signal: AbortSignal) => MufradatResponseSchema.parse(await load(query, signal, false)),
-    { all: (query: MufradatRequest, signal: AbortSignal) => load(query, signal, true), async loadIndex() {
+  return {
+    legacy: async (query: MufradatRequest, signal: AbortSignal) => MufradatResponseSchema.parse(await load(query, signal, false)),
+    all: (query: MufradatRequest, signal: AbortSignal) => load(query, signal, true),
+    async loadIndex() {
       const index = await loadIndex()
       return (query: MufradatRequest) => selectEntries(query, index).ids
-    } })
+    },
+  }
 }

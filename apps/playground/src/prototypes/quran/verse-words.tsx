@@ -9,10 +9,10 @@ import { WordDictionary } from './word-dictionary'
 import { WordMufradat } from './word-mufradat'
 import { createMufradatReader } from './mufradat-data'
 import { createLaneReader } from './lane-data'
-import type { GrammarRecovery } from './use-reader'
+import type { RetryGrammar } from './use-reader'
 
-export function VerseWords({ verse, chapterName, readingFocusRef, onGrammarRecovered, className = '' }: {
-  verse: Ayah; chapterName: string; readingFocusRef: RefObject<HTMLElement | null>; readonly onGrammarRecovered: GrammarRecovery; readonly className?: string
+export function VerseWords({ verse, chapterName, readingFocusRef, onRetryGrammar, className = '' }: {
+  verse: Ayah; chapterName: string; readingFocusRef: RefObject<HTMLElement | null>; readonly onRetryGrammar: RetryGrammar; readonly className?: string
 }) {
   const selection = useWordSelection(verse.words)
   const [dictionaryReader] = useState(createLaneReader)
@@ -38,7 +38,7 @@ export function VerseWords({ verse, chapterName, readingFocusRef, onGrammarRecov
         </TabsList>
         <TabsContent key={`grammar:${word.position}`} value="grammar" className="min-h-0 overflow-auto px-1 [scrollbar-gutter:stable]">
           <p className="mt-3 text-base font-semibold">{word.meaning ?? 'Meaning unavailable for this word.'}</p>
-          <WordGrammar word={word} onGrammarRecovered={onGrammarRecovered}/>
+          <WordGrammar word={word} onRetryGrammar={onRetryGrammar}/>
           <div role="note" aria-label="Word sources" className="mt-6 border-t border-ui-border pt-3 text-sm text-ui-muted">English word data · Quran Foundation</div>
         </TabsContent>
         <TabsContent key={`mufradat:${word.position}`} value="mufradat" className="min-h-0 overflow-auto px-1 [scrollbar-gutter:stable]">

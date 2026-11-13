@@ -1,4 +1,5 @@
 import { WordGrammarSchema, type QuranWord, type VersesResponse, type WordGrammar } from '../../../packages/api-contracts/src/quran.ts'
+import { dictionaryLookups } from '../../../packages/api-contracts/src/dictionary-lookups.ts'
 import { lookupMorphology, MorphologyChapterSchema } from './morphology-data.ts'
 
 export type MorphologyReader = (chapter: number, signal: AbortSignal) => Promise<unknown>
@@ -17,7 +18,7 @@ function withGrammar(page: VersesResponse, grammarFor: (word: QuranWord) => Word
         if (grammar.status === 'unavailable') {
           return { ...word, grammar, availability: { corpus: 'missing', lane: 'unknown', mufradat: 'unknown' } }
         }
-        const lexical = grammar.segments.some(segment => segment.kind === 'stem' && (segment.root || segment.lemma))
+        const lexical = dictionaryLookups(grammar).length > 0
         const corpus = lexical ? 'lexical' : 'grammar_only'
         const dictionary = corpus === 'grammar_only' ? 'missing' : 'unknown'
         return { ...word, grammar, availability: { corpus, lane: dictionary, mufradat: dictionary } }

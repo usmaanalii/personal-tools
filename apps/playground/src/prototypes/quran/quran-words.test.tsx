@@ -425,6 +425,19 @@ it('retains recovered grammar when the same word is reopened', async () => {
   expect(reopened.getByText('In (the) name')).toBeVisible()
 })
 
+it('keeps the original word when a grammar retry returns a different spelling at its position', async () => {
+  const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: { status: 'temporarily_unavailable' } })] })
+  await user.click(word)
+  const details = within(screen.getByRole('dialog'))
+  server.use(http.get(`${quranEndpoint}/verses`, () => HttpResponse.json({
+    verses: [{ number: 1, arabic: 'ٱللَّهِ', translationHtml: 'Translation', words: [buildWord({ arabic: 'ٱللَّهِ', grammar: grammarFixture() })] }],
+    translationName: 'Translator', nextPage: null,
+  })))
+  await user.click(details.getByRole('button', { name: 'Retry grammar' }))
+  expect(await details.findByText('Analysis unavailable.')).toBeVisible()
+  expect(details.getByText('In (the) name')).toBeVisible()
+})
+
 it('retains recovered grammar for the selected occurrence when moving between words', async () => {
   const first = buildWord({ grammar: { status: 'unavailable' } })
   const second = buildWord({ position: 2, arabic: 'ٱللَّهِ', meaning: 'of Allah', grammar: { status: 'temporarily_unavailable' } })

@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, Skeleton } from '@scratch-pages/ui'
-import { VERSES_PER_PAGE, type QuranWord, type WordGrammar as GrammarOutcome } from '@scratch-pages/api-contracts/quran'
-import { getVerses } from './quran-api'
-import type { GrammarRecovery } from './use-reader'
+import type { QuranWord, WordGrammar as GrammarOutcome } from '@scratch-pages/api-contracts/quran'
+import type { RetryGrammar } from './use-reader'
 
 type GrammarAnalysis = Pick<Extract<GrammarOutcome, { status: 'available' }>, 'segments'>
 type GrammarState = { readonly status: 'loading' | 'failed' } | { readonly status: 'ready'; readonly analysis: GrammarAnalysis | null }
@@ -13,7 +12,7 @@ function receivedState(grammar: GrammarOutcome | undefined): GrammarState {
   return { status: 'ready', analysis: null }
 }
 
-export function WordGrammar({ word, onGrammarRecovered }: { readonly word: QuranWord; readonly onGrammarRecovered: GrammarRecovery }) {
+export function WordGrammar({ word, onRetryGrammar }: { readonly word: QuranWord; readonly onRetryGrammar: RetryGrammar }) {
   const [retry, setRetry] = useState<'loading' | 'failed' | null>(null)
   const analysis = useRef<HTMLElement>(null)
   const pending = useRef<AbortController | null>(null)
@@ -25,15 +24,12 @@ export function WordGrammar({ word, onGrammarRecovered }: { readonly word: Quran
     pending.current = controller
     setRetry('loading')
     try {
-      const page = await getVerses(word.chapter, Math.ceil(word.verse / VERSES_PER_PAGE), controller.signal)
+      const outcome = await onRetryGrammar(word, controller.signal)
       if (controller.signal.aborted) return
-      const refreshed = page.verses.find(verse => verse.number === word.verse)?.words?.find(item => item.position === word.position)
-      const grammar = (refreshed?.arabic === word.arabic ? refreshed.grammar : undefined) ?? { status: 'unavailable' }
-      if (grammar.status === 'temporarily_unavailable') {
+      if (outcome === 'failed') {
         setRetry('failed')
         return
       }
-      onGrammarRecovered(word, grammar)
       setRetry(null)
       if (trigger === document.activeElement) analysis.current?.focus()
     } catch {

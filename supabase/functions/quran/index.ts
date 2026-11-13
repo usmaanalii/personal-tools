@@ -3,20 +3,14 @@ import { createBundledMorphologyReader } from './bundled-morphology.ts'
 import { createBundledLaneReader } from './bundled-lane.ts'
 import { createBundledMufradatReader } from './bundled-mufradat.ts'
 
-const dictionary = createBundledLaneReader(Deno.readFile)
-const mufradat = createBundledMufradatReader(Deno.readFile)
 const handler = createQuranHandler({
   clientId: Deno.env.get('QF_CLIENT_ID') ?? '',
   clientSecret: Deno.env.get('QF_CLIENT_SECRET') ?? '',
   environment: Deno.env.get('QF_ENV') ?? 'prelive',
   origins: (Deno.env.get('QF_ALLOWED_ORIGINS') ?? 'https://usmaanalii.github.io').split(',').map(origin => origin.trim()).filter(Boolean),
   readMorphology: createBundledMorphologyReader(Deno.readFile),
-  readDictionary: dictionary,
-  readDictionaryPage: dictionary.page,
-  loadLaneIndex: dictionary.loadIndex,
-  readMufradat: mufradat,
-  readMufradatEntries: mufradat.all,
-  loadMufradatIndex: mufradat.loadIndex,
+  lane: createBundledLaneReader(Deno.readFile),
+  mufradat: createBundledMufradatReader(Deno.readFile),
 })
 
 Deno.serve(handler)

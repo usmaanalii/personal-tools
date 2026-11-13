@@ -74,6 +74,10 @@ actual page markers and a pinned source link with line numbers.
 Backend read/validation failures use the existing safe JSON error with HTTP 503.
 The route is an additive local implementation; deploy it before publishing its client.
 
+`@scratch-pages/api-contracts/dictionary-lookups` derives distinct exact
+root/lemma lookups from verified stems. The browser uses these lookups to request
+articles, and the Quran function uses them to report index coverage.
+
 `MufradatCompleteResponseSchema` owns the additive
 `GET /functions/v1/quran/v2/mufradat/entries` response.
 It accepts all original response shapes and adds `multiple` with distinct verified

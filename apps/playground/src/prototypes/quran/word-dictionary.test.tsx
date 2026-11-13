@@ -207,6 +207,29 @@ it('shows unavailable without surface matching or requests when grammar is unver
   expect(requests).toEqual([])
 })
 
+it('requests each distinct stem lookup once and ignores affix roots', async () => {
+  const selected = word()
+  if (selected.grammar?.status !== 'available') throw new Error('Expected verified grammar')
+  const stem = selected.grammar.segments.find(segment => segment.kind === 'stem')
+  if (!stem) throw new Error('Expected a stem')
+  const requests: string[] = []
+  server.use(http.get(endpoint, ({ request }) => {
+    const query = new URL(request.url).searchParams
+    requests.push(query.toString())
+    return HttpResponse.json(buildLanePage({ entries: [{ id: 'n20831', entry: entry() }] }))
+  }))
+  render(<WordDictionary word={buildWord({
+    grammar: { status: 'available', segments: [
+      { ...stem, kind: 'prefix', root: 'رحم' }, stem, stem, { ...stem, root: null },
+    ] },
+  })} />)
+  expect(await screen.findByRole('article', { name: 'اِسْمٌ' })).toBeVisible()
+  expect(requests).toEqual([
+    new URLSearchParams({ root: 'سمو', lemma: 'ٱسْم' }).toString(),
+    new URLSearchParams({ lemma: 'ٱسْم' }).toString(),
+  ])
+})
+
 it('discards an in-flight dictionary request when another word is selected', async () => {
   const pending = Promise.withResolvers<Response>()
   const started = Promise.withResolvers<void>()

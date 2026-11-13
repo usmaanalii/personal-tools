@@ -25,7 +25,7 @@ async function withData(run: (directory: string) => Promise<void>, expanded = fa
 function handler(directory: string) {
   const mufradat = createBundledMufradatReader(readFile, pathToFileURL(`${directory}/`))
   return createQuranHandler({ clientId: '', clientSecret: '', environment: 'prelive', origins: [origin],
-    readMufradat: mufradat, readMufradatEntries: mufradat.all })
+    mufradat })
 }
 
 it('makes both verified source entries readable while preserving legacy ambiguity responses', async () => {
@@ -165,7 +165,7 @@ it('rejects an entry whose identity differs from the reviewed mapping', async ()
 
 it('reuses loaded data for later lookups in the same function instance', async () => {
   await withData(async directory => {
-    const read = createBundledMufradatReader(readFile, pathToFileURL(`${directory}/`))
+    const { legacy: read } = createBundledMufradatReader(readFile, pathToFileURL(`${directory}/`))
     const result = await read({ root: 'رحم' }, new AbortController().signal)
     await writeFile(join(directory, 'entries/jk-l5840.json'), 'changed')
     await writeFile(join(directory, 'index.json'), 'changed')

@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./quran": "./src/quran.ts",
+    "./dictionary-lookups": "./src/dictionary-lookups.ts",
     "./hello": "./src/hello.ts",
     "./error": "./src/error.ts"
   },
