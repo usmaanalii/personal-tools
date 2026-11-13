@@ -24,6 +24,7 @@ The Quran word availability prototype uses captured verses to show whether each 
 **Page:** [Open the Quran reader](https://usmaanalii.github.io/personal-tools/quran/)
 
 A reading prototype designed for phones, with a wider layout on desktop.
+The reader uses verse data to show source availability for Corpus, Lane and Mufradāt beneath selectable words. [Reader guide](apps/playground/README.md#quran-api-setup)
 
 Issue #19 adds grammar analysis to word details through the existing verse API.
 Release packaging records the published website/application-use grant and

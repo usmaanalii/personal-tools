@@ -28,6 +28,7 @@ body:has(.quran-reader) { margin:0;min-width:320px; }
   white-space:nowrap;
   vertical-align:baseline;
 }
+.verse-list .quran-word-with-availability { padding-bottom:10px; }
 .quran-word:hover { background:var(--theme-background); }
 .quran-word[aria-pressed="true"] { background:var(--theme-background);box-shadow:inset 0 -2px var(--theme-primary); }
 .quran-word:focus-visible { outline:3px solid var(--theme-focus);outline-offset:2px; }

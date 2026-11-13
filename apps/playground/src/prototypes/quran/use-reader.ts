@@ -79,7 +79,7 @@ export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
       return { ...state, data: { ...state.data, verses: state.data.verses.map(verse => {
         if (verse.number !== word.verse || !verse.words) return verse
         return { ...verse, words: verse.words.map(item =>
-          sameOccurrence(word, item) ? { ...item, grammar } : item,
+          sameOccurrence(word, item) ? { ...item, grammar, ...(occurrence?.availability && { availability: occurrence.availability }) } : item,
         ) }
       }) } }
     })

@@ -10,6 +10,7 @@ import { WordMufradat } from './word-mufradat'
 import { createMufradatReader } from './mufradat-data'
 import { createLaneReader } from './lane-data'
 import type { RetryGrammar } from './use-reader'
+import { describeWordAvailability, WordAvailabilityCircles } from './word-availability'
 
 export function VerseWords({ verse, chapterName, readingFocusRef, onRetryGrammar, className = '' }: {
   verse: Ayah; chapterName: string; readingFocusRef: RefObject<HTMLElement | null>; readonly onRetryGrammar: RetryGrammar; readonly className?: string
@@ -21,11 +22,16 @@ export function VerseWords({ verse, chapterName, readingFocusRef, onRetryGrammar
   const { word } = selection
   return <>
     <p className={`arabic-text ${className}`} translate="no" lang="ar" dir="rtl">
-      {verse.words ? verse.words.map(item => <span key={item.position}>
-        <button type="button" className="quran-word" aria-label={`${item.arabic} · ${item.chapter}:${item.verse}:${item.position}`} aria-haspopup="dialog" aria-pressed={word?.position === item.position}
-          ref={button => { if (button) buttons.current.set(item.position, button); else buttons.current.delete(item.position) }}
-          onClick={() => selection.select(item.position)}>{item.arabic}</button>{' '}
-      </span>) : verse.arabic}
+      {verse.words ? verse.words.map(item => {
+        const reference = `${item.chapter}:${item.verse}:${item.position}`
+        const descriptionId = `reader-word-sources-${reference}`
+        return <span key={item.position}>
+          <button type="button" className="quran-word quran-word-with-availability relative" aria-label={`${item.arabic} · ${reference}`} aria-describedby={descriptionId} aria-haspopup="dialog" aria-pressed={word?.position === item.position}
+            ref={button => { if (button) buttons.current.set(item.position, button); else buttons.current.delete(item.position) }}
+            onClick={() => selection.select(item.position)}>{item.arabic}<WordAvailabilityCircles availability={item.availability}/></button>{' '}
+          <span id={descriptionId} lang="en" hidden>{describeWordAvailability(item.availability)}</span>
+        </span>
+      }) : verse.arabic}
       <span className="ayah-mark">۝{verse.number}</span>
     </p>
     {word && <WordDialog dismiss={selection.clear} getReturnFocusTarget={() => buttons.current.get(word.position)} fallbackFocusRef={readingFocusRef}

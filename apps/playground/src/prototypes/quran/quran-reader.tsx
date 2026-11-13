@@ -11,6 +11,7 @@ import { Icon } from './reader-icon'
 import type { Chapter } from './quran-api'
 import { useChapters, useReader } from './use-reader'
 import { ReaderLoading, VerseSkeleton } from './reader-loading'
+import { WordAvailabilityLegend } from './word-availability'
 
 export default function App() {
   const { state, retry } = useChapters()
@@ -77,6 +78,7 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
           {current.status === 'loading' && <VerseSkeleton/>}
           {current.status === 'error' && <div><p role="alert">{current.message}</p><Button onClick={retryVerses}>Retry verses</Button></div>}
           {current.status === 'ready' && <p className="px-4 text-[.85rem] leading-[1.5]">{current.data.translationName} · Quran Foundation</p>}
+          {verses.some(verse => verse.words?.length) && <WordAvailabilityLegend/>}
           {verses.map(verse => <VerseView key={`${key}-${verse.number}`} verse={verse} chapter={chapter} active={activeVerse === verse.number} saved={isVerseSaved(verse)}
             onBookmark={() => toggleSavedVerse(verse)} onActivate={() => activateVerse(verse.number)} readingFocusRef={readingHeading} onRetryGrammar={retryGrammar}/>) }
         </ReadingPanel>

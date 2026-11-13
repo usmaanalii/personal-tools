@@ -42,7 +42,9 @@ It builds the frontend against that local URL; verse/provider responses remain f
 
 The browser calls `/functions/v1/quran/v2/chapters` and `/functions/v1/quran/v2/verses?chapter=1&page=1` on `VITE_SUPABASE_URL`. Each verse page contains at most 20 verses. Previous/Next verses navigate pages; opening a saved verse restores its page. Chapter search uses the chapter list returned by the API.
 
-The shared verses contract accepts optional [word source availability](../../supabase/functions/quran/README.md#word-source-availability-46). The word dialog uses the existing grammar payload and loads dictionary articles on demand.
+The reader shows three circles under each selectable Arabic word. Their order is always Corpus, Lane and Mufradāt from left to right. A filled circle indicates Corpus analysis (including grammar-only analysis) or one or more indexed dictionary matches. A hollow circle can mean a missing match, unknown coverage or a temporary source failure. When the verse response omits availability, the circles are hollow and the word’s accessible description says availability was not reported. Otherwise, the description gives the status for each source.
+
+The indicators use the optional [word source availability](../../supabase/functions/quran/README.md#word-source-availability-46) that comes with the verse page. An indexed match indicates possible content. The word dialog uses the existing grammar payload and requests dictionary articles when their tabs are opened.
 
 The **Quran word availability** Playground page (`/quran-word-availability/`) shows one filled or hollow circle per source on captured Arabic verses. It runs offline using v13 verses responses. See the [design decision and verification](src/prototypes/quran/word-availability-review.md) for the sample provenance and how the prototype maps availability.
 
