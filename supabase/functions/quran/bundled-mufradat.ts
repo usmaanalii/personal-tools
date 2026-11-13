@@ -22,7 +22,7 @@ export function createBundledMufradatReader(readFile: (path: URL) => Promise<Uin
   const loadIndex = cacheIndex(async () => IndexSchema.parse(await read('index.json')))
   const load = async (query: MufradatRequest, signal: AbortSignal, complete: boolean) => {
     signal.throwIfAborted()
-    const index = await loadIndex()
+    const index = await loadIndex(signal)
     signal.throwIfAborted()
     const { ids } = selectEntries(query, index)
     if (ids.length === 0) return MufradatResponseSchema.parse({ status: 'missing' })

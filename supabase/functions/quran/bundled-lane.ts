@@ -49,7 +49,7 @@ export function createBundledLaneReader(readFile: (path: URL) => Promise<Uint8Ar
   const loadCatalogue = cacheIndex(async () => LaneCatalogueSchema.parse(await read('catalogue.json')))
   const page = async (query: LanePageRequest, signal: AbortSignal): Promise<LanePageResponse> => {
     signal.throwIfAborted()
-    const lookup = await loadCatalogue()
+    const lookup = await loadCatalogue(signal)
     signal.throwIfAborted()
     const revision = manifest?.files['catalogue.json'] ?? ''
     const { ids, match } = selectEntries(query, lookup)

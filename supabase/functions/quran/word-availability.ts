@@ -2,23 +2,12 @@ import type { QuranWord, VersesResponse } from '../../../packages/api-contracts/
 import type { LoadDictionaryIndex } from './dictionary-index.ts'
 
 type DictionaryLookup = Awaited<ReturnType<LoadDictionaryIndex>>
-const indexBudgetMs = 200
 
 async function loadIndex(load?: LoadDictionaryIndex) {
-  if (!load) return undefined
-  const expiresAt = Date.now() + indexBudgetMs
-  let timer: ReturnType<typeof setTimeout> | undefined
-  const unavailable = 'temporarily_unavailable' as const
-  const deadline = new Promise<typeof unavailable>(resolve => {
-    timer = setTimeout(() => resolve(unavailable), indexBudgetMs)
-  })
   try {
-    const lookup = await Promise.race([load(), deadline])
-    return Date.now() >= expiresAt ? unavailable : lookup
+    return await load?.()
   } catch {
-    return unavailable
-  } finally {
-    clearTimeout(timer)
+    return 'temporarily_unavailable' as const
   }
 }
 

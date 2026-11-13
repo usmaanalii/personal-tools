@@ -13,14 +13,41 @@ export function selectEntries(query: LaneRequest, lookup: Lookup): { ids: string
 }
 
 export type LoadDictionaryIndex = () => Promise<(query: LaneRequest) => readonly string[]>
+const indexBudgetMs = 200
 
-export function cacheIndex<T>(load: () => Promise<T>): () => Promise<T> {
+export function cacheIndex<T>(load: () => Promise<T>): (signal?: AbortSignal) => Promise<T> {
+  async function loadWithDeadline() {
+    const expiresAt = Date.now() + indexBudgetMs
+    const timeout = new Error('Dictionary index deadline exceeded')
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const deadline = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => reject(timeout), indexBudgetMs)
+    })
+    try {
+      const index = await Promise.race([load(), deadline])
+      if (Date.now() >= expiresAt) throw timeout
+      return index
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
   let pending: Promise<T> | undefined
-  return () => {
-    pending ??= load().catch(error => {
+  return async (signal) => {
+    signal?.throwIfAborted()
+    pending ??= loadWithDeadline().catch(error => {
       pending = undefined
       throw error
     })
-    return pending
+    if (!signal) return pending
+
+    const { promise: cancelled, reject } = Promise.withResolvers<never>()
+    const cancel = () => reject(signal.reason)
+    signal.addEventListener('abort', cancel, { once: true })
+    try {
+      return await Promise.race([pending, cancelled])
+    } finally {
+      signal.removeEventListener('abort', cancel)
+    }
   }
 }

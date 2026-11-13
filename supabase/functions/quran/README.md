@@ -304,10 +304,11 @@ counts distinct IDs across stems. An index hit can still lead to an article
 read failure when the client opens the dictionary.
 
 The function shares each checksum-verified index with its article endpoint
-within the worker. Concurrent requests share an in-flight load, and a failed
-load can be retried on the next request. Verses access only the bundled Lane
-catalogue and Mufradāt index and their manifests. Both loads run in parallel
-with a provisional 200 ms wait budget, after grammar enrichment. A slow or
+within the worker. Concurrent requests share an in-flight load with a 200 ms
+deadline. The next request can retry a failed or timed-out load. Cancelling an
+article request stops its wait and lets other requests continue using the same
+load. Verses access only the bundled Lane catalogue and Mufradāt index and
+their manifests. The loads run in parallel after grammar enrichment. A slow or
 failed index leaves the other source, verses and grammar available.
 
 In three local Deno HTTP runs, the Al-Baqarah first-page fixture had 230

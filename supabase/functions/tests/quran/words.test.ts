@@ -126,11 +126,14 @@ it('returns a verses page at the dictionary deadline even if an index read stall
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
   try {
     const started = Promise.withResolvers<void>()
+    const laneAssets = indexAssets('catalogue.json', { roots: {}, lemmas: {}, entryFiles: {} })
+    const stalledRead = () => {
+      started.resolve()
+      return new Promise<Uint8Array>(() => {})
+    }
+    const lane = createBundledLaneReader(path => path.pathname.endsWith('/catalogue.json') ? stalledRead() : laneAssets(path))
     const pending = read(provider(), false, async () => bismiChapter(), {
-      loadLaneIndex: () => {
-        started.resolve()
-        return new Promise(() => {})
-      },
+      loadLaneIndex: lane.loadIndex,
       loadMufradatIndex: async () => () => ['jk-l1'],
     })
     await started.promise
@@ -139,6 +142,59 @@ it('returns a verses page at the dictionary deadline even if an index read stall
     expect(response).not.toBeNull()
     expect(VersesResponseSchema.parse(await response?.json()).verses[0]?.words?.[0]?.availability)
       .toEqual({ corpus: 'lexical', lane: 'temporarily_unavailable', mufradat: 'indexed' })
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+it('retries a stalled dictionary index on the next verses request', async () => {
+  const laneAssets = indexAssets('catalogue.json', { roots: { سمو: ['n1'] }, lemmas: {}, entryFiles: {} })
+  const readCatalogue = vi.fn((path: URL) => laneAssets(path)).mockReturnValueOnce(new Promise(() => {}))
+  const lane = createBundledLaneReader(path => path.pathname.endsWith('/catalogue.json') ? readCatalogue(path) : laneAssets(path))
+  providerRequests(provider())
+  const handler = createQuranHandler({
+    clientId: 'test-client', clientSecret: 'test-secret', environment: 'prelive', origins: [origin],
+    readMorphology: async () => bismiChapter(), loadLaneIndex: lane.loadIndex,
+  })
+  const requestPage = () => handler(new Request('https://example.com/functions/v1/quran/v2/verses?chapter=1', { headers: { Origin: origin } }))
+
+  const first = await requestPage()
+  expect(VersesResponseSchema.parse(await first.json()).verses[0]?.words?.[0]?.availability?.lane).toBe('temporarily_unavailable')
+
+  const retry = await requestPage()
+  expect(VersesResponseSchema.parse(await retry.json()).verses[0]?.words?.[0]?.availability?.lane).toBe('indexed')
+})
+
+it('ends a cancelled dictionary request while the shared catalogue is still loading', async () => {
+  const laneAssets = indexAssets('catalogue.json', { roots: {}, lemmas: {}, entryFiles: {} })
+  const started = Promise.withResolvers<void>()
+  const catalogue = Promise.withResolvers<Uint8Array>()
+  const lane = createBundledLaneReader(path => {
+    if (!path.pathname.endsWith('/catalogue.json')) return laneAssets(path)
+    started.resolve()
+    return catalogue.promise
+  })
+  const handler = createQuranHandler({
+    clientId: 'test-client', clientSecret: 'test-secret', environment: 'prelive', origins: [origin], readDictionaryPage: lane.page,
+  })
+  const controller = new AbortController()
+  const requestDictionary = (signal?: AbortSignal) => handler(new Request(
+    'https://example.com/functions/v1/quran/v2/dictionary/entries?root=سمو', { headers: { Origin: origin }, signal },
+  ))
+
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+  try {
+    const cancelled = requestDictionary(controller.signal)
+    await started.promise
+    const remaining = requestDictionary()
+    controller.abort()
+    await vi.advanceTimersByTimeAsync(0)
+    expect((await Promise.race([cancelled, Promise.resolve(null)]))?.status).toBe(503)
+
+    catalogue.resolve(await laneAssets(new URL('file:///catalogue.json')))
+    const response = await remaining
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ entries: [], nextCursor: null })
   } finally {
     vi.useRealTimers()
   }
