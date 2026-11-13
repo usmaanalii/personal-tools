@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { Button } from '@scratch-pages/ui'
 import { ChapterList } from './chapter-list'
-import { BookmarkList, ChapterBrowser, ChapterViews, ChapterRequestStatus, ChapterSearch, type ChapterView } from './chapter-browser'
+import { BookmarkList, ChapterBrowser, ChapterRequestStatus, ChapterSearch } from './chapter-browser'
 import type { Chapter } from './quran-api'
 import './styles.css'
 
@@ -14,22 +15,26 @@ type ExampleProps = {
 }
 
 function ChapterBrowserExample({ state, width }: ExampleProps) {
-  const [tab, setTab] = useState<ChapterView>(state === 'empty-bookmarks' ? 'bookmarks' : 'chapters')
+  const tab = state === 'empty-bookmarks' ? 'bookmarks' : 'chapters'
   const [query, setQuery] = useState(state === 'no-results' ? 'Unmatched chapter' : '')
+  const [searchOpen, setSearchOpen] = useState(state === 'no-results')
   const [selected, setSelected] = useState(1)
   const [retrying, setRetrying] = useState(false)
   const available = state === 'long-name' ? [{ ...firstChapter, name: 'A chapter name that is much longer than the available row width', meaning: 'A long chapter meaning that should wrap without hiding other content' }] : chapters
   return <div className="quran-reader max-w-full bg-ui-background p-4 font-ui-body text-ui-foreground" style={{ width }}>
     {state === 'loading' || retrying ? <ChapterRequestStatus message="Loading chapters…"/>
       : state === 'failed' ? <ChapterRequestStatus failed message="Quran content is temporarily unavailable. Please try again." onRetry={() => setRetrying(true)}/>
-      : <><ChapterViews tab={tab} onTabChange={setTab} bookmarkCount={0}/><ChapterBrowser total={tab === 'chapters' ? available.length : 0} tab={tab}
-          search={<ChapterSearch query={query} onQueryChange={setQuery} onClose={() => setQuery('')}/>}
+      : <ChapterBrowser total={tab === 'chapters' ? available.length : 0} tab={tab}
+          search={tab === 'chapters' && <>
+            <Button variant="outline" aria-expanded={searchOpen} onClick={() => { if (searchOpen) setQuery(''); setSearchOpen(!searchOpen) }}>Search chapters</Button>
+            {searchOpen && <ChapterSearch query={query} onQueryChange={setQuery} onClose={() => { setQuery(''); setSearchOpen(false) }}/>}
+          </>}
         >
           {tab === 'chapters'
             ? <ChapterList chapters={available.filter(chapter => `${chapter.name} ${chapter.meaning} ${chapter.id}`.toLowerCase().includes(query.toLowerCase()))} selectedId={selected} onSelect={setSelected}/>
             : <BookmarkList chapters={available} savedChapters={[]} savedVerses={[]} onOpenChapter={setSelected} onOpenVerse={() => undefined}/>
           }
-        </ChapterBrowser></>}
+        </ChapterBrowser>}
   </div>
 }
 

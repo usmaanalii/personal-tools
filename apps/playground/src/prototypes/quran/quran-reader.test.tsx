@@ -61,6 +61,25 @@ it('opens Al-Baqarah at the beginning when selected in Chapters', async () => {
   expect(screen.getByText('Page 1')).toBeVisible()
 })
 
+it('shows the Bismillah before chapter 2 only on its first page and omits it for chapters 1 and 9', async () => {
+  server.use(http.get(`${quranEndpoint}/verses`, ({ request }) => {
+    const page = Number(new URL(request.url).searchParams.get('page'))
+    return HttpResponse.json({ verses: [{ number: page === 1 ? 1 : 21, arabic: 'نص للاختبار', translationHtml: 'Translation.' }], translationName: 'Translator', nextPage: page === 1 ? 2 : null })
+  }))
+  const { user } = await renderReader()
+  const bismillah = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ'
+  expect(screen.queryByText(bismillah)).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Chapters' }))
+  await user.click(screen.getByRole('button', { name: /Al-Baqarah/ }))
+  expect(screen.getByText(bismillah)).toBeVisible()
+  await screen.findByText('Translation.')
+  await user.click(screen.getByRole('button', { name: 'Next verses' }))
+  expect(screen.queryByText(bismillah)).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Chapters' }))
+  await user.click(screen.getByRole('button', { name: /At-Tawbah/ }))
+  expect(screen.queryByText(bismillah)).not.toBeInTheDocument()
+})
+
 it('announces verse loading when changing chapters and shows the new translation when ready', async () => {
   const { user } = await renderReader()
   const pending = Promise.withResolvers<Response>()
@@ -99,6 +118,17 @@ describe('Quran reader bookmarks', () => {
 })
 
 describe('Quran reader chapter search', () => {
+  it('clears the filter when the search toggle closes the field', async () => {
+    const { user } = await renderReader()
+    await user.click(screen.getByRole('button', { name: 'Chapters' }))
+    const toggle = screen.getByRole('button', { name: 'Search chapters' })
+    await user.click(toggle)
+    await user.type(screen.getByRole('textbox', { name: 'Search chapters' }), 'unknown chapter')
+    await user.click(toggle)
+    expect(screen.queryByRole('textbox', { name: 'Search chapters' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Al-Fātiḥah/ })).toBeVisible()
+  })
+
   it('announces no matching chapters and retains the query when changing views', async () => {
     const { user } = await renderReader()
     const url = window.location.href

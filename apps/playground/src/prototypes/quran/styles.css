@@ -21,6 +21,10 @@ html:has(.reader-navigation) {
   padding-inline:env(safe-area-inset-left) env(safe-area-inset-right);
   padding-top:var(--reader-nav-space);
 }
+@media(width < 20rem) {
+  .quran-reader:has(.reader-navigation) { padding-top:0; }
+  .reader-navigation { position:sticky; }
+}
 @media(width >= 40rem) {
   .reader-navigation {
     display:flex;

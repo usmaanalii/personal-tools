@@ -8,6 +8,18 @@ import { WordGrammarSchema } from '@scratch-pages/api-contracts/quran'
 // Both project runs are intentional: narrow desktop keyboard and mobile touch contexts.
 test.use({ viewport: { width: 320, height: 568 } })
 
+test('keeps the chapter heading clear of navigation at a narrow effective viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 160, height: 284 })
+  await mockQuranContent(page)
+  await page.goto('./quran/')
+  await page.getByRole('button', { name: 'Chapters' }).click()
+  const navigation = await page.getByRole('navigation', { name: 'Reader controls' }).boundingBox()
+  const heading = await page.getByRole('heading', { name: /^Chapters/ }).boundingBox()
+  if (!navigation || !heading) throw new Error('Expected navigation and chapter heading')
+  expect(navigation.y + navigation.height).toBeLessThanOrEqual(heading.y)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(160)
+})
+
 test('keeps navigation above chapter search when the visible viewport becomes shorter', async ({ page }) => {
   await mockQuranContent(page)
   await page.goto('./quran/')
@@ -48,6 +60,13 @@ test('returns to the same document position after visiting another destination',
   await expect(page.getByRole('heading', { name: /^Chapters/ })).toBeFocused()
   await navigation.getByRole('button', { name: 'Read' }).click()
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(position)
+  const restoredVerse = page.locator('article:focus')
+  await expect(restoredVerse).toHaveCount(1)
+  const bookmarkName = await restoredVerse.getByRole('button', { name: /Bookmark verse/ }).getAttribute('aria-label')
+  if (!bookmarkName) throw new Error('Expected a verse bookmark')
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: bookmarkName })).toBeFocused()
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
 
   await page.setViewportSize({ width: 1440, height: 600 })
   await page.getByRole('article').last().scrollIntoViewIfNeeded()

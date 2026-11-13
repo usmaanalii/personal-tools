@@ -54,6 +54,12 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
     const position = view === 'read' ? readingPosition.current : 0
     if (position === 0) heading?.focus({ preventScroll: true })
     if (document.scrollingElement) document.scrollingElement.scrollTop = position
+    if (view === 'read' && position > 0) {
+      const top = document.querySelector('nav[aria-label="Reader controls"]')?.getBoundingClientRect().bottom ?? 0
+      const verse = Array.from(document.querySelectorAll<HTMLElement>('.verse-list article'))
+        .find(item => item.getBoundingClientRect().bottom > top)
+      verse?.focus({ preventScroll: true })
+    }
   }, [view])
   useLayoutEffect(() => {
     const button = savedVerseButton.current
@@ -81,7 +87,7 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
     </nav>}>
         {view !== 'read' && <ChapterBrowser total={view === 'chapters' ? chapters.length : bookmarks.count} tab={view} headingRef={browsingHeading}
             search={view === 'chapters' && <>
-              <Button ref={searchToggle} variant="outline" aria-expanded={searchOpen} onClick={() => setSearchOpen(!searchOpen)}>Search chapters</Button>
+              <Button ref={searchToggle} variant="outline" aria-expanded={searchOpen} onClick={() => { if (searchOpen) setQuery(''); setSearchOpen(!searchOpen) }}>Search chapters</Button>
               {searchOpen && <ChapterSearch query={query} onQueryChange={setQuery} onClose={() => { setSearchOpen(false); setQuery(''); searchToggle.current?.focus() }}/>}
             </>}
           >
