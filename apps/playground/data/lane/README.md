@@ -48,6 +48,31 @@ Unreviewed roots, rootless/unmapped lemmas and unavailable grammar show an expli
 Dictionary senses remain separate from the contextual verse gloss.
 Root group membership does not establish historical etymology.
 
+### Match provenance (#45)
+
+The complete `/v2/dictionary/entries` response includes `match` on each successfully loaded result:
+
+- `{ "kind": "lemma", "key": "ٱسْم" }` identifies an explicit catalogue lemma selection. The reader labels it **Lemma match**.
+- `{ "kind": "root", "key": "كتب" }` identifies membership in the source group associated with that exact root. The reader labels it **Related to root**.
+
+The backend selects the association and entries together, with lemma precedence, including empty overrides.
+Every continuation uses the same selection. Entry-read failures carry no match claim.
+The field is optional for compatibility with older responses; the reader shows **Match basis unavailable** when it is absent and does not infer provenance from the query or headword.
+The legacy `/v2/dictionary` route remains unchanged.
+
+A lemma selection identifies a dictionary headword without selecting a sense in the verse.
+Root-related entries may explain other words and senses in that group.
+Neither association establishes a contextual definition, a single authoritative meaning or historical etymology.
+Arabic headwords, source structure and individual XML references remain intact.
+Each card displays its entry ID, also exposed as its accessible description, so repeated headwords can be connected to the XML references in Dictionary sources.
+
+Available morphology with no lookup key or no admitted association shows **No verified Lane’s entry is available for this word**.
+Missing or unavailable morphology shows **Verified morphology is unavailable for this word**, without initiating a lookup.
+Unresolved source associations remain no-match outcomes; they are never promoted to verified entries.
+Temporary request, pack or continuation failures retain the retry flow and successful results.
+
+Backend version 12 supplies this field. Live checks verified ٱسْم and ٱللَّه lemma selections and all 22 كتب root-related entries across two pages before frontend publication.
+
 The #44 expanded catalogue derives exact root-group associations from all pinned XML files.
 Each admitted `(entry ID, headword)` must also occur in the source index.
 For example, the unrelated قبس occurrence of `n42477` is excluded because its headword conflicts with the index.
@@ -128,8 +153,12 @@ No Figma frames were supplied. These states use the existing word-dialog control
 | Closed | Expand dictionary beside grammar | Open for the selected word |
 | Loading | Loading announcement and pending retry control | Complete, fail, close or change word |
 | Matched | Distinct entry IDs, Arabic headwords and source links | Expand an entry or collapse the section |
+| Lemma match | Backend-selected lemma label and Arabic key beside each headword | Read the entry or change word |
+| Related to root | Backend-selected root label and Arabic key; introductory explanation distinguishes it from contextual meaning | Browse distinct entries or change word |
+| Missing provenance | Match basis unavailable beside the original entry | Read the source without a verified match claim |
 | Long entry | Full structured text with a sticky selected-word reference | Scroll independently or return to the excerpt |
-| Unavailable | No verified entry for the current word | Change word or recover grammar |
+| No verified match | Available morphology has no key or admitted dictionary association | Change word |
+| Unavailable morphology | Separate announcement; no dictionary lookup | Change word or recover grammar |
 | Failure | Retryable dictionary error; existing meaning and successful entries remain | Retry in place |
 | Word/grammar change | Reset disclosure; discard an obsolete response | Open the new selection |
 | Narrow/landscape | Scrollable reading area with selected-word context | Keyboard or touch scrolling; Close/Previous/Next remain reachable |

@@ -32,6 +32,12 @@ test('reads expanded Lane pages and original Mufradāt for an Al-Baqarah word', 
   await expect(dialog.getByRole('article')).toHaveCount(22)
   expect(requests).toHaveLength(2)
   expect(new URL(requests[1] ?? '').searchParams.has('cursor')).toBe(true)
+  // Checks provenance survives browser continuation and the second backend page.
+  const lastEntry = dialog.getByRole('article').last()
+  await expect(lastEntry.getByText(/Related to root/)).toHaveText('Related to root · كتب')
+  await lastEntry.getByRole('heading').scrollIntoViewIfNeeded()
+  await expect(dialog.getByRole('group', { name: 'Word summary' })).toBeInViewport()
+  await page.screenshot({ path: testInfo.outputPath('lane-root-provenance.png') })
   await dialog.getByRole('tab', { name: 'Mufradāt' }).click()
   const article = dialog.getByRole('article', { name: 'كتب' })
   await expect(article).toBeVisible()

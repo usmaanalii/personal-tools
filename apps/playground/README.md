@@ -259,7 +259,12 @@ and Tanzil links remain in the page's Sources section.
 Arabic, forms, sense divisions and available page markers remain distinct from
 the contextual word gloss. Text is rendered inertly.
 
-Unmapped/unverified words show an unavailable state. Request and individual entry
+The #45 reader labels backend-selected entries **Lemma match** or **Related to root**,
+with the Arabic lookup key beside each original headword. A lemma match selects a
+headword; root-related entries can discuss other words and senses. Neither selects
+the meaning in this verse. Responses without provenance show **Match basis unavailable**.
+No verified dictionary match and unavailable morphology have separate announcements.
+Request and individual entry
 failures offer **Retry dictionary** while keeping meaning and successful entries
 visible. Leaving the tab or changing word/grammar discards pending results.
 Successful responses remain cached while the verse is mounted, including closing
@@ -275,6 +280,8 @@ No new frontend environment variables are required. Generate backend files with
 `pnpm --filter playground lane:data`, then deploy and verify the complete Quran
 function before publishing this frontend. Backend version 9 was deployed and verified
 on 2026-11-06 from `af358a5`; the Pages workflow publishes the frontend separately.
+Backend version 12 adds the #45 provenance field to the expanded dictionary route.
+Live API checks verified lemma and root matches before frontend publication.
 
 ### Original Arabic Mufradāt (#21)
 

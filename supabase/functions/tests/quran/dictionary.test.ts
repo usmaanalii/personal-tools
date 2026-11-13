@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { createQuranHandler } from '../../quran/handler.ts'
 import { LaneResponseSchema, LanePageResponseSchema } from '../../../../packages/api-contracts/src/quran.ts'
-import { createBundledLaneReader } from '../../quran/bundled-lane.ts'
+import { createBundledLaneReader, LaneIndexSchema } from '../../quran/bundled-lane.ts'
 import { execFileSync } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -16,16 +16,52 @@ function request(query = 'root=%D8%B3%D9%85%D9%88&lemma=%D9%B1%D8%B3%D9%92%D9%85
   return new Request(`https://example.com/functions/v1/quran/v2/dictionary?${query}`, { headers: { Origin: origin } })
 }
 
-async function withLaneData(run: (reader: ReturnType<typeof createBundledLaneReader>, directory: string) => Promise<void>, expanded = false) {
+async function withLaneData(run: (reader: ReturnType<typeof createBundledLaneReader>, directory: string) => Promise<void>, expanded = false, lemmas?: Record<string, string[]>) {
   const directory = await mkdtemp(join(tmpdir(), 'lane-backend-'))
   try {
-    if (expanded) execFileSync('pnpm', ['--filter', 'playground', 'lane:data', '--output', directory], { stdio: 'pipe' })
+    const mappingPath = join(directory, 'reviewed-mappings.json')
+    if (lemmas) {
+      const mappings = LaneIndexSchema.parse(JSON.parse(await readFile(new URL('../../../../apps/playground/data/lane/mappings.json', import.meta.url), 'utf8')))
+      await writeFile(mappingPath, JSON.stringify({ ...mappings, lemmas: { ...mappings.lemmas, ...lemmas } }))
+    }
+    if (expanded) execFileSync('pnpm', ['--filter', 'playground', 'lane:data', '--output', directory, ...(lemmas ? ['--mappings', mappingPath] : [])], { stdio: 'pipe' })
     else execFileSync('python3', [new URL('../../../../apps/playground/scripts/lane-data/import.py', import.meta.url).pathname, '--output', directory])
     await run(createBundledLaneReader(readFile, pathToFileURL(`${directory}/`)), directory)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }
 }
+
+it.each([
+  { root: 'سمو', lemma: 'ٱسْم', id: 'n20831' },
+  { root: 'اله', lemma: 'ٱللَّه', id: 'n1123' },
+])('identifies the reviewed $lemma selection on the complete HTTP route before considering roots', async ({ root, lemma, id }) => {
+  await withLaneData(async reader => {
+    const handler = createHandler({ readDictionaryPage: reader.page })
+    const response = await handler(new Request(`https://example.com/functions/v1/quran/v2/dictionary/entries?${new URLSearchParams({ root, lemma })}`, { headers: { Origin: origin } }))
+    expect(response.status).toBe(200)
+    const result = LanePageResponseSchema.parse(await response.json())
+    expect(result.entries.map(({ id, match }) => ({ id, match }))).toEqual([{ id, match: { kind: 'lemma', key: lemma } }])
+  }, true)
+}, 30_000)
+
+it('withholds unresolved roots and explicitly empty lemma overrides without falling back to a mapped root', async () => {
+  await withLaneData(async reader => {
+    const handler = createHandler({ readDictionaryPage: reader.page })
+    const results = await Promise.all([
+      { root: 'وقي' },
+      { root: 'سمو', lemma: 'ٱسْم' },
+    ].map(async query => {
+      const response = await handler(new Request(`https://example.com/functions/v1/quran/v2/dictionary/entries?${new URLSearchParams(query)}`, { headers: { Origin: origin } }))
+      expect(response.status).toBe(200)
+      return LanePageResponseSchema.parse(await response.json())
+    }))
+    expect(results.map(({ entries, entryIds, nextCursor }) => ({ entries, entryIds, nextCursor }))).toEqual([
+      { entries: [], entryIds: [], nextCursor: null },
+      { entries: [], entryIds: [], nextCursor: null },
+    ])
+  }, true, { 'ٱسْم': [] })
+}, 30_000)
 
 it('registers the deployed entry point with expanded dictionary delivery', async () => {
   await withLaneData(async (_reader, directory) => {
@@ -54,18 +90,20 @@ it('registers the deployed entry point with expanded dictionary delivery', async
 it('serves every entry in a large expanded root through bounded pages while retaining the legacy response', async () => {
   await withLaneData(async reader => {
     const handler = createHandler({ readDictionary: reader, readDictionaryPage: reader.page })
-    const firstResponse = await handler(new Request('https://example.com/functions/v1/quran/v2/dictionary/entries?root=كتب', { headers: { Origin: origin } }))
+    const firstResponse = await handler(new Request('https://example.com/functions/v1/quran/v2/dictionary/entries?root=كتب&lemma=كِتَٰب', { headers: { Origin: origin } }))
     expect(firstResponse.status).toBe(200)
     const first = LanePageResponseSchema.parse(await firstResponse.json())
     expect(first.entries).toHaveLength(12)
     expect(first.entryIds.length).toBeGreaterThan(12)
     expect(first.nextCursor).not.toBeNull()
+    expect(first.entries.map(item => item.match)).toEqual(Array.from({ length: 12 }, () => ({ kind: 'root', key: 'كتب' })))
     async function remaining(cursor: string | null): Promise<string[]> {
       if (!cursor) return []
-      const response = await handler(new Request(`https://example.com/functions/v1/quran/v2/dictionary/entries?${new URLSearchParams({ root: 'كتب', cursor })}`, { headers: { Origin: origin } }))
+      const response = await handler(new Request(`https://example.com/functions/v1/quran/v2/dictionary/entries?${new URLSearchParams({ root: 'كتب', lemma: 'كِتَٰب', cursor })}`, { headers: { Origin: origin } }))
       expect(response.status).toBe(200)
       const page = LanePageResponseSchema.parse(await response.json())
       expect(page.revision).toBe(first.revision)
+      expect(page.entries.every(item => item.match?.kind === 'root' && item.match.key === 'كتب')).toBe(true)
       return [...page.entries.map(item => item.id), ...await remaining(page.nextCursor)]
     }
     expect([...first.entries.map(item => item.id), ...await remaining(first.nextCursor)]).toEqual(first.entryIds)

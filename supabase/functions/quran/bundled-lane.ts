@@ -10,6 +10,12 @@ export const LaneIndexSchema = z.object({
 export const LaneCatalogueSchema = LaneIndexSchema.extend({ entryFiles: z.record(LaneEntryIdSchema, z.string().regex(/^packs\/n\d+\.json\.gz$/)) })
 const ManifestSchema = z.object({ files: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)) })
 
+function selectEntries(query: LaneRequest, lookup: z.infer<typeof LaneIndexSchema>) {
+  if (query.lemma && lookup.lemmas[query.lemma]) return { ids: lookup.lemmas[query.lemma], match: { kind: 'lemma' as const, key: query.lemma } }
+  if (query.root && lookup.roots[query.root]) return { ids: lookup.roots[query.root], match: { kind: 'root' as const, key: query.root } }
+  return { ids: [], match: undefined }
+}
+
 async function checksum(raw: Uint8Array) {
   const digest = await crypto.subtle.digest('SHA-256', Uint8Array.from(raw))
   return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')
@@ -51,7 +57,7 @@ export function createBundledLaneReader(readFile: (path: URL) => Promise<Uint8Ar
     const lookup = catalogue ?? LaneCatalogueSchema.parse(await read('catalogue.json', signal))
     catalogue = lookup
     const revision = manifest?.files['catalogue.json'] ?? ''
-    const ids = (query.lemma ? lookup.lemmas[query.lemma] : undefined) ?? (query.root ? lookup.roots[query.root] : undefined) ?? []
+    const { ids, match } = selectEntries(query, lookup)
     const binding = await checksum(new TextEncoder().encode(JSON.stringify({ root: query.root ?? null, lemma: query.lemma ?? null })))
     const offset = query.cursor ? Number(query.cursor.split('.')[1]) : 0
     if (query.cursor && (query.cursor.split('.')[0] !== revision || query.cursor.split('.')[2] !== binding || !Number.isSafeInteger(offset) || offset <= 0 || offset >= ids.length || offset % LANE_PAGE_SIZE !== 0)) throw new InvalidLaneCursor()
@@ -64,7 +70,7 @@ export function createBundledLaneReader(readFile: (path: URL) => Promise<Uint8Ar
         const entry = cache.get(id) ?? (await packs.get(file))?.[id]
         if (!entry || entry.id !== id) throw new Error('Lane entry identity mismatch')
         cache.set(id, entry)
-        return { id, entry }
+        return { id, entry, match }
       } catch {
         return { id, entry: null }
       }

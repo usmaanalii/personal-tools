@@ -154,7 +154,7 @@ it('opens Dictionary within the selected word while keeping its meaning and vers
   await user.click(word)
   const details = within(screen.getByRole('dialog', { name: 'Word meaning' }))
   await user.click(details.getByRole('tab', { name: 'Dictionary' }))
-  expect(await details.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
+  expect(await details.findByText('Verified morphology is unavailable for this word.')).toBeVisible()
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(details.getByText('Al-Fātiḥah · Verse 1')).toBeVisible()
 })
@@ -164,7 +164,7 @@ it('retains Grammar for the next word after switching back from Dictionary', asy
   await user.click(word)
   const details = within(screen.getByRole('dialog', { name: 'Word meaning' }))
   await user.click(details.getByRole('tab', { name: 'Dictionary' }))
-  expect(await details.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
+  expect(await details.findByText('Verified morphology is unavailable for this word.')).toBeVisible()
 
   await user.click(details.getByRole('tab', { name: 'Grammar' }))
 

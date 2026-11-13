@@ -21,11 +21,18 @@ test('reads Quran content from the deployed app and backend after refresh', asyn
   const dictionary = word.getByRole('region', { name: 'Lane’s dictionary' })
   const entry = dictionary.getByRole('article').first()
   await expect(entry).toBeVisible()
+  // Release gate: the published reader must consume the live backend's provenance.
+  await expect(entry.getByText(/Lemma match/)).toHaveText('Lemma match · ٱسْم')
   await entry.getByRole('button', { name: 'Read full entry' }).click()
   await expect(entry.getByText('name', { exact: true }).first()).toBeVisible()
   // Confirms the published client can read the Mufradat files bundled on Supabase.
   await word.getByRole('tab', { name: 'Mufradāt', exact: true }).click()
   await expect(word.getByRole('article', { name: 'سما', exact: true })).toBeVisible()
+  await word.getByRole('button', { name: 'Close word meaning' }).click()
+  await page.getByRole('button', { name: /^2\s*Al-Baqarah/ }).click()
+  await page.getByRole('button', { name: / · 2:2:2$/ }).click()
+  await word.getByRole('tab', { name: 'Dictionary', exact: true }).click()
+  await expect(word.getByRole('article').last().getByText(/Related to root/)).toHaveText('Related to root · كتب')
   await word.getByRole('button', { name: 'Close word meaning' }).click()
   const sources = page.getByRole('region', { name: 'Sources' })
   await expect(sources.getByRole('link', { name: 'Quranic Arabic Corpus v0.4' })).toBeVisible()

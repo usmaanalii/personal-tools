@@ -84,8 +84,10 @@ export const LaneEntrySchema = z.object({
 })
 export type LaneEntry = z.infer<typeof LaneEntrySchema>
 export const LANE_PAGE_SIZE = 12
+export const LaneMatchSchema = z.object({ kind: z.enum(['lemma', 'root']), key: z.string().min(1).max(80) })
+export type LaneMatch = z.infer<typeof LaneMatchSchema>
 export const LaneResponseSchema = z.object({
-  entries: z.array(z.object({ id: LaneEntryIdSchema, entry: LaneEntrySchema.nullable() })).max(LANE_PAGE_SIZE)
+  entries: z.array(z.object({ id: LaneEntryIdSchema, entry: LaneEntrySchema.nullable(), match: LaneMatchSchema.optional() })).max(LANE_PAGE_SIZE)
     .refine(entries => entries.every(item => !item.entry || item.entry.id === item.id), 'Entry identity mismatch')
     .refine(entries => new Set(entries.map(item => item.id)).size === entries.length, 'Duplicate entries'),
 })

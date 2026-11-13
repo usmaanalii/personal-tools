@@ -259,9 +259,37 @@ The largest Lane group, روح, also returned all 56 entries across five hosted 
 Rootless lookups, no-match, validation, methods, preflight/CORS and existing content/grammar checks passed.
 The hosted catalogue still contains chapters 1–2 only.
 
+## Lane match provenance (#45)
+
+The complete `/v2/dictionary/entries` route adds optional per-result
+`match: { kind: 'lemma' | 'root', key: string }` metadata to the shared contract.
+Successful results identify the catalogue selection used to produce them.
+Lemma mappings, including empty overrides, take precedence over roots.
+Root matches identify source-group membership and do not select a contextual sense.
+Unresolved associations return no entries. Failed entry reads retain `entry: null`
+without a match claim. Every continuation retains the same lookup provenance.
+
+The legacy route and responses without metadata remain compatible.
+The reader treats missing provenance as unavailable and never reconstructs it from
+provider fields, query parameters or Arabic spelling.
+See [matching policy and reader states](../../../apps/playground/data/lane/README.md#match-provenance-45).
+
+Before publishing the frontend, regenerate all three datasets and deploy the
+complete function with the documented Docker bundler. Verify live name/Allah lemma
+selections, root matches across كتب continuations, unresolved roots, legacy routes
+and existing content/grammar. Then publish the frontend and run the narrow
+unmocked deployment smoke. Keep fixture-backed browser evidence separate from
+hosted verification and from full-Quran production access.
+
 ## Deployed history
 
-Current deployment: function `quran` version 11, released on 2026-11-07 for #44.
+Current deployment: function `quran` version 12, released on 2026-11-13 for #45.
+The Docker release included regenerated morphology and both dictionaries. Live
+checks verified the ٱسْم and ٱللَّه lemma selections, all 22 كتب root-related
+entries across two pages, an unresolved root, the legacy Lane response,
+Mufradāt, chapter and verse content, occurrence morphology, and CORS.
+
+Previous deployment: function `quran` version 11, released on 2026-11-07 for #44.
 It adds complete dictionary browsing with regenerated morphology and both lexicons.
 Twenty-nine unmocked HTTP checks and one preflight passed before frontend publication.
 Provider credentials, pre-live access and public JWT configuration remain unchanged.
