@@ -13,6 +13,7 @@ test('opens the homepage from the Supabase demo and returns through keyboard nav
   // Browser risk: the second static destination is reachable using native keyboard navigation.
   await page.keyboard.press('Tab')
   await page.keyboard.press('Tab')
+  await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: /Supabase API demo/i })).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/personal-tools\/supabase\/$/)

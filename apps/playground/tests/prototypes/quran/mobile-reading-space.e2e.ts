@@ -19,9 +19,8 @@ test('keeps navigation above chapter search when the visible viewport becomes sh
   await page.setViewportSize({ width: 320, height: 350 })
   const navBox = await navigation.boundingBox()
   const searchBox = await search.boundingBox()
-  expect(navBox).not.toBeNull()
-  expect(searchBox).not.toBeNull()
-  expect(navBox!.y + navBox!.height).toBeLessThanOrEqual(searchBox!.y)
+  if (!navBox || !searchBox) throw new Error('Navigation and search must be visible')
+  expect(navBox.y + navBox.height).toBeLessThanOrEqual(searchBox.y)
   await expect(search).toBeInViewport({ ratio: 1 })
 })
 

@@ -76,7 +76,7 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
 
   return <ReaderLayout
     navigation={<nav aria-label="Reader controls" className="reader-navigation border-0 border-b border-solid border-ui-border bg-ui-surface">
-      {destinations.map(destination => <Button key={destination.id} variant="ghost" size="compact" className="min-w-0 wrap-anywhere"
+      {destinations.map(destination => <Button key={destination.id} variant="ghost" size="compact" className="min-w-0 wrap-anywhere transition-none"
         aria-pressed={view === destination.id} onClick={() => changeView(destination.id)}>{destination.label}</Button>)}
     </nav>}>
         {view !== 'read' && <ChapterBrowser total={view === 'chapters' ? chapters.length : bookmarks.count} tab={view} headingRef={browsingHeading}
