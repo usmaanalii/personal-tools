@@ -326,7 +326,18 @@ grammar and both article endpoints, and measure cold and warm hosted responses.
 
 ## Deployed history
 
-Current deployment: function `quran` version 12, released on 2026-11-13 for #45.
+Version 13 of the `quran` function was deployed on 2026-11-13 for #46 from
+[`352d41b`](https://github.com/usmaanalii/personal-tools/commit/352d41b288dcb1a77af50b3a8f021c5db89ee57a).
+Hosted verse responses included availability for Corpus, Lane and Mufradāt on
+all 259 words checked in Al-Fatihah and Al-Baqarah page 1. Live checks also
+verified occurrence grammar and both dictionary entries endpoints.
+
+When deploying an isolated revision with the Docker bundler, stage it in a
+directory shared with Docker. During the version 13 release, Colima could not
+see the function entry point under `/private/tmp`. Bundling succeeded from a
+staging directory inside the checkout.
+
+Version 12 of the `quran` function was deployed on 2026-11-13 for #45.
 The Docker release included regenerated morphology and both dictionaries. Live
 checks verified the ٱسْم and ٱللَّه lemma selections, all 22 كتب root-related
 entries across two pages, an unresolved root, the legacy Lane response,
