@@ -4,8 +4,10 @@ import { mapChapters, mapVerses } from './provider.ts'
 import { enrichGrammar, type MorphologyReader } from './morphology.ts'
 import { MufradatRequestSchema, MufradatResponseSchema, MufradatCompleteResponseSchema, type MufradatRequest } from '../../../packages/api-contracts/src/quran.ts'
 import { InvalidLaneCursor } from './bundled-lane.ts'
+import { enrichDictionaryAvailability } from './word-availability.ts'
+import type { LoadDictionaryIndex } from './dictionary-index.ts'
 
-type Config = { clientId: string; clientSecret: string; environment: string; origins: string[]; timeoutMs?: number; readMorphology?: MorphologyReader; readDictionary?: (query: LaneRequest, signal: AbortSignal) => Promise<unknown>; readDictionaryPage?: (query: LanePageRequest, signal: AbortSignal) => Promise<unknown>; readMufradat?: (query: MufradatRequest, signal: AbortSignal) => Promise<unknown>; readMufradatEntries?: (query: MufradatRequest, signal: AbortSignal) => Promise<unknown> }
+type Config = { clientId: string; clientSecret: string; environment: string; origins: string[]; timeoutMs?: number; readMorphology?: MorphologyReader; readDictionary?: (query: LaneRequest, signal: AbortSignal) => Promise<unknown>; readDictionaryPage?: (query: LanePageRequest, signal: AbortSignal) => Promise<unknown>; readMufradat?: (query: MufradatRequest, signal: AbortSignal) => Promise<unknown>; readMufradatEntries?: (query: MufradatRequest, signal: AbortSignal) => Promise<unknown>; loadLaneIndex?: LoadDictionaryIndex; loadMufradatIndex?: LoadDictionaryIndex }
 
 export function createQuranHandler(config: Config) {
   const authBase = config.environment === 'production' ? 'https://oauth2.quran.foundation' : 'https://prelive-oauth2.quran.foundation'
@@ -106,7 +108,10 @@ export function createQuranHandler(config: Config) {
       if (!response.ok) return error('Quran content is temporarily unavailable. Please try again.', response.status === 429 ? 429 : 502)
       const payload: unknown = await response.json()
       const content = ownedContract
-        ? route === 'chapters' ? mapChapters(payload) : await enrichGrammar(mapVerses(payload, translationId, Number(page), Number(chapter)), Number(chapter), request.signal, config.readMorphology)
+        ? route === 'chapters' ? mapChapters(payload) : await enrichDictionaryAvailability(
+          await enrichGrammar(mapVerses(payload, translationId, Number(page), Number(chapter)), Number(chapter), request.signal, config.readMorphology),
+          config.loadLaneIndex, config.loadMufradatIndex,
+        )
         : payload
       return Response.json(content, { headers })
     } catch {

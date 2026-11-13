@@ -10,6 +10,9 @@ import { pathToFileURL } from 'node:url'
 import { gzipSync } from 'node:zlib'
 import { createHash } from 'node:crypto'
 import { createBundledMorphologyReader } from '../../quran/bundled-morphology.ts'
+import { VersesResponseSchema } from '../../../../packages/api-contracts/src/quran.ts'
+import { createBundledLaneReader } from '../../quran/bundled-lane.ts'
+import { createBundledMufradatReader } from '../../quran/bundled-mufradat.ts'
 
 const origin = 'https://usmaanalii.github.io'
 function bismiChapter() {
@@ -57,11 +60,135 @@ function providerRequests(payload: unknown, legacy = false) {
     }),
   )
 }
-async function read(payload: unknown, legacy = false, readMorphology?: (chapter: number, signal: AbortSignal) => Promise<unknown>) {
+async function read(payload: unknown, legacy = false, readMorphology?: (chapter: number, signal: AbortSignal) => Promise<unknown>, overrides: Partial<Parameters<typeof createQuranHandler>[0]> = {}) {
   providerRequests(payload, legacy)
-  const handler = createQuranHandler({ clientId: 'test-client', clientSecret: 'test-secret', environment: 'prelive', origins: [origin], readMorphology })
+  const handler = createQuranHandler({ clientId: 'test-client', clientSecret: 'test-secret', environment: 'prelive', origins: [origin], readMorphology, ...overrides })
   return handler(new Request(`https://example.com/functions/v1/quran/${legacy ? '' : 'v2/'}verses?chapter=1`, { headers: { Origin: origin } }))
 }
+
+function indexAssets<T>(filename: string, data: T) {
+  const index = Buffer.from(JSON.stringify(data))
+  const manifest = Buffer.from(JSON.stringify({ files: { [filename]: createHash('sha256').update(index).digest('hex') } }))
+  return vi.fn(async (path: URL) => {
+    if (path.pathname.endsWith('/manifest.json')) return manifest
+    if (path.pathname.endsWith(`/${filename}`)) return index
+    throw new Error('Article assets are unavailable')
+  })
+}
+
+it('reports dictionary index matches without loading articles', async () => {
+  const laneAssets = indexAssets('catalogue.json', { roots: { سمو: ['n1', 'n2'] }, lemmas: { 'ٱسْم': ['n3'] }, entryFiles: {} })
+  const mufradatAssets = indexAssets('index.json', { roots: { سمو: ['jk-l1', 'jk-l2'] }, lemmas: { 'ٱسْم': ['jk-l3'] } })
+  const lane = createBundledLaneReader(laneAssets)
+  const mufradat = createBundledMufradatReader(mufradatAssets)
+  const response = await read(provider(), false, async () => bismiChapter(), { loadLaneIndex: lane.loadIndex, loadMufradatIndex: mufradat.loadIndex })
+  expect(response.status).toBe(200)
+  expect(VersesResponseSchema.parse(await response.json()).verses[0]?.words?.[0]?.availability)
+    .toEqual({ corpus: 'lexical', lane: 'indexed', mufradat: 'indexed' })
+  expect(laneAssets.mock.calls.map(([path]) => path.pathname.split('/').at(-1))).toEqual(['manifest.json', 'catalogue.json'])
+  expect(mufradatAssets.mock.calls.map(([path]) => path.pathname.split('/').at(-1))).toEqual(['manifest.json', 'index.json'])
+})
+
+it('reports multiple root entries and honors an empty lemma override', async () => {
+  const lane = createBundledLaneReader(indexAssets('catalogue.json', { roots: { سمو: ['n1', 'n2'] }, lemmas: {}, entryFiles: {} }))
+  const mufradat = createBundledMufradatReader(indexAssets('index.json', { roots: { سمو: ['jk-l1'] }, lemmas: { 'ٱسْم': [] } }))
+  const response = await read(provider(), false, async () => bismiChapter(), { loadLaneIndex: lane.loadIndex, loadMufradatIndex: mufradat.loadIndex })
+  expect(VersesResponseSchema.parse(await response.json()).verses[0]?.words?.[0]?.availability)
+    .toEqual({ corpus: 'lexical', lane: 'multiple', mufradat: 'missing' })
+})
+
+it('reports one indexed entry when repeated stems select the same article', async () => {
+  const chapter = importCorpus('(1:1:1:1)\tsomi\tN\tSTEM|POS:N|LEM:{som|ROOT:smw\n(1:1:1:2)\tsomi\tN\tSTEM|POS:N|LEM:{som|ROOT:smw').chapters['1']
+  const lane = createBundledLaneReader(indexAssets('catalogue.json', { roots: { سمو: ['n1'] }, lemmas: {}, entryFiles: {} }))
+  const response = await read(provider([{ ...word(), text_uthmani: 'سْمِسْمِ' }]), false, async () => chapter, { loadLaneIndex: lane.loadIndex })
+  expect(VersesResponseSchema.parse(await response.json()).verses[0]?.words?.[0]?.availability?.lane).toBe('indexed')
+})
+
+it('isolates a dictionary index failure and keeps the other source and verses available', async () => {
+  const laneAssets = indexAssets('catalogue.json', { roots: { سمو: ['n1'] }, lemmas: {}, entryFiles: {} })
+  const readLane = vi.fn(laneAssets)
+    .mockImplementationOnce(laneAssets)
+    .mockResolvedValueOnce(Buffer.from('{}'))
+  const lane = createBundledLaneReader(readLane)
+  const mufradat = createBundledMufradatReader(indexAssets('index.json', { roots: { سمو: ['jk-l1'] }, lemmas: {} }))
+  const response = await read(provider(), false, async () => bismiChapter(), {
+    loadLaneIndex: lane.loadIndex,
+    loadMufradatIndex: mufradat.loadIndex,
+  })
+  expect(response.status).toBe(200)
+  expect(VersesResponseSchema.parse(await response.json()).verses[0]?.words?.[0])
+    .toMatchObject({ meaning: 'In (the) name', grammar: { status: 'available' }, availability: { corpus: 'lexical', lane: 'temporarily_unavailable', mufradat: 'indexed' } })
+  const retry = await read(provider(), false, async () => bismiChapter(), { loadLaneIndex: lane.loadIndex, loadMufradatIndex: mufradat.loadIndex })
+  expect(VersesResponseSchema.parse(await retry.json()).verses[0]?.words?.[0]?.availability?.lane).toBe('indexed')
+})
+
+it('returns a verses page at the dictionary deadline even if an index read stalls', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+  try {
+    const started = Promise.withResolvers<void>()
+    const pending = read(provider(), false, async () => bismiChapter(), {
+      loadLaneIndex: () => {
+        started.resolve()
+        return new Promise(() => {})
+      },
+      loadMufradatIndex: async () => () => ['jk-l1'],
+    })
+    await started.promise
+    await vi.advanceTimersByTimeAsync(200)
+    const response = await Promise.race([pending, Promise.resolve(null)])
+    expect(response).not.toBeNull()
+    expect(VersesResponseSchema.parse(await response?.json()).verses[0]?.words?.[0]?.availability)
+      .toEqual({ corpus: 'lexical', lane: 'temporarily_unavailable', mufradat: 'indexed' })
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+it('shares cold dictionary index reads across concurrent verses requests and caches the result', async () => {
+  const laneAssets = indexAssets('catalogue.json', { roots: { سمو: ['n1'] }, lemmas: {}, entryFiles: {} })
+  const mufradatAssets = indexAssets('index.json', { roots: { سمو: ['jk-l1'] }, lemmas: {} })
+  const lane = createBundledLaneReader(laneAssets)
+  const mufradat = createBundledMufradatReader(mufradatAssets)
+  const requestPage = () => read(provider(), false, async () => bismiChapter(), {
+    loadLaneIndex: lane.loadIndex, loadMufradatIndex: mufradat.loadIndex,
+  })
+  const responses = await Promise.all([requestPage(), requestPage()])
+  for (const response of [...responses, await requestPage()]) {
+    expect(VersesResponseSchema.parse(await response.json()).verses[0]?.words?.[0]?.availability)
+      .toEqual({ corpus: 'lexical', lane: 'indexed', mufradat: 'indexed' })
+  }
+  expect(laneAssets).toHaveBeenCalledTimes(2)
+  expect(mufradatAssets).toHaveBeenCalledTimes(2)
+})
+
+it('publishes all three source statuses from the Edge Function entry point', async () => {
+  await withChapterAssets(async directory => {
+    providerRequests(provider())
+    const laneAssets = indexAssets('catalogue.json', { roots: {}, lemmas: { 'ٱسْم': ['n1'] }, entryFiles: {} })
+    const mufradatAssets = indexAssets('index.json', { roots: {}, lemmas: { 'ٱسْم': ['jk-l1'] } })
+    const registered = Promise.withResolvers<(request: Request) => Promise<Response>>()
+    const config = new Map([['QF_CLIENT_ID', 'test-client'], ['QF_CLIENT_SECRET', 'test-secret']])
+    vi.stubGlobal('Deno', {
+      env: { get: (key: string) => config.get(key) },
+      serve: (handler: (request: Request) => Promise<Response>) => registered.resolve(handler),
+      readFile: (path: URL) => {
+        if (path.pathname.includes('/lane-data/')) return laneAssets(path)
+        if (path.pathname.includes('/mufradat-data/')) return mufradatAssets(path)
+        return readFile(join(directory, path.pathname.split('/data/')[1]))
+      },
+    })
+    try {
+      vi.resetModules()
+      await import('../../quran/index.ts')
+      const response = await (await registered.promise)(new Request('https://example.com/functions/v1/quran/v2/verses?chapter=1', { headers: { Origin: origin } }))
+      expect(response.status).toBe(200)
+      expect(VersesResponseSchema.parse(await response.json()).verses[0]?.words?.[0]?.availability)
+        .toEqual({ corpus: 'lexical', lane: 'indexed', mufradat: 'indexed' })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+})
 
 it('publishes validated words with occurrence identity and excludes verse-end markers', async () => {
   const response = await read(provider())
@@ -103,10 +230,11 @@ it('keeps repeated words as distinct occurrences ordered by provider position', 
 it('attaches source grammar to a validated occurrence while retaining its meaning', async () => {
   const response = await read(provider(), false, async () => bismiChapter())
   expect(response.status).toBe(200)
-  const body = await response.json()
-  expect(body.verses[0].words[0]).toEqual({
+  const body = VersesResponseSchema.parse(await response.json())
+  expect(body.verses[0]?.words?.[0]).toEqual({
     chapter: 1, verse: 1, position: 1, arabic: 'بِسْمِ', transliteration: "bis'mi",
     meaning: 'In (the) name',
+    availability: { corpus: 'lexical', lane: 'unknown', mufradat: 'unknown' },
     grammar: {
       status: 'available',
       segments: [
@@ -118,10 +246,19 @@ it('attaches source grammar to a validated occurrence while retaining its meanin
 })
 
 it('marks a missing occurrence unavailable without borrowing a repeated word’s analysis', async () => {
-  const body = await (await read(provider([word(1), word(2)]), false, async () => bismiChapter())).json()
-  expect(body.verses[0].words.map((item: { grammar: unknown }) => item.grammar)).toMatchObject([
-    { status: 'available' },
-    { status: 'unavailable' },
+  const response = await read(provider([word(1), word(2)]), false, async () => bismiChapter())
+  const body = VersesResponseSchema.parse(await response.json())
+  expect(body.verses[0]?.words).toMatchObject([
+    { grammar: { status: 'available' }, availability: { corpus: 'lexical' } },
+    { grammar: { status: 'unavailable' }, availability: { corpus: 'missing', lane: 'unknown', mufradat: 'unknown' } },
+  ])
+})
+
+it('identifies grammar-only occurrences without claiming dictionary coverage', async () => {
+  const chapter = importCorpus('(1:1:1:1)\tbi\tP\tPREFIX|bi+').chapters['1']
+  const response = await read(provider([{ ...word(), text_uthmani: 'بِ' }]), false, async () => chapter)
+  expect(VersesResponseSchema.parse(await response.json()).verses[0]?.words).toMatchObject([
+    { grammar: { status: 'available' }, availability: { corpus: 'grammar_only', lane: 'missing', mufradat: 'missing' } },
   ])
 })
 
@@ -129,7 +266,11 @@ it('preserves verses and meanings when grammar data cannot be read', async () =>
   const response = await read(provider(), false, async () => { throw new Error('Missing packaged chapter') })
   expect(response.status).toBe(200)
   expect(await response.json()).toMatchObject({
-    verses: [{ arabic: 'بِسْمِ', translationHtml: 'In the name', words: [{ meaning: 'In (the) name', grammar: { status: 'temporarily_unavailable' } }] }],
+    verses: [{ arabic: 'بِسْمِ', translationHtml: 'In the name', words: [{
+      meaning: 'In (the) name',
+      grammar: { status: 'temporarily_unavailable' },
+      availability: { corpus: 'temporarily_unavailable', lane: 'unknown', mufradat: 'unknown' },
+    }] }],
   })
 })
 

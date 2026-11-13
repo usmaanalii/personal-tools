@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { LANE_PAGE_SIZE, LaneEntryIdSchema, LaneEntrySchema, LaneResponseSchema, LanePageResponseSchema, type LanePageRequest, type LanePageResponse, type LaneEntry, type LaneRequest, type LaneResponse } from '../../../packages/api-contracts/src/quran.ts'
+import { cacheIndex, selectEntries } from './dictionary-index.ts'
 
 export class InvalidLaneCursor extends Error {}
 
@@ -10,12 +11,6 @@ export const LaneIndexSchema = z.object({
 export const LaneCatalogueSchema = LaneIndexSchema.extend({ entryFiles: z.record(LaneEntryIdSchema, z.string().regex(/^packs\/n\d+\.json\.gz$/)) })
 const ManifestSchema = z.object({ files: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)) })
 
-function selectEntries(query: LaneRequest, lookup: z.infer<typeof LaneIndexSchema>) {
-  if (query.lemma && lookup.lemmas[query.lemma]) return { ids: lookup.lemmas[query.lemma], match: { kind: 'lemma' as const, key: query.lemma } }
-  if (query.root && lookup.roots[query.root]) return { ids: lookup.roots[query.root], match: { kind: 'root' as const, key: query.root } }
-  return { ids: [], match: undefined }
-}
-
 async function checksum(raw: Uint8Array) {
   const digest = await crypto.subtle.digest('SHA-256', Uint8Array.from(raw))
   return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')
@@ -24,15 +19,14 @@ async function checksum(raw: Uint8Array) {
 export function createBundledLaneReader(readFile: (path: URL) => Promise<Uint8Array>, directory = new URL('./lane-data/', import.meta.url)) {
   let manifest: z.infer<typeof ManifestSchema> | null = null
   let index: z.infer<typeof LaneIndexSchema> | null = null
-  let catalogue: z.infer<typeof LaneCatalogueSchema> | null = null
   const cache = new Map<string, LaneEntry>()
-  async function read(path: string, signal: AbortSignal, compressed = false): Promise<unknown> {
-    signal.throwIfAborted()
+  async function read(path: string, signal?: AbortSignal, compressed = false): Promise<unknown> {
+    signal?.throwIfAborted()
     const assets = manifest ?? ManifestSchema.parse(JSON.parse(new TextDecoder().decode(await readFile(new URL('manifest.json', directory)))))
     manifest = assets
     const raw = Uint8Array.from(await readFile(new URL(path, directory)))
     if (await checksum(raw) !== assets.files[path]) throw new Error('Lane asset checksum mismatch')
-    signal.throwIfAborted()
+    signal?.throwIfAborted()
     const text = compressed
       ? await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('gzip'), { signal })).text()
       : new TextDecoder().decode(raw)
@@ -42,7 +36,7 @@ export function createBundledLaneReader(readFile: (path: URL) => Promise<Uint8Ar
     signal.throwIfAborted()
     const lookup = index ?? LaneIndexSchema.parse(await read('index.json', signal))
     index = lookup
-    const ids = (query.lemma ? lookup.lemmas[query.lemma] : undefined) ?? (query.root ? lookup.roots[query.root] : undefined) ?? []
+    const { ids } = selectEntries(query, lookup)
     const entries = await Promise.all(ids.map(id => Promise.resolve(cache.get(id))
       .then(async cached => {
         const entry = cached ?? LaneEntrySchema.parse(await read(`lane/${id}.json`, signal))
@@ -52,10 +46,11 @@ export function createBundledLaneReader(readFile: (path: URL) => Promise<Uint8Ar
     signal.throwIfAborted()
     return LaneResponseSchema.parse({ entries })
   }
+  const loadCatalogue = cacheIndex(async () => LaneCatalogueSchema.parse(await read('catalogue.json')))
   const page = async (query: LanePageRequest, signal: AbortSignal): Promise<LanePageResponse> => {
     signal.throwIfAborted()
-    const lookup = catalogue ?? LaneCatalogueSchema.parse(await read('catalogue.json', signal))
-    catalogue = lookup
+    const lookup = await loadCatalogue()
+    signal.throwIfAborted()
     const revision = manifest?.files['catalogue.json'] ?? ''
     const { ids, match } = selectEntries(query, lookup)
     const binding = await checksum(new TextEncoder().encode(JSON.stringify({ root: query.root ?? null, lemma: query.lemma ?? null })))
@@ -78,5 +73,8 @@ export function createBundledLaneReader(readFile: (path: URL) => Promise<Uint8Ar
     signal.throwIfAborted()
     return LanePageResponseSchema.parse({ entries, entryIds: ids, revision, nextCursor: offset + LANE_PAGE_SIZE < ids.length ? `${revision}.${offset + LANE_PAGE_SIZE}.${binding}` : null })
   }
-  return Object.assign(legacy, { page })
+  return Object.assign(legacy, { page, async loadIndex() {
+    const lookup = await loadCatalogue()
+    return (query: LaneRequest) => selectEntries(query, lookup).ids
+  } })
 }

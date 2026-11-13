@@ -24,7 +24,7 @@ verse against the requested reading context. Provider models remain backend-only
 - `quran`: GET `/functions/v1/quran/v2/chapters` returns `{ chapters: Chapter[] }`. Chapter fields are `id`, `name`, `arabic`, `meaning`, `verses`, and `place` (`Meccan` or `Medinan`).
 - `quran`: GET `/functions/v1/quran/v2/verses?chapter=1&page=1` returns `{ verses: [{ number, arabic, translationHtml }], translationName, nextPage }`. Chapter is 1–114; page is 1–15 and defaults to 1. A page contains 1–20 verses. `nextPage` is the next sequential page or null.
 - `error`: application errors with JSON bodies use `{ error: string }` and the HTTP status. CORS rejection and preflight have empty bodies; platform-generated errors are outside this schema.
-- `quran`: GET `/functions/v1/quran/v2/dictionary?root=سمو&lemma=ٱسْم` returns `{ entries: [{ id, entry }] }`. At least one exact root (1–16 characters) or lemma (1–80 characters) is required. Unknown/duplicate query parameters are rejected. This new route leaves verse responses unchanged.
+- `quran`: GET `/functions/v1/quran/v2/dictionary?root=سمو&lemma=ٱسْم` returns `{ entries: [{ id, entry }] }`. At least one exact root (1–16 characters) or lemma (1–80 characters) is required. Unknown/duplicate query parameters are rejected.
 
 `LaneRequestSchema` and `LaneResponseSchema` own the dictionary contract.
 A lookup returns at most 12 distinct entries. A successful `entry` contains its
@@ -57,6 +57,11 @@ readable features. Source identifiers and raw corpus features stay backend-only.
 Malformed grammar falls back inside the word boundary so meanings survive.
 Older v2 responses without grammar remain valid. `VERSES_PER_PAGE` owns the
 20-verse page size used by the contract, handler and browser pagination.
+
+Verses can also include an optional `availability` object on each word, with
+`corpus`, `lane`, and `mufradat` statuses. Older responses remain valid.
+Malformed availability is discarded at the word boundary, preserving grammar
+and meaning. See the [status definitions](../../supabase/functions/quran/README.md#word-source-availability-46).
 
 Ordinary Zod objects accept and strip unknown response fields so additive server changes remain compatible. Do not use strict response objects. Removing fields, changing types, requiring new inputs, and expanding exhaustively handled enums require compatibility planning. Keep the legacy Quran routes available until their consumers have migrated; package versions alone do not protect existing browser builds.
 

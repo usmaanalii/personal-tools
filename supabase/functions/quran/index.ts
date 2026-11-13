@@ -13,8 +13,10 @@ const handler = createQuranHandler({
   readMorphology: createBundledMorphologyReader(Deno.readFile),
   readDictionary: dictionary,
   readDictionaryPage: dictionary.page,
+  loadLaneIndex: dictionary.loadIndex,
   readMufradat: mufradat,
   readMufradatEntries: mufradat.all,
+  loadMufradatIndex: mufradat.loadIndex,
 })
 
 Deno.serve(handler)

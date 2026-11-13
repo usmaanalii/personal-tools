@@ -9,7 +9,19 @@ function withGrammar(page: VersesResponse, grammarFor: (word: QuranWord) => Word
     ...page,
     verses: page.verses.map(verse => ({
       ...verse,
-      ...(verse.words ? { words: verse.words.map(word => ({ ...word, grammar: grammarFor(word) })) } : {}),
+      ...(verse.words ? { words: verse.words.map(word => {
+        const grammar = grammarFor(word)
+        if (grammar.status === 'temporarily_unavailable') {
+          return { ...word, grammar, availability: { corpus: grammar.status, lane: 'unknown', mufradat: 'unknown' } }
+        }
+        if (grammar.status === 'unavailable') {
+          return { ...word, grammar, availability: { corpus: 'missing', lane: 'unknown', mufradat: 'unknown' } }
+        }
+        const lexical = grammar.segments.some(segment => segment.kind === 'stem' && (segment.root || segment.lemma))
+        const corpus = lexical ? 'lexical' : 'grammar_only'
+        const dictionary = corpus === 'grammar_only' ? 'missing' : 'unknown'
+        return { ...word, grammar, availability: { corpus, lane: dictionary, mufradat: dictionary } }
+      }) } : {}),
     })),
   }
 }

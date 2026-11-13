@@ -39,6 +39,13 @@ export const WordGrammarSchema = z.discriminatedUnion('status', [
 ])
 export type WordGrammar = z.infer<typeof WordGrammarSchema>
 
+const DictionaryAvailabilitySchema = z.enum(['unknown', 'missing', 'indexed', 'multiple', 'temporarily_unavailable'])
+const WordAvailabilitySchema = z.object({
+  corpus: z.enum(['lexical', 'grammar_only', 'missing', 'temporarily_unavailable']),
+  lane: DictionaryAvailabilitySchema,
+  mufradat: DictionaryAvailabilitySchema,
+})
+
 export const WordSchema = z.object({
   chapter: z.number().int().min(1).max(114),
   verse: z.number().int().min(1).max(286),
@@ -48,6 +55,7 @@ export const WordSchema = z.object({
   transliteration: z.string().trim().min(1).nullable(),
   // Grammar failure must not trigger the enclosing words fallback and lose meanings.
   grammar: WordGrammarSchema.optional().catch({ status: 'temporarily_unavailable' }),
+  availability: WordAvailabilitySchema.optional().catch(undefined),
 })
 export type QuranWord = z.infer<typeof WordSchema>
 

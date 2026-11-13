@@ -281,6 +281,47 @@ and existing content/grammar. Then publish the frontend and run the narrow
 unmocked deployment smoke. Keep fixture-backed browser evidence separate from
 hosted verification and from full-Quran production access.
 
+## Word source availability (#46)
+
+`GET /functions/v1/quran/v2/verses` can include an `availability` object on each
+selectable word alongside its existing `grammar` field. Clients can treat a
+missing `availability` field as unknown, including on older responses.
+
+| Source | Status | Meaning |
+| --- | --- | --- |
+| `corpus` | `lexical` | A verified stem has a root or lemma. |
+| `corpus` | `grammar_only` | The occurrence has verified morphology without a keyed stem. |
+| `corpus` | `missing` | The chapter was read and no usable analysis matched the occurrence. |
+| All | `temporarily_unavailable` | The source read, validation or enrichment deadline failed. |
+| `lane`, `mufradat` | `indexed` | One distinct article ID matched the verified stem keys. |
+| `lane`, `mufradat` | `multiple` | More than one distinct article ID matched. The index leaves sense selection open. |
+| `lane`, `mufradat` | `missing` | The verified analysis has no lookup keys, or the index contains no matching IDs. |
+| `lane`, `mufradat` | `unknown` | Verified morphology or the index reader was unavailable for the lookup. |
+
+Each stem uses an exact lemma mapping first, including an explicit empty
+override. An absent lemma mapping falls back to the exact root. The function
+counts distinct IDs across stems. An index hit can still lead to an article
+read failure when the client opens the dictionary.
+
+The function shares each checksum-verified index with its article endpoint
+within the worker. Concurrent requests share an in-flight load, and a failed
+load can be retried on the next request. Verses access only the bundled Lane
+catalogue and Mufradāt index and their manifests. Both loads run in parallel
+with a provisional 200 ms wait budget, after grammar enrichment. A slow or
+failed index leaves the other source, verses and grammar available.
+
+In three local Deno HTTP runs, the Al-Baqarah first-page fixture had 230
+selectable words and used the generated release assets. Fresh-process responses
+took 52–53 ms at baseline and 76–78 ms with availability. The median of ten warm
+responses per process was about 29 ms in both versions. The uncompressed JSON
+grew from 89,849 to 107,025 bytes. Each updated process read the two indexes and
+their manifests once, read zero article files and made the same number of
+provider calls as the baseline. These measurements use the pinned provider
+snapshot over loopback and exclude hosted gateway and provider latency.
+
+After deployment, verify availability on Al-Fatihah and Al-Baqarah alongside
+grammar and both article endpoints, and measure cold and warm hosted responses.
+
 ## Deployed history
 
 Current deployment: function `quran` version 12, released on 2026-11-13 for #45.
