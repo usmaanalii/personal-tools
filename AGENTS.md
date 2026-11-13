@@ -39,9 +39,10 @@ This file owns rules shared by the personal-tools workspace. App-specific additi
 
 ## Issue categorisation
 
-Apply these conventions when creating or triaging issues. Keep the vocabulary small; add labels only when they support a useful filter.
+Apply these conventions when creating, triaging or starting work on issues. Keep the vocabulary small; add labels only when they support a useful filter.
 
 - Name Codex chats for repository issues `#<number> — <exact issue title>`. When asked to rename a chat, update its title in Codex and preserve the GitHub issue title.
+- When starting issue work, surface the issue's recommended model and reasoning effort as soon as you read it. If the active settings differ, name the mismatch and offer to switch in the model picker for the next turn before implementation. If investigation meets an escalation criterion, say what changed and recommend the next model and effort before the next substantial step. Treat recommendations as advisory and follow the user's explicit model choice.
 - Choose exactly one work type: `type:feature` (new capability), `type:refactor` (restructure or standardise existing functionality), `type:design` (design exploration, specification or application), `type:bug` (correct a defect), or `type:maintenance` (routine upkeep).
 - Apply one or more relevant areas: `area:quran`, `area:design-system`, `area:playground`, and `area:next-app`. Use the shared area alone for repository-wide design-system work; add app areas when they identify concrete consumers affected by the issue.
 - `ready-for-agent` means the issue is sufficiently specified for an agent. It does not mean the issue is unblocked, approved for deployment, or exempt from repository commit/push rules. Check its blocking dependencies and explicit prerequisites before starting.
