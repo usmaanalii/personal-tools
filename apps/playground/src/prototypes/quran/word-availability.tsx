@@ -41,7 +41,7 @@ export function WordAvailabilityLegend() {
     <p className="m-0">Left to right: {wordAvailabilitySources.map(({ label }) => label).join(', ')}.</p>
     <div className="flex flex-wrap gap-x-4">
       <span><span aria-hidden="true">● </span><span>Available or indexed</span></span>
-      <span><span aria-hidden="true">○ </span><span>Missing, unknown or temporarily unavailable</span></span>
+      <span><span aria-hidden="true">○ </span><span>Missing, unknown, unreported or temporarily unavailable</span></span>
     </div>
   </div>
 }

@@ -32,8 +32,8 @@ test('keeps dense verse controls within the built reader after direct load and r
   await expect(wordButtons).toHaveCount(25)
   await page.evaluate(() => document.fonts.ready)
   const bounds = await wordButtons.evaluateAll(buttons => buttons.map(button => {
-    const { width, height, top, left, right } = button.getBoundingClientRect()
-    return { width, height, top, left, right }
+    const { width, height, top, left } = button.getBoundingClientRect()
+    return { width, height, top, left }
   }))
   expect(new Set(bounds.map(word => word.top)).size).toBeGreaterThan(1)
   expect(bounds.every(word => word.width >= 44 && word.height >= 44)).toBe(true)
@@ -42,7 +42,23 @@ test('keeps dense verse controls within the built reader after direct load and r
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
 
   const pauseWord = wordButtons.nth(3)
-  await expect(pauseWord).toHaveAccessibleName('أَبْصَـٰرَهُمْ ۖ · 2:20:4')
+  const arabicWithPause = 'أَبْصَـٰرَهُمْ ۖ'
+  await expect(pauseWord).toHaveAccessibleName(`${arabicWithPause} · 2:20:4`)
+  const circles = pauseWord.getByText('○○○', { exact: true })
+  await expect(circles).toBeVisible()
+  const arabicBottom = await pauseWord.evaluate((button, arabic) => {
+    const text = document.createTreeWalker(button, NodeFilter.SHOW_TEXT)
+    for (let node = text.nextNode(); node; node = text.nextNode()) {
+      if (node.textContent?.trim() !== arabic) continue
+      const range = document.createRange()
+      range.selectNodeContents(node)
+      return range.getBoundingClientRect().bottom
+    }
+    throw new Error('Expected visible Arabic text including the pause mark')
+  }, arabicWithPause)
+  const circleBounds = await circles.boundingBox()
+  if (!circleBounds) throw new Error('Expected rendered source circles')
+  expect(circleBounds.y).toBeGreaterThanOrEqual(arabicBottom)
   await expect(verseRegion.getByText('۝20', { exact: true })).toBeVisible()
   await pauseWord.focus()
   await page.keyboard.press('Enter')

@@ -52,13 +52,8 @@ async function renderWords({ verseWords = words(), chapter = 1, verseNumber = 1 
 }
 afterEach(() => window.history.pushState({}, '', '/'))
 
-it('shows each reported source in Corpus, Lane and Mufradāt order without loading articles', async () => {
-  const articleRequests: string[] = []
-  server.use(http.get(`${quranEndpoint}/:source/entries`, ({ request }) => {
-    articleRequests.push(request.url)
-    return new HttpResponse(null, { status: 500 })
-  }))
-  const { user, word } = await renderWords({ verseWords: [
+it('shows each reported source in Corpus, Lane and Mufradāt order', async () => {
+  const { word } = await renderWords({ verseWords: [
     buildWord({ availability: { corpus: 'lexical', lane: 'missing', mufradat: 'indexed' } }),
     buildWord({ position: 2, arabic: 'ٱللَّهِ', availability: { corpus: 'lexical', lane: 'multiple', mufradat: 'multiple' } }),
     buildWord({
@@ -82,9 +77,6 @@ it('shows each reported source in Corpus, Lane and Mufradāt order without loadi
   const mixed = screen.getByRole('button', { name: 'إِلَيْكَ · 1:1:5' })
   expect(mixed).toHaveTextContent('○●○')
   expect(mixed).toHaveAccessibleDescription('Corpus: No analysis. Lane: Indexed. Mufradāt: Unknown.')
-  await user.click(word)
-  expect(screen.getByRole('tab', { name: 'Grammar', selected: true })).toBeVisible()
-  expect(articleRequests).toEqual([])
 })
 
 it('reuses a no-match result when word details are reopened', async () => {
@@ -116,7 +108,7 @@ it('explains circle order and what a hollow circle means in the reading panel', 
   const reading = within(screen.getByRole('complementary', { name: 'Current chapter' }))
   expect(reading.getByText('Left to right: Corpus, Lane, Mufradāt.')).toBeVisible()
   expect(reading.getByText('Available or indexed')).toBeVisible()
-  expect(reading.getByText('Missing, unknown or temporarily unavailable')).toBeVisible()
+  expect(reading.getByText('Missing, unknown, unreported or temporarily unavailable')).toBeVisible()
 })
 
 it('reuses a loaded entry when word details are reopened', async () => {
@@ -144,7 +136,10 @@ it('reuses a loaded entry when word details are reopened', async () => {
 it('loads Mufradāt only when opened and leaves grammar and contextual meaning usable', async () => {
   const requests: string[] = []
   server.use(http.get(`${quranEndpoint}/mufradat/entries`, ({ request }) => { requests.push(request.url); return HttpResponse.json({ status: 'missing' }) }))
-  const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() })] })
+  const { user, word } = await renderWords({ verseWords: [buildWord({
+    grammar: grammarFixture(),
+    availability: { corpus: 'lexical', lane: 'missing', mufradat: 'indexed' },
+  })] })
   await user.click(word)
   expect(requests).toEqual([])
   await user.click(screen.getByRole('tab', { name: 'Mufradāt' }))
@@ -162,7 +157,10 @@ it('shows Grammar initially and retains Dictionary when the next word is selecte
     requests.push(request.url)
     return HttpResponse.json(buildLanePage({ entries: [] }))
   }))
-  const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() }), buildWord({ position: 2, arabic: 'ٱللَّهِ', meaning: 'of Allah' })] })
+  const { user, word } = await renderWords({ verseWords: [
+    buildWord({ grammar: grammarFixture(), availability: { corpus: 'lexical', lane: 'indexed', mufradat: 'missing' } }),
+    buildWord({ position: 2, arabic: 'ٱللَّهِ', meaning: 'of Allah' }),
+  ] })
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
   expect(details.getByRole('tab', { name: 'Grammar', selected: true })).toBeVisible()
@@ -170,6 +168,7 @@ it('shows Grammar initially and retains Dictionary when the next word is selecte
   expect(requests).toEqual([])
   await user.click(details.getByRole('tab', { name: 'Dictionary' }))
   expect(await details.findByText('No verified Lane’s entry is available for this word.')).toBeVisible()
+  expect(requests).toHaveLength(1)
   expect(details.queryByText('Stem · Noun')).not.toBeInTheDocument()
   await user.click(details.getByRole('button', { name: 'Next word' }))
   expect(details.getByRole('tab', { name: 'Dictionary', selected: true })).toBeVisible()
@@ -397,6 +396,28 @@ it('updates the selected word indicators when grammar retry returns fresh availa
   expect(word).toHaveFocus()
   expect(word).toHaveTextContent('بِسْمِ●●●')
   expect(word).toHaveAccessibleDescription('Corpus: Available. Lane: Indexed. Mufradāt: Indexed.')
+})
+
+it('clears the old source outage when grammar recovers without availability metadata', async () => {
+  const { user, word } = await renderWords({ verseWords: [buildWord({
+    grammar: { status: 'temporarily_unavailable' },
+    availability: { corpus: 'temporarily_unavailable', lane: 'unknown', mufradat: 'unknown' },
+  })] })
+  await user.click(word)
+  const details = within(screen.getByRole('dialog'))
+  server.use(http.get(`${quranEndpoint}/verses`, ({ request }) => {
+    const params = new URL(request.url).searchParams
+    if (params.get('chapter') !== '1' || params.get('page') !== '1') return new HttpResponse(null, { status: 404 })
+    return HttpResponse.json({
+      verses: [{ number: 1, arabic: 'بِسْمِ', translationHtml: 'Verse translation', words: [buildWord({ grammar: grammarFixture() })] }],
+      translationName: 'Verse translator', nextPage: null,
+    } satisfies VersesResponse)
+  }))
+
+  await user.click(details.getByRole('button', { name: 'Retry grammar' }))
+  expect(await details.findByText('Genitive')).toBeVisible()
+  await user.click(details.getByRole('button', { name: 'Close word meaning' }))
+  expect(word).toHaveAccessibleDescription('Source availability not reported.')
 })
 
 it('keeps the meaning visible when a verse-based grammar retry fails and can recover on another retry', async () => {
