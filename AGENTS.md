@@ -61,3 +61,11 @@ The approved migration is tracked in issues #23–31. These decisions describe p
 - Complete shared default-guide adoption across existing user-facing surfaces before Quran branding exploration. Separate technical refactors, visual standardisation, design exploration and approved-brand rollout, with the owner approving the chosen identity.
 - Behaviour-only refactors preserve appearance; style-guide adoption may make documented consistency and accessibility improvements while preserving functionality.
 - Keep Quran-specific content rendering separate from generic branding. Preserve source-specific mushaf fonts, glyphs and canonical line layout; theme the surrounding interface without overriding those requirements.
+
+## UX/UI design investigation and prototyping
+
+For design investigations, UX reviews, prototypes and design-related GitHub issue preparation, consult `docs/design/SKILLS.md`. Select and read relevant upstream skills before recommending a design direction; use complementary perspectives without loading every skill by default. Apply this workflow during ticket creation as well as implementation.
+
+Compare meaningfully different approaches for substantial design changes, recording trade-offs in reading space, navigation, accessibility, visual consistency and complexity. Keep exploratory prototypes separate from production changes and request approval before implementing a chosen design. Include the specific skills consulted, source links and revisions, design decisions, acceptance criteria and verification approach in proposed issues.
+
+The catalogue contains external references, not installed skills. Do not claim that a skill was invoked unless its instructions were retrieved and read. Do not install, clone, pin or modify skills without approval. Preserve existing shared UI conventions and Quran-specific typography, glyph and canonical layout requirements.
