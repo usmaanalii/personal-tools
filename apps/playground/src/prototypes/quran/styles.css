@@ -13,7 +13,7 @@ body:has(.quran-reader) { margin:0; }
   min-height:var(--reader-nav-space);
   padding:calc(.25rem + env(safe-area-inset-top)) max(.5rem, env(safe-area-inset-right)) .25rem max(.5rem, env(safe-area-inset-left));
 }
-.verse { scroll-margin-top:.5rem; }
+.verse { scroll-margin-top:1.5rem; }
 @media(width < 40rem) {
   .reader-navigation > button { padding-inline:.25rem; font-size:.75rem; }
 }
