@@ -32,7 +32,18 @@ The existing Playground E2E workflow runs these tests independently of the front
 
 `quran` requires server-only Quran Foundation credentials and an allowed browser origin list; see [Quran setup and deployment](quran/README.md). Never put provider credentials in frontend configuration or test fixtures.
 
-Deploy each function separately from the complete repository root with the Supabase CLI, which bundles its relative imports from `packages/api-contracts`. Keep each function’s `deno.json` and `deno.lock` alongside its entry point. Uploading only individual handler files no longer includes the complete import graph. These local test/configuration changes do not deploy a function or change the public website. No database schema changes are introduced.
+The [Pages release workflow](../../.github/workflows/README.md#edge-function-releases) deploys both functions from the repository root with pinned Supabase CLI 3.0.0. It checks the hosted API before Pages publication. Keep each function's `deno.json` and `deno.lock` with its entry point and retain the relative imports into `packages/api-contracts`.
+
+For an approved manual recovery, check out the compatible revision and generate all four bundles from the repository root:
+
+```sh
+pnpm --filter playground quran:backend
+pnpm --filter playground lane:data
+pnpm --filter playground mufradat:data
+pnpm --filter playground exec node scripts/quran-data/coverage-index.mjs ../../supabase/functions/quran/coverage-data
+```
+
+Use the Docker bundler and the explicit target with CLI 3.0.0. Deploy each named function from the complete repository root using `supabase functions deploy <function> --remote=<existing-project-ref> --yes`. Docker includes the assets declared in `supabase/config.toml`. Keep the attribution and notices from the guarded generators. Use the recovery workflow to reconcile release history after a manual deploy.
 
 
 ## Shared contracts
@@ -41,6 +52,6 @@ Deploy each function separately from the complete repository root with the Supab
 
 Quran v2 responses are validated before transmission; legacy routes retain their previous response format for existing clients. Client response validation remains necessary across independent deployments. Application errors use the shared error schema, while preflight/CORS rejection may have no body.
 
-The E2E workflow runs frozen Deno entry-point checks with Deno 2.9.6 as well as Node handler tests. Shared-contract changes trigger both app workflows and Pages. Deno checks establish import/type compatibility, not hosted Supabase execution; separately verify the deployed endpoints before publishing the frontend.
+The E2E and Pages workflows run frozen Deno entry-point checks with Deno 2.9.6 and Node handler tests. Shared-contract changes trigger both app workflows and select an Edge Function release. Hosted smoke checks public CORS, legacy and v2 contracts, representative enrichment and all four asset sets.
 
 Release verification on 2026-10-30: Quran version 5 and hello version 3 were deployed with complete import graphs through the Supabase connector. Live checks passed for hello GET/OPTIONS/method rejection and Quran v2 content, pagination, attribution, legacy responses, CORS and invalid inputs. Provider access remains pre-live.

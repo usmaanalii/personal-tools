@@ -1,5 +1,7 @@
 # Quran content function
 
+See [Edge Function releases](../../../.github/workflows/README.md#edge-function-releases) for the current release procedure.
+
 Read-only bridge between Playground and the current Quran Foundation Content and Search APIs. It uses native fetch and the documented OAuth2 Client Credentials flow; no database, service-role client, or user login is needed. The official SDK 3.15.1 was evaluated: its token cache handles early renewal but its Content path lacks in-flight token coordination and a 401 retry. The HTTP integration implements the documented lifecycle directly instead of adding SDK-specific workarounds.
 
 ## Configuration
@@ -88,12 +90,7 @@ The new frontend calls `GET /functions/v1/quran/v2/chapters` and `GET /functions
 
 Existing `/chapters` and `/verses` routes retain their previous upstream-shaped bodies for deployed clients. They are superseded by `/v2/chapters` and `/v2/verses` and must remain until older consumers have migrated. Both versions retain the same CORS, methods, request restrictions, token lifecycle, and shared per-instance budget. Malformed upstream v2 payloads and nonsequential pagination return a generic 502 without validation details.
 
-Quran v2 was deployed as function version 5 on 2026-10-30 using the Supabase connector with the complete source/import graph, including function-specific Deno configuration and shared schemas. Live checks confirmed two pre-live chapters, Al-Fatihah verses 1–7, Al-Baqarah page 2 (21–40) and page 15 (281–286), translation attribution, unchanged legacy response formats, CORS, preflight, and invalid-input rejection. The frontend publishes separately through Pages after push. For future releases, deploy backend first:
-
-1. Run the backend suite and `pnpm --filter edge-functions check:deno` with Deno 2.9.6, then the frontend checks.
-2. With the CLI linked to the existing project, run `supabase functions deploy quran` from the repository root. Preserve the existing public-function configuration and server-only secrets.
-3. Verify real v2 chapters, verse pages, attribution, invalid inputs, and CORS; verify the legacy routes still return their original shape. Check the deployed bundle contains the provider adapter and shared schemas.
-4. Only after v2 is verified, approve the frontend commit/push to publish Pages. Run `test:smoke` against the deployed website after publication.
+Quran v2 was deployed as function version 5 on 2026-10-30 using the Supabase connector with the complete source/import graph, including function-specific Deno configuration and shared schemas. Live checks confirmed two pre-live chapters, Al-Fatihah verses 1–7, Al-Baqarah page 2 (21–40) and page 15 (281–286), translation attribution, legacy response formats, CORS, preflight, and invalid-input rejection. Pages followed the verified backend release.
 
 This release deployed the backend without changing credentials or upgrading provider access; the project remains in pre-live.
 
