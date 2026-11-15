@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mockQuranContent } from './content-fixture'
+import { buildWord } from '../../../src/prototypes/quran/quran-fixtures.test-data'
 
 test('keeps keyboard focus in the word dialog and returns it to the last selected word', async ({ page }) => {
   await mockQuranContent(page)
@@ -41,6 +42,41 @@ test('keeps keyboard focus in the word dialog and returns it to the last selecte
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
   await expect(page.getByRole('button', { name: 'اللَّهِ · 1:1:2' })).toBeFocused()
+})
+
+test('keeps the same dialog and keyboard focus across an unloaded reader page', async ({ page }) => {
+  await mockQuranContent(page)
+  await page.route('**/functions/v1/quran/v2/verses?*', async route => {
+    const query = new URL(route.request().url()).searchParams
+    if (query.get('chapter') !== '2') return route.fallback()
+    const firstPage = query.get('page') === '1'
+    const number = firstPage ? 20 : 21
+    const word = buildWord({ chapter: 2, verse: number })
+    return route.fulfill({ json: {
+      verses: [{ number, arabic: word.arabic, translationHtml: `Translation 2:${number}`, words: [word] }],
+      translationName: 'Fixture translation',
+      nextPage: firstPage ? 2 : null,
+    } })
+  })
+  await page.goto('./quran/')
+  await page.getByRole('button', { name: 'Chapters' }).click()
+  await page.getByRole('button', { name: /^2\s*Al-Baqarah/ }).click()
+  const openingWord = page.getByRole('button', { name: 'بِسْمِ · 2:20:1' })
+  await openingWord.press('Enter')
+  const dialog = page.getByRole('dialog', { name: 'Word meaning' })
+  const element = await dialog.elementHandle()
+  const next = dialog.getByRole('button', { name: 'Next word' })
+  await next.press('Enter')
+  await expect(dialog.getByText('Al-Baqarah · Verse 21')).toBeVisible()
+  expect(await element?.evaluate(node => node.isConnected)).toBe(true)
+  await expect(next).toBeFocused()
+  await expect(dialog).toBeInViewport({ ratio: 1 })
+  await expect(next).toBeInViewport({ ratio: 1 })
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  const destinationWord = page.getByRole('button', { name: 'بِسْمِ · 2:21:1' })
+  await expect(destinationWord).toBeFocused()
+  await expect(destinationWord).toBeInViewport()
 })
 
 test('keeps long word details and their controls usable on narrow and landscape screens', async ({ page }, testInfo) => {

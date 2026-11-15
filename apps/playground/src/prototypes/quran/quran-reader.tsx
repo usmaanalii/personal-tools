@@ -13,6 +13,8 @@ import { ReaderLoading, VerseSkeleton } from './reader-loading'
 import { WordAvailabilityLegend } from './word-availability'
 import { SearchPanel } from './search-panel'
 import { searchService } from './search-service'
+import { useWordSelection } from './use-word-selection'
+import { ReaderWordDetails } from './reader-word-details'
 
 const destinations = [
   { id: 'read', label: 'Read' },
@@ -36,7 +38,8 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
   const { reading, bookmarks, actions } = useReader(chapters)
   const { selected, chapter, previousChapter, nextChapter, page, current, verses, key, activeVerse } = reading
   const { bookmarked, savedChapters, savedVerses, isVerseSaved } = bookmarks
-  const { openChapter, openSavedVerse, toggleSavedVerse, toggleChapterBookmark, activateVerse, previousPage, nextPage, retryVerses, retryGrammar } = actions
+  const { openChapter, openSavedVerse, toggleSavedVerse, toggleChapterBookmark, activateVerse, previousPage, nextPage, retryVerses, retryGrammar, commitWordPage } = actions
+  const wordSelection = useWordSelection({ verses, verseCount: chapter.verses, page, commitPage: commitWordPage })
   const [query, setQuery] = useState('')
   const [referenceError, setReferenceError] = useState('')
   const [navigationError, setNavigationError] = useState('')
@@ -56,6 +59,7 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
   const changeView = (destination: typeof view) => {
     if (destination === view) return
     if (view === 'read') {
+      wordSelection.clear()
       readingPosition.current = window.scrollY
       pendingSearchVerse.current = null
       setHighlightedVerse(null)
@@ -118,6 +122,7 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
     changeView('read')
   }
   const focusReading = () => {
+    wordSelection.clear()
     savedVerseJump.current = null
     pendingSearchVerse.current = null
     setHighlightedVerse(null)
@@ -190,9 +195,11 @@ function Reader({ chapters }: { chapters: [Chapter, ...Chapter[]] }) {
           {verses.map(verse => <VerseView key={`${key}-${verse.number}`} verse={verse} chapter={chapter} active={activeVerse === verse.number || highlightedVerse === verse.number} saved={isVerseSaved(verse)}
             verseRef={highlightedVerse === verse.number ? searchVerse : undefined}
             bookmarkRef={activeVerse === verse.number ? savedVerseButton : undefined}
-            onBookmark={() => toggleSavedVerse(verse)} onActivate={() => activateVerse(verse.number)} readingFocusRef={readingHeading} onRetryGrammar={retryGrammar}/>) }
+            onBookmark={() => toggleSavedVerse(verse)} onActivate={() => activateVerse(verse.number)} selectedWord={wordSelection.word} onSelectWord={wordSelection.select}/>) }
           {current.status === 'ready' && <p className="my-2 px-3 text-sm leading-relaxed text-ui-muted">{current.data.translationName} · Quran Foundation</p>}
           {verses.some(verse => verse.words?.length) && <WordAvailabilityLegend/>}
-        </ReadingPanel></>}
+        </ReadingPanel>
+        <ReaderWordDetails selection={wordSelection} chapterName={chapter.name} readingFocusRef={readingHeading} onRetryGrammar={retryGrammar}/>
+        </>}
   </ReaderLayout>
 }

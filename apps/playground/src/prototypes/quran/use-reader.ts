@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { VERSES_PER_PAGE, type QuranWord, type WordGrammar } from '@scratch-pages/api-contracts/quran'
 import { getChapters, getVerses, type Chapter, type Ayah, type VersePage } from './quran-api'
+import { occurrenceKey } from './use-word-selection'
 
 export type SavedVerse = { readonly chapterId: number; readonly verse: Ayah }
 export type RetryGrammar = (word: QuranWord, signal: AbortSignal) => Promise<'recovered' | 'failed'>
 
 function sameOccurrence(word: QuranWord, candidate: QuranWord) {
-  return candidate.chapter === word.chapter && candidate.verse === word.verse
-    && candidate.position === word.position && candidate.arabic === word.arabic
+  return occurrenceKey(candidate) === occurrenceKey(word)
 }
 
 type ChaptersState =
@@ -32,38 +32,41 @@ export function useChapters() {
   return { state: current, retry: () => setAttempt(value => value + 1) }
 }
 
-type VersesState =
-  | { readonly key: string; readonly status: 'loading' }
-  | { readonly key: string; readonly status: 'error'; readonly message: string }
-  | { readonly key: string; readonly status: 'ready'; readonly data: VersePage }
+type ReadingPosition = { readonly chapter: number; readonly page: number; readonly attempt: number }
+type VersesState = ReadingPosition & (
+  | { readonly status: 'loading' }
+  | { readonly status: 'error'; readonly message: string }
+  | { readonly status: 'ready'; readonly data: VersePage }
+)
 
 /** Reading rules and requests stay independent from the reader's screen composition. */
 export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
-  const [selected, setSelected] = useState(chapters[0].id)
-  const [page, setPage] = useState(1)
-  const [attempt, setAttempt] = useState(0)
+  const [current, setCurrent] = useState<VersesState>({ chapter: chapters[0].id, page: 1, attempt: 0, status: 'loading' })
+  const { chapter: selected, page, attempt } = current
   const [activeVerse, setActiveVerse] = useState<number | null>(null)
   const [savedChapterIds, setSavedChapterIds] = useState<readonly number[]>([])
   const [savedVerses, setSavedVerses] = useState<readonly SavedVerse[]>([])
   const key = `${selected}:${page}:${attempt}`
-  const [verseState, setVerseState] = useState<VersesState>({ key, status: 'loading' })
   useEffect(() => {
+    if (current.status !== 'loading') return
     const controller = new AbortController()
-    setVerseState({ key, status: 'loading' })
-    getVerses(selected, page, controller.signal).then(data => {
-      if (!controller.signal.aborted) setVerseState({ key, status: 'ready', data })
+    getVerses(current.chapter, current.page, controller.signal).then(data => {
+      if (!controller.signal.aborted) setCurrent(state => state === current ? { ...current, status: 'ready', data } : state)
     }).catch((error: unknown) => {
-      if (!controller.signal.aborted) setVerseState({ key, status: 'error', message: error instanceof Error ? error.message : 'Unable to load Quran content.' })
+      if (!controller.signal.aborted) setCurrent(state => state === current ? {
+        ...current, status: 'error', message: error instanceof Error ? error.message : 'Unable to load Quran content.',
+      } : state)
     })
     return () => controller.abort()
-  }, [selected, page, key])
+  }, [current])
 
-  const current: VersesState = verseState.key === key ? verseState : { key, status: 'loading' }
   const chapterIndex = chapters.findIndex(item => item.id === selected)
   const chapter = chapters[chapterIndex] ?? chapters[0]
+  const goToPage = (chapter: number, page: number) => {
+    setCurrent(state => state.chapter === chapter && state.page === page ? state : { chapter, page, attempt: state.attempt, status: 'loading' })
+  }
   const openChapter = (id: number, verse = 1) => {
-    setSelected(id)
-    setPage(Math.ceil(verse / VERSES_PER_PAGE))
+    goToPage(id, Math.ceil(verse / VERSES_PER_PAGE))
     setActiveVerse(null)
   }
   const isVerseSaved = (verse: Ayah) => savedVerses.some(item => item.chapterId === selected && item.verse.number === verse.number)
@@ -71,15 +74,16 @@ export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
     const refreshed = await getVerses(word.chapter, Math.ceil(word.verse / VERSES_PER_PAGE), signal)
     signal.throwIfAborted()
     const occurrence = refreshed.verses.find(verse => verse.number === word.verse)?.words?.find(item => sameOccurrence(word, item))
-    const grammar: WordGrammar = occurrence?.grammar ?? { status: 'unavailable' }
+    const compatible = occurrence?.arabic === word.arabic ? occurrence : undefined
+    const grammar: WordGrammar = compatible?.grammar ?? { status: 'unavailable' }
     if (grammar.status === 'temporarily_unavailable') return 'failed'
 
-    setVerseState(state => {
-      if (state.key !== key || state.status !== 'ready') return state
+    setCurrent(state => {
+      if (state.chapter !== selected || state.page !== page || state.attempt !== attempt || state.status !== 'ready') return state
       return { ...state, data: { ...state.data, verses: state.data.verses.map(verse => {
         if (verse.number !== word.verse || !verse.words) return verse
         return { ...verse, words: verse.words.map(item =>
-          sameOccurrence(word, item) ? { ...item, grammar, availability: occurrence?.availability } : item,
+          sameOccurrence(word, item) ? { ...item, grammar, availability: compatible?.availability } : item,
         ) }
       }) } }
     })
@@ -109,6 +113,10 @@ export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
     },
     actions: {
       retryGrammar,
+      commitWordPage: (page: number, data: VersePage) => {
+        setCurrent({ chapter: selected, page, attempt, status: 'ready', data })
+        setActiveVerse(null)
+      },
       openChapter,
       openSavedVerse: (chapterId: number, verseNumber: number) => {
         openChapter(chapterId, verseNumber)
@@ -119,11 +127,11 @@ export function useReader(chapters: readonly [Chapter, ...Chapter[]]) {
         ? ids.filter(id => id !== selected)
         : [...ids, selected]),
       activateVerse: (verseNumber: number) => setActiveVerse(verseNumber),
-      previousPage: () => setPage(value => value - 1),
+      previousPage: () => goToPage(selected, page - 1),
       nextPage: () => {
-        if (current.status === 'ready' && current.data.nextPage !== null) setPage(current.data.nextPage)
+        if (current.status === 'ready' && current.data.nextPage !== null) goToPage(selected, current.data.nextPage)
       },
-      retryVerses: () => setAttempt(value => value + 1),
+      retryVerses: () => setCurrent({ chapter: selected, page, attempt: attempt + 1, status: 'loading' }),
     },
   }
 }

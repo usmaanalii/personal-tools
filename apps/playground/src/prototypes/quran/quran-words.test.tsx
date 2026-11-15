@@ -1,5 +1,5 @@
 /// <reference lib="es2024.promise" />
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it } from 'vitest'
 import { http, HttpResponse } from 'msw'
@@ -54,6 +54,162 @@ async function renderWords({ verseWords = words(), chapter = 1, verseNumber = 1 
   return { user, word }
 }
 afterEach(() => window.history.pushState({}, '', '/'))
+
+function navigationVerse(chapter: number, verse: number, meaning: string) {
+  const word = buildWord({ chapter, verse, meaning })
+  return { number: verse, arabic: word.arabic, translationHtml: `Translation ${chapter}:${verse}`, words: [word] }
+}
+
+function navigationPage(page: number): VersesResponse {
+  const beforeBoundary = navigationVerse(2, 20, 'First word before the page break')
+  return {
+    verses: page === 1
+      ? [{ ...beforeBoundary, words: [...beforeBoundary.words, buildWord({ chapter: 2, verse: 20, position: 2, meaning: 'Last word on page one' })] }]
+      : [navigationVerse(2, 21, 'First word on page two')],
+    translationName: 'Verse translator',
+    nextPage: page === 1 ? 2 : null,
+  }
+}
+
+function mockNavigationPages(loadNextPage: (signal: AbortSignal) => Response | Promise<Response>) {
+  server.use(http.get(`${quranEndpoint}/verses`, ({ request }) => {
+    const query = new URL(request.url).searchParams
+    if (query.get('chapter') !== '2') return
+    if (query.get('page') === '1') return HttpResponse.json(navigationPage(1))
+    return loadNextPage(request.signal)
+  }))
+}
+
+async function openPageBoundary() {
+  window.history.pushState({}, '', '/quran/')
+  render(<App />)
+  const user = userEvent.setup()
+  await screen.findByRole('heading', { name: 'Al-Fātiḥah' })
+  await user.click(screen.getByRole('button', { name: 'Chapters' }))
+  await user.click(screen.getByRole('button', { name: /^2\s*Al-Baqarah/ }))
+  await user.click(await screen.findByRole('button', { name: 'بِسْمِ · 2:20:2' }))
+  return { user, dialog: within(screen.getByRole('dialog')) }
+}
+
+it('turns the reader page and keeps the dialog open across the boundary in both directions', async () => {
+  mockNavigationPages(() => HttpResponse.json(navigationPage(2)))
+  const { user, dialog } = await openPageBoundary()
+  await user.click(dialog.getByRole('tab', { name: 'Mufradāt' }))
+  await user.click(dialog.getByRole('button', { name: 'Next word' }))
+  expect(await dialog.findByText('First word on page two')).toBeVisible()
+  expect(screen.getByText('Page 2')).toBeVisible()
+  expect(screen.getByText('Translation 2:21')).toBeVisible()
+  expect(dialog.getByRole('tab', { name: 'Mufradāt', selected: true })).toBeVisible()
+  expect(dialog.getByText('Word 1 of 1')).toBeVisible()
+
+  await user.click(dialog.getByRole('button', { name: 'Previous word' }))
+  expect(await dialog.findByText('Last word on page one')).toBeVisible()
+  expect(screen.getByText('Page 1')).toBeVisible()
+  await user.click(dialog.getByRole('button', { name: 'Next word' }))
+  await dialog.findByText('First word on page two')
+  await user.keyboard('{Escape}')
+  expect(screen.getByRole('button', { name: 'بِسْمِ · 2:21:1' })).toHaveFocus()
+})
+
+it('announces a page transition and keeps the current word and page while it loads', async () => {
+  const pending = Promise.withResolvers<Response>()
+  const requests: number[] = []
+  mockNavigationPages(() => {
+    requests.push(2)
+    return pending.promise
+  })
+  const { user, dialog } = await openPageBoundary()
+  const next = dialog.getByRole('button', { name: 'Next word' })
+  await user.click(next)
+  expect(await dialog.findByText('Loading next word…')).toHaveAttribute('role', 'status')
+  expect(next).toHaveAttribute('aria-disabled', 'true')
+  expect(next).toHaveFocus()
+  expect(dialog.getByText('Last word on page one')).toBeVisible()
+  expect(screen.getByText('Page 1')).toBeVisible()
+  await user.keyboard('{Enter}{Enter}')
+  expect(requests).toEqual([2])
+  pending.resolve(HttpResponse.json(navigationPage(2)))
+  expect(await dialog.findByText('First word on page two')).toBeVisible()
+})
+
+it('keeps the current page on failure and retries the same word transition', async () => {
+  mockNavigationPages(() => new HttpResponse(null, { status: 503 }))
+  const { user, dialog } = await openPageBoundary()
+  const next = dialog.getByRole('button', { name: 'Next word' })
+  await user.click(next)
+  expect(await dialog.findByRole('alert')).toHaveTextContent('Could not load the next word.')
+  expect(dialog.getByText('Last word on page one')).toBeVisible()
+  expect(screen.getByText('Page 1')).toBeVisible()
+
+  const retry = dialog.getByRole('button', { name: 'Retry word navigation' })
+  const pending = Promise.withResolvers<Response>()
+  mockNavigationPages(() => pending.promise)
+  await user.click(retry)
+  expect(retry).toHaveFocus()
+  expect(retry).toHaveAttribute('aria-disabled', 'true')
+  pending.resolve(HttpResponse.json(navigationPage(2)))
+  expect(await dialog.findByText('First word on page two')).toBeVisible()
+  expect(screen.getByText('Page 2')).toBeVisible()
+  expect(next).toHaveFocus()
+})
+
+it('stays on the current occurrence when the next āyah has no validated word positions', async () => {
+  const verse = navigationVerse(2, 21, 'Unverified word')
+  mockNavigationPages(() => HttpResponse.json({
+    ...navigationPage(2),
+    verses: [{ ...verse, words: [buildWord({ chapter: 2, verse: 21, position: 3 })] }],
+  }))
+  const { user, dialog } = await openPageBoundary()
+  await user.click(dialog.getByRole('button', { name: 'Next word' }))
+  expect(await dialog.findByRole('alert')).toHaveTextContent('Word data is unavailable for verse 21.')
+  expect(dialog.getByText('Last word on page one')).toBeVisible()
+  expect(screen.getByText('Page 1')).toBeVisible()
+  expect(screen.queryByText('Translation 2:21')).not.toBeInTheDocument()
+})
+
+it('discards a pending transition after Escape and a chapter change', async () => {
+  const pending = Promise.withResolvers<Response>()
+  const requested = Promise.withResolvers<AbortSignal>()
+  mockNavigationPages(signal => {
+    requested.resolve(signal)
+    return pending.promise
+  })
+  const { user, dialog } = await openPageBoundary()
+  await user.click(dialog.getByRole('button', { name: 'Next word' }))
+  const signal = await requested.promise
+  await user.keyboard('{Escape}')
+  expect(screen.getByRole('button', { name: 'بِسْمِ · 2:20:2' })).toHaveFocus()
+  expect(signal.aborted).toBe(true)
+  await user.click(screen.getByRole('button', { name: 'Chapters' }))
+  await user.click(screen.getByRole('button', { name: /^1\s*Al-Fātiḥah/ }))
+  await screen.findByRole('button', { name: 'Bookmark verse 1' })
+  await act(async () => { pending.resolve(HttpResponse.json(navigationPage(2))) })
+  expect(screen.getByRole('heading', { name: 'Al-Fātiḥah' })).toBeVisible()
+  expect(screen.getByText('Page 1')).toBeVisible()
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  expect(screen.queryByText('Translation 2:21')).not.toBeInTheDocument()
+})
+
+it('keeps the selected tab open when Next moves to the following āyah', async () => {
+  server.use(http.get(`${quranEndpoint}/verses`, () => HttpResponse.json({
+    verses: [navigationVerse(1, 1, 'Opening word'), navigationVerse(1, 2, 'Following word')],
+    translationName: 'Verse translator',
+    nextPage: null,
+  })))
+  window.history.pushState({}, '', '/quran/')
+  render(<App />)
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'بِسْمِ · 1:1:1' }))
+  const dialog = within(screen.getByRole('dialog'))
+  await user.click(dialog.getByRole('tab', { name: 'Dictionary' }))
+  await user.click(dialog.getByRole('button', { name: 'Next word' }))
+
+  expect(dialog.getByRole('tab', { name: 'Dictionary', selected: true })).toBeVisible()
+  expect(dialog.getByText('Al-Fātiḥah · Verse 2')).toBeVisible()
+  expect(dialog.getByText('Following word')).toBeVisible()
+  await user.click(dialog.getByRole('button', { name: 'Close word meaning' }))
+  expect(screen.getByRole('button', { name: 'بِسْمِ · 1:2:1' })).toHaveFocus()
+})
 
 it('shows each reported source in Corpus, Lane and Mufradāt order', async () => {
   const { word } = await renderWords({ verseWords: [
@@ -256,7 +412,6 @@ it('shows adjacent words in the same verse when Previous or Next is selected', a
   expect(word).toHaveAttribute('aria-pressed', 'false')
   expect(screen.getByRole('button', { name: 'ٱللَّهِ · 1:1:2', hidden: true })).toHaveAttribute('aria-pressed', 'true')
   expect(details.queryByText('In (the) name')).not.toBeInTheDocument()
-  expect(details.getByRole('button', { name: 'Next word' })).toBeDisabled()
   await user.click(details.getByRole('button', { name: 'Previous word' }))
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(word).toHaveAttribute('aria-pressed', 'true')
@@ -297,13 +452,16 @@ it.each(['chapter', 'page'])('shows word details from another %s after closing t
     .getByText(`Al-Baqarah · Verse ${change === 'chapter' ? 1 : 21}`)).toBeVisible()
 })
 
-it('disables Previous and Next when a verse contains one word', async () => {
-  const { user, word } = await renderWords({ verseWords: [buildWord()] })
+it.each([
+  { verseNumber: 1, blocked: 'Previous word', available: 'Next word' },
+  { verseNumber: 7, blocked: 'Next word', available: 'Previous word' },
+])('stops at the surah boundary for $blocked on a single-word āyah', async ({ verseNumber, blocked, available }) => {
+  const { user, word } = await renderWords({ verseNumber, verseWords: [buildWord()] })
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
   expect(details.getByText('Word 1 of 1')).toBeVisible()
-  expect(details.getByRole('button', { name: 'Previous word' })).toBeDisabled()
-  expect(details.getByRole('button', { name: 'Next word' })).toBeDisabled()
+  expect(details.getByRole('button', { name: blocked })).toBeDisabled()
+  expect(details.getByRole('button', { name: available })).toBeEnabled()
 })
 
 it("shows when a word's meaning or pronunciation is unavailable", async () => {

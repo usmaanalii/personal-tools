@@ -72,10 +72,15 @@ When the backend supplies validated word data, tap an Arabic word (or activate i
 with Enter/Space) to highlight it and open its English gloss, available
 transliteration and verse reference. The owned shared Dialog fills the available mobile
 viewport and stays centred on desktop. A compact word summary remains above
-Grammar and Dictionary tabs. The active panel owns the main scrolling area;
-long meanings, analysis and source credits scroll inside it. Previous/next stays within the verse;
-Close/Escape restores focus to the last selected word. Changing the chapter or
-verse page closes the details. Verse-end markers remain non-interactive.
+Grammar, Dictionary and Mufradāt tabs. The active panel scrolls independently
+of the word summary and controls. Previous and Next continue into adjacent āyāt
+within the same surah. When the next occurrence is on another page, the reader
+keeps the current page and word visible while it loads. The page and word update
+together, with the same tab open. If loading fails, Retry attempts the same
+move. If an āyah has no validated word data, the dialog explains the gap and
+keeps the current word selected. Close or Escape returns focus to that word
+or to the chapter heading if its button is gone. Verse-end markers remain
+non-interactive.
 
 Words come with the verse page, so opening details needs no extra request.
 Occurrence identities use chapter, verse and provider position. Missing or
@@ -99,16 +104,15 @@ coverage still needs production access. See the [backend rollout checklist](../.
 
 ### Word-details ownership (#23)
 
-The Quran modules remain app-local. `use-word-selection.ts` owns selected
-position and verse-bounded navigation; `word-content.tsx` renders the existing
-word fields independently from fixture data; `word-dialog.tsx` owns Quran modal
-lifecycle and names it through the shared Dialog title. `packages/ui/src/dialog.tsx`
-contains the Radix imports and owns the shared accessible primitive wrappers and
-Tailwind-styled surface. `verse-words.tsx` composes them and owns occurrence button
-refs and highlighting. It supplies a target lookup to `word-dialog.tsx`, which
-owns focus return and the deferred fallback to the reader's chapter heading.
-Callers provide DOM targets without coordinating focus timing. Reader's chapter/page/retry keys
-discard stale selection along with the old verses.
+The reader mounts one `ReaderWordDetails` outside the verse list so changes to
+the loaded page preserve the dialog and its active tab. `use-word-selection.ts`
+owns occurrence selection, neighbour resolution and cancellation. For a page
+crossing it uses the existing `getVerses` contract and resolves a validated
+destination before committing the page to `useReader` and selecting the word.
+Leaving Read or dismissing the dialog cancels a pending move. `verse-words.tsx`
+renders each occurrence button with a stable identity used for selection and
+focus return. `word-dialog.tsx` uses the shared `@scratch-pages/ui` dialog
+primitive and owns focus return.
 
 Close/Escape returns focus to the latest connected occurrence. When context
 invalidation removes the details, focus stays on a surviving focused control;
