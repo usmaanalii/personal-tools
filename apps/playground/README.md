@@ -40,6 +40,18 @@ Lane imports require Python 3. Browser checks also require Deno 2.9.6, already u
 Playwright starts the actual local Quran function on port 8000 with empty provider credentials and restricted permissions.
 It builds the frontend against that local URL; verse/provider responses remain fixtures and dictionary requests use the real local route.
 
+## Quran reader sign-in
+
+Reading is available to guests. The account controls below the reader let visitors sign in with Google and sign out of the current browser session. The browser restores a valid session on reload. Bookmarks belong to the current reading visit. The Quran Edge Function accepts anonymous requests and receives no reader session token.
+
+The framework-neutral contract lives in `@scratch-pages/auth`. Playground loads the Supabase Auth adapter on the Quran route. The adapter owns PKCE, browser storage and token refresh. The interface receives only the account ID and display label. Browser storage is readable by scripts on the same origin, including other GitHub Pages projects there. Use a trusted origin for hosted testing and deployment.
+
+Set up the Google OAuth web client with the Supabase provider callback URI shown in the dashboard. On the hosted project this URI ends in `/auth/v1/callback`. Store the Google client secret in the provider settings. Allow the application's exact return URL separately in Supabase Auth URL Configuration. For Pages, use `https://usmaanalii.github.io/personal-tools/quran/` with the trailing slash. For a controlled local attempt, add the exact URL you open, such as `http://localhost:5173/personal-tools/quran/`. [Google provider setup](https://supabase.com/docs/guides/auth/social-sign-in/auth-google) · [Supabase redirect configuration](https://supabase.com/docs/guides/auth/redirect-urls)
+
+Before enabling Google, confirm the project can use Google as its sole sign-in method and recheck existing identities. Supabase can automatically link identities that share a verified email. Resolve provider isolation if another consumer relies on email or another method. Use test accounts on an approved origin to exercise sign-in, consent cancellation, reload, expiry, sign-out and a second account. Disable browser recordings for these checks. Separately verify guest reading on the deployed build. [Identity linking](https://supabase.com/docs/guides/auth/auth-identity-linking)
+
+The sign-in control uses Google's approved button artwork. [Google branding guidelines](https://developers.google.com/identity/branding-guidelines)
+
 ## Quran API setup
 
 The browser calls `/functions/v1/quran/v2/chapters` and `/functions/v1/quran/v2/verses?chapter=1&page=1` on `VITE_SUPABASE_URL`. Each verse page contains at most 20 verses. Previous/Next verses navigate pages; opening a saved verse restores its page. Chapter search uses the chapter list returned by the API.
@@ -224,6 +236,7 @@ When a page suite needs a split, name each file `<page>.<domain>.test.tsx` and k
 `test:e2e` builds preview assets and serves only those static files at `http://127.0.0.1:5173/personal-tools/`, without an SPA fallback. Playwright owns the server and refuses to reuse that port. Desktop and mobile Chromium checks cover:
 
 - `tests/prototypes/quran/reader.e2e.ts` checks homepage keyboard entry, axe, overflow, reader refresh, and Back and Forward across the static pages.
+- `tests/prototypes/quran/reader-auth.e2e.ts` checks the static Pages callback, S256 verifier continuity and session restoration on reload using an HTTP fixture. The reader auth Vitest suites cover UI recovery and SDK logout and expiry. Genuine Google sign-in requires the hosted checks above.
 - `tests/prototypes/quran/loading-layout.e2e.ts` checks reduced motion and the position of the verse region as scripture loads.
 - `tests/prototypes/quran/mobile-reading-space.e2e.ts` checks visible scripture at 320×568, document scrolling, scroll restoration at narrow and desktop widths, saved-verse focus and the start of the next word's analysis. Physical software keyboard and safe-area behaviour require device testing.
 - `tests/prototypes/quran/dictionary-browser.e2e.ts`: scrolling an entry returned by the actual local Deno dictionary while the selected word and verse context remain visible, then returning focus on close. Query mapping and source URL details are covered by Vitest.

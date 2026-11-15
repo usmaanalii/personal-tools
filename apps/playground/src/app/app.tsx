@@ -2,18 +2,23 @@ import { lazy, Suspense } from 'react'
 import { PlaygroundHome } from './playground-home'
 import { RouteLoading } from './route-loading'
 import { ReaderLoading } from '../prototypes/quran/reader-loading'
+import { ReaderAccount, type ReaderAuth } from './reader-account'
 
 const QuranReader = lazy(() => import('../prototypes/quran/quran-reader'))
 const WordAvailabilityPreview = lazy(() => import('../prototypes/quran/word-availability-preview'))
 const QuranDataCoverage = lazy(() => import('../prototypes/quran/quran-data-coverage'))
 const SupabaseDemo = lazy(() => import('../prototypes/supabase/supabase-demo'))
-export default function App() {
-  const route = window.location.pathname.split('/').filter(Boolean).at(-1)
+export function getPlaygroundRoute() {
+  return window.location.pathname.split('/').filter(Boolean).at(-1)
+}
 
+export default function App({ auth }: { readonly auth?: ReaderAuth }) {
+  const route = getPlaygroundRoute()
   if (route === 'quran') {
     return (
       <Suspense fallback={<ReaderLoading message="Loading Quran reader…" />}>
         <QuranReader />
+        {auth && <ReaderAccount auth={auth} />}
       </Suspense>
     )
   }

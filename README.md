@@ -27,6 +27,8 @@ The Quran word availability prototype uses captured verses to show whether each 
 A reading prototype designed for phones, with a wider layout on desktop.
 The reader uses verse data to show source availability for Corpus, Lane and Mufradāt beneath selectable words. [Reader guide](apps/playground/README.md#quran-api-setup)
 
+Optional Google sign-in uses the existing Quran route. Hosted rollout requires Google OAuth configuration in Supabase. [Playground sign-in setup](apps/playground/README.md#quran-reader-sign-in)
+
 Issue #19 adds grammar analysis to word details through the existing verse API.
 Release packaging records the published website/application-use grant and
 preserves the original source notices. The release guard still rejects missing

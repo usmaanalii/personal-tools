@@ -45,7 +45,9 @@
     "@scratch-pages/design-tokens": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "@scratch-pages/api-contracts": "workspace:*"
+    "@scratch-pages/api-contracts": "workspace:*",
+    "@scratch-pages/auth": "workspace:*",
+    "@supabase/auth-js": "2.119.0"
   },
   "engines": {
     "node": "^22.22.3 || >=24.8.0"
