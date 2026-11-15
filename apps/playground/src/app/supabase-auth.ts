@@ -14,11 +14,13 @@ const sessionSchema = z.object({
 export function createSupabaseAuth({
   supabaseUrl,
   supabasePublishableKey,
+  redirectTo,
   navigate = url => window.location.assign(url),
   incoming = takeAuthCallback(),
 }: {
   readonly supabaseUrl: string
   readonly supabasePublishableKey: string
+  readonly redirectTo: string
   readonly navigate?: (url: string) => void
   readonly incoming?: ReturnType<typeof takeAuthCallback>
 }) {
@@ -61,7 +63,6 @@ export function createSupabaseAuth({
     },
     async signIn() {
       if (!window.navigator.onLine || !window.crypto?.subtle) throw new Error('Could not start sign-in.')
-      const redirectTo = new URL(`${import.meta.env.BASE_URL}quran/`, window.location.origin).href
       const { data, error } = await client.signInWithOAuth({
         provider: 'google',
         options: { redirectTo, skipBrowserRedirect: true },

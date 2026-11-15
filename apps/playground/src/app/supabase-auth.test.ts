@@ -7,6 +7,7 @@ import type { Session } from '@scratch-pages/auth'
 const config = {
   supabaseUrl: 'https://auth.example',
   supabasePublishableKey: 'fixture-key',
+  redirectTo: new URL('/app/account/', window.location.origin).href,
 }
 const accountId = 'cde32903-8a24-4ade-9c2c-9c31cdee3a91'
 
@@ -21,7 +22,6 @@ function tokenResponse() {
 
 afterEach(() => {
   vi.useRealTimers()
-  vi.unstubAllEnvs()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
   window.history.replaceState({}, '', '/')
@@ -46,8 +46,7 @@ it('does not start OAuth when the browser cannot generate an S256 challenge', as
   expect(navigate).not.toHaveBeenCalled()
 })
 
-it('starts Google PKCE with a fixed Quran return URL under the Pages base', async () => {
-  vi.stubEnv('BASE_URL', '/personal-tools/')
+it('starts Google PKCE with the app-supplied destination despite an incoming redirect parameter', async () => {
   const navigate = vi.fn<(url: string) => void>()
   window.history.replaceState({}, '', '/personal-tools/quran/?next=https://outside.example')
   const auth = createSupabaseAuth({
@@ -62,7 +61,7 @@ it('starts Google PKCE with a fixed Quran return URL under the Pages base', asyn
   const url = new URL(redirect)
   expect(url.origin + url.pathname).toBe('https://auth.example/auth/v1/authorize')
   expect(url.searchParams.get('provider')).toBe('google')
-  expect(url.searchParams.get('redirect_to')).toBe(new URL('/personal-tools/quran/', location.origin).href)
+  expect(url.searchParams.get('redirect_to')).toBe(config.redirectTo)
   expect(url.searchParams.get('code_challenge_method')).toBe('s256')
 })
 

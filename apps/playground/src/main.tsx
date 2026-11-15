@@ -12,8 +12,9 @@ const root = createRoot(rootElement)
 
 if (getPlaygroundRoute() === 'quran') {
   const incoming = takeAuthCallback()
+  const redirectTo = new URL(`${import.meta.env.BASE_URL}quran/`, window.location.origin).href
   void import('./app/supabase-auth').then(({ createSupabaseAuth }) => {
-    const auth = createSupabaseAuth({ ...getSupabaseConfig(), incoming })
+    const auth = createSupabaseAuth({ ...getSupabaseConfig(), incoming, redirectTo })
     root.render(<StrictMode><App auth={auth} /></StrictMode>)
   }).catch(() => {
     // The reader is public and can still render when the auth module cannot start.
