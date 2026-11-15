@@ -38,7 +38,7 @@ it('makes both verified source entries readable while preserving legacy ambiguit
   }, true)
 })
 
-it('registers complete Mufradat delivery at the deployed entry point', async () => {
+it('serves reviewed Mufradāt entries through the registered function endpoint', async () => {
   await withData(async directory => {
     const registered = Promise.withResolvers<(request: Request) => Promise<Response>>()
     const packaged = new URL('../../quran/mufradat-data/', import.meta.url)

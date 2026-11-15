@@ -11,8 +11,8 @@ test('opens the homepage from the Supabase demo and returns through keyboard nav
   await page.getByRole('link', { name: /All playground pages/i }).click()
   await expect(page.getByRole('heading', { name: 'Playground' })).toBeVisible()
   // Browser risk: the destination is reachable using native keyboard navigation.
-  const links = page.getByRole('navigation', { name: 'Playground pages' }).getByRole('link')
-  await links.nth((await links.count()) - 2).focus()
+  const navigation = page.getByRole('navigation', { name: 'Playground pages' })
+  await navigation.getByRole('link', { name: /Qur’an data coverage/i }).focus()
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: /Supabase API demo/i })).toBeFocused()
   await page.keyboard.press('Enter')

@@ -36,7 +36,7 @@ test('keeps navigation above chapter search when the visible viewport becomes sh
   await expect(search).toBeInViewport({ ratio: 1 })
 })
 
-test('shows scripture on entry and scrolls the document to the last verse', async ({ page }) => {
+test('scrolls the document to the final verse without scrolling the verses region', async ({ page }) => {
   await mockQuranContent(page)
   await page.goto('./quran/')
   await expect(page.getByRole('button', { name: / · 1:1:1$/ })).toBeInViewport({ ratio: 1 })

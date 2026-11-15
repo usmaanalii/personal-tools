@@ -46,7 +46,7 @@ it('rejects nonsequential verse pagination', async () => {
   await expect(getVerses(1, 1, new AbortController().signal)).rejects.toThrow('Quran pagination has an unexpected format.')
 })
 
-it('preserves request cancellation', async () => {
+it('rejects a chapter request with an already aborted signal', async () => {
   const controller = new AbortController()
   controller.abort()
   await expect(getChapters(controller.signal)).rejects.toMatchObject({ name: 'AbortError' })

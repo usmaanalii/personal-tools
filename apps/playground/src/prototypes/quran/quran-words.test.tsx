@@ -344,7 +344,7 @@ it('shows Retry grammar and the word meaning when analysis is temporarily unavai
   expect(details.getByRole('button', { name: 'Retry grammar' })).toBeVisible()
 })
 
-it('retries through the current verse page without losing meaning, reading position or keyboard focus', async () => {
+it('retries grammar on the current verse page and keeps the verse, meaning and keyboard focus in the dialog', async () => {
   const { user } = await renderWords({ chapter: 2, verseWords: [buildWord({ grammar: { status: 'temporarily_unavailable' } })] })
   await user.click(screen.getByRole('button', { name: 'Next verses' }))
   await user.click(await screen.findByRole('button', { name: 'بِسْمِ · 2:21:1' }))
@@ -375,6 +375,7 @@ it('retries through the current verse page without losing meaning, reading posit
   }))
   expect(await details.findByText('Genitive')).toBeVisible()
   expect(analysis).toHaveAttribute('aria-busy', 'false')
+  expect(details.getByText('Al-Baqarah · Verse 21')).toBeVisible()
   expect(details.getByText('In (the) name')).toBeVisible()
   expect(details.getByRole('region', { name: 'Grammar analysis' })).toHaveFocus()
 })
@@ -440,7 +441,7 @@ it('keeps the meaning visible when a verse-based grammar retry fails and can rec
   expect(await details.findByText('Genitive')).toBeVisible()
 })
 
-it('accurately labels a rootless particle without inventing a root or lemma', async () => {
+it('shows the negative particle and reports that it has no Corpus root', async () => {
   const chapter = importCorpus('(112:3:1:1)\tlamo\tNEG\tSTEM|POS:NEG|LEM:lam').chapters['112']
   const { user, word } = await renderWords({ chapter: 112, verseNumber: 3, verseWords: [
     buildWord({ arabic: 'لَمْ', meaning: 'not', grammar: WordGrammarSchema.parse({ status: 'available', segments: chapter?.words['112:3:1']?.segments }) }),
@@ -469,7 +470,7 @@ it('shows the word meaning when grammar is missing', async () => {
   expect(details.getByText('In (the) name')).toBeVisible()
 })
 
-it('reuses received grammar after moving between words and reopening the dialog', async () => {
+it('shows the first word’s grammar when its dialog is reopened', async () => {
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: grammarFixture() }), buildWord({ position: 2, arabic: 'ٱللَّهِ', meaning: 'of Allah', grammar: { status: 'unavailable' } })] })
   await user.click(word)
   const details = within(screen.getByRole('dialog'))
@@ -482,7 +483,7 @@ it('reuses received grammar after moving between words and reopening the dialog'
   expect(await within(screen.getByRole('dialog')).findByText('Genitive')).toBeVisible()
 })
 
-it('cancels a grammar retry when moving to another occurrence and ignores its late response', async () => {
+it('cancels the grammar retry when the next word is selected', async () => {
   const pending = Promise.withResolvers<Response>()
   const started = Promise.withResolvers<Request>()
   const { user, word } = await renderWords({ verseWords: [buildWord({ grammar: { status: 'temporarily_unavailable' } }), buildWord({ position: 2, arabic: 'ٱللَّهِ', meaning: 'of Allah', grammar: { status: 'unavailable' } })] })

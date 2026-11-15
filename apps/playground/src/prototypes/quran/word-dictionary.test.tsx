@@ -33,7 +33,7 @@ function serveSelectedEntry(selectedEntry = entry(), match?: LaneMatch) {
   }))
 }
 
-it('shows every dictionary result across bounded pages, including the thirteenth entry', async () => {
+it('shows all dictionary entries across pages', async () => {
   const entries = Array.from({ length: 13 }, (_, index) => ({ id: `n${100 + index}`, entry: entry(`n${100 + index}`) }))
   const revision = 'a'.repeat(64)
   const cursor = `${revision}.12.${'b'.repeat(64)}`
@@ -232,17 +232,18 @@ it('requests each distinct stem lookup once and ignores affix roots', async () =
 
 it('discards an in-flight dictionary request when another word is selected', async () => {
   const pending = Promise.withResolvers<Response>()
-  const started = Promise.withResolvers<void>()
+  const started = Promise.withResolvers<Request>()
   server.use(http.get(endpoint, ({ request }) => {
     if (new URL(request.url).searchParams.get('lemma') === 'ٱللَّه') return HttpResponse.json(buildLanePage({ entries: [{ id: 'n1123', entry: entry('n1123', { headword: 'اللّٰهُ', root: 'اله' }), match: { kind: 'lemma', key: 'ٱللَّه' } }] }))
-    started.resolve()
+    started.resolve(request)
     return pending.promise
   }))
   const view = render(<WordDictionary word={word()} />)
-  await started.promise
+  const request = await started.promise
   const segments = importCorpus('(1:1:2:1)\t{ll~ahi\tPN\tSTEM|POS:PN|LEM:{ll~ah|ROOT:Alh|GEN').chapters['1']?.words['1:1:2']?.segments
   view.rerender(<WordDictionary word={buildWord({ position: 2, arabic: 'ٱللَّهِ', grammar: WordGrammarSchema.parse({ status: 'available', segments }) })} />)
   expect(await screen.findByRole('article', { name: 'اللّٰهُ' })).toBeVisible()
+  expect(request.signal.aborted).toBe(true)
   pending.resolve(HttpResponse.json(buildLanePage({ entries: [{ id: 'n20831', entry: entry() }] })))
   expect(screen.getByText(/Lemma match/)).toHaveTextContent('Lemma match · ٱللَّه')
   expect(screen.queryByRole('article', { name: 'اِسْمٌ' })).not.toBeInTheDocument()

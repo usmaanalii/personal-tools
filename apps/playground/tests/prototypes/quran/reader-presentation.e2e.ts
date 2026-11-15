@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { mockQuranContent } from './content-fixture'
 
-test('keeps navigation readable immediately after changing destinations', async ({ page }) => {
+test('keeps the Reader controls readable after selecting Chapters', async ({ page }) => {
   await mockQuranContent(page)
   await page.goto('quran/')
   await page.addStyleTag({ content: ':root { --theme-motion-fast: 10s; }' })
@@ -17,7 +17,7 @@ test('keeps navigation readable immediately after changing destinations', async 
   expect(accessibility.violations).toEqual([])
 })
 
-test('keeps selected chapter view text readable while hovered', async ({ page, isMobile }) => {
+test('keeps the selected Read button readable on hover', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Hover contrast requires a mouse-capable browser.')
   // Browser risk: generated utility specificity can override the pressed colour on hover.
   await page.emulateMedia({ reducedMotion: 'reduce' })

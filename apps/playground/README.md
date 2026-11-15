@@ -215,6 +215,8 @@ Search tests use fixture results to exercise loading, pagination, errors and res
 
 Keep detailed page behavior in Vitest with real application components and HTTP-level MSW responses. Add Playwright coverage only for a distinct served-app or browser risk.
 
+When a page suite needs a split, name each file `<page>.<domain>.test.tsx` and keep it beside the original suite. Vitest's UI project discovers the `.test.tsx` suffix.
+
 `test:e2e` builds preview assets and serves only those static files at `http://127.0.0.1:5173/personal-tools/`, without an SPA fallback. Playwright owns the server and refuses to reuse that port. Desktop and mobile Chromium checks cover:
 
 - `tests/prototypes/quran/reader.e2e.ts` checks homepage keyboard entry, axe, overflow, reader refresh, and Back and Forward across the static pages.

@@ -59,18 +59,29 @@ it('returns only readable search verses with attributed Content text and separat
   expect(scopes).toEqual(['search', 'content'])
 })
 
-it('renews a rejected Search token without changing Content authentication', async () => {
-  let issued = 0
+it('renews a rejected Search token and reuses the Content token', async () => {
+  const scopes: string[] = []
   server.use(
-    http.post('https://prelive-oauth2.quran.foundation/oauth2/token', () => HttpResponse.json({ access_token: `search-${++issued}`, expires_in: 3600 })),
-    http.get('https://apis-prelive.quran.foundation/search/api/v1/search', ({ request }) => request.headers.get('x-auth-token') === 'search-1'
-      ? new HttpResponse(null, { status: 401 })
-      : HttpResponse.json({ pagination: { current_page: 1, next_page: null, per_page: 20, total_pages: 0, total_records: 0 }, result: { navigation: [], verses: [] } })),
+    http.post('https://prelive-oauth2.quran.foundation/oauth2/token', async ({ request }) => {
+      const scope = new URLSearchParams(await request.text()).get('scope') ?? ''
+      scopes.push(scope)
+      return HttpResponse.json({ access_token: `${scope}-${scopes.length}`, expires_in: 3600 })
+    }),
+    http.get('https://apis-prelive.quran.foundation/content/api/v4/chapters', ({ request }) =>
+      request.headers.get('x-auth-token') === 'content-1'
+        ? HttpResponse.json({ chapters: [{ id: 1 }] })
+        : new HttpResponse(null, { status: 401 })),
+    http.get('https://apis-prelive.quran.foundation/search/api/v1/search', ({ request }) => request.headers.get('x-auth-token') === 'search-3'
+      ? HttpResponse.json({ pagination: { current_page: 1, next_page: null, per_page: 20, total_pages: 0, total_records: 0 }, result: { navigation: [], verses: [] } })
+      : new HttpResponse(null, { status: 401 })),
   )
-  const response = await setup()(request('v2/search?query=mercy&language=english'))
+  const handler = setup()
+  expect((await handler(request('chapters'))).status).toBe(200)
+  const response = await handler(request('v2/search?query=mercy&language=english'))
   expect(response.status).toBe(200)
   expect(await response.json()).toEqual({ status: 'ready', results: [], nextPage: null, coverage: 'limited' })
-  expect(issued).toBe(2)
+  expect((await handler(request('chapters'))).status).toBe(200)
+  expect(scopes).toEqual(['content', 'search', 'search'])
 })
 
 it('renews a rejected Content token while enriching a search result', async () => {
@@ -81,12 +92,13 @@ it('renews a rejected Content token while enriching a search result', async () =
       return HttpResponse.json({ access_token: scope === 'search' ? 'search-token' : `content-${++contentTokens}`, expires_in: 3600 })
     }),
     http.get('https://apis-prelive.quran.foundation/search/api/v1/search', () => HttpResponse.json({ pagination: { current_page: 1, next_page: null, per_page: 20, total_pages: 1, total_records: 1 }, result: { navigation: [], verses: [{ result_type: 'ayah', key: '1:3' }] } })),
-    http.get('https://apis-prelive.quran.foundation/content/api/v4/verses/by_key/1:3', ({ request }) => request.headers.get('x-auth-token') === 'content-1'
-      ? new HttpResponse(null, { status: 401 })
-      : HttpResponse.json({ verse: { verse_number: 3, text_uthmani: 'الرَّحْمَٰنِ', translations: [{ resource_id: 85, text: 'Merciful' }] } })),
+    http.get('https://apis-prelive.quran.foundation/content/api/v4/verses/by_key/1:3', ({ request }) => request.headers.get('x-auth-token') === 'content-2'
+      ? HttpResponse.json({ verse: { verse_number: 3, text_uthmani: 'الرَّحْمَٰنِ', translations: [{ resource_id: 85, text: 'Merciful' }] } })
+      : new HttpResponse(null, { status: 401 })),
   )
   const response = await setup()(request('v2/search?query=mercy&language=english'))
   expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({ status: 'ready', results: [{ chapter: 1, verse: 3, translation: 'Merciful' }] })
   expect(contentTokens).toBe(2)
 })
 

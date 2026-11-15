@@ -150,20 +150,20 @@ it('rejects a mapping whose entry belongs to another source root before publishi
   }
 })
 
-it('preserves page markers actually present in the selected source entries', async () => {
+it('preserves the source page markers in selected entries', async () => {
   const output = await mkdtemp(join(tmpdir(), 'lane-pages-'))
   try {
     execFileSync('python3', [importer, '--output', output])
     const mercy = LaneEntrySchema.parse(JSON.parse(await readFile(join(output, 'lane/n15091.json'), 'utf8')))
     const praise = LaneEntrySchema.parse(JSON.parse(await readFile(join(output, 'lane/n9032.json'), 'utf8')))
-    expect(JSON.stringify(mercy.blocks)).toContain('1057')
-    expect(JSON.stringify(praise.blocks)).toContain('639')
+    expect(mercy.blocks.flatMap(block => block.runs)).toContainEqual({ text: ' [Source page 1057] ', lang: null, emphasis: false })
+    expect(praise.blocks.flatMap(block => block.runs)).toContainEqual({ text: ' [Source page 639] ', lang: null, emphasis: false })
   } finally {
     await rm(output, { recursive: true, force: true })
   }
 })
 
-it('reproduces identical assets from independent offline imports', async () => {
+it('writes the same manifest for independent offline imports', async () => {
   const output = await mkdtemp(join(tmpdir(), 'lane-repro-'))
   try {
     const first = join(output, 'first')

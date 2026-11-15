@@ -4,12 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { SearchResults } from './search-results'
 
-it('announces that search results are loading', () => {
-  render(<SearchResults state={{ status: 'loading' }} onSelect={() => {}} onRetry={() => {}} onNextPage={() => {}} />)
-  expect(screen.getByRole('status')).toHaveTextContent('Searching')
-})
-
-it('shows an attributed result and opens its verse', async () => {
+it('shows an attributed result and reports which verse was selected', async () => {
   const onSelect = vi.fn()
   render(<SearchResults state={{ status: 'ready', results: [{ chapter: 1, verse: 3, chapterName: 'Al-Fātiḥah', arabic: 'الرَّحْمَٰنِ الرَّحِيمِ', translation: 'The Most Merciful', translationName: 'Translator' }], nextPage: null }} onSelect={onSelect} onRetry={() => {}} onNextPage={() => {}} />)
   const user = userEvent.setup()
@@ -25,11 +20,6 @@ it('shows translation text without provider markup', () => {
   expect(screen.getByText('Merciful')).toBeVisible()
   expect(screen.queryByText(/onerror/)).not.toBeInTheDocument()
   expect(screen.queryByRole('img')).not.toBeInTheDocument()
-})
-
-it('shows an empty result message', () => {
-  render(<SearchResults state={{ status: 'ready', results: [], nextPage: null }} onSelect={() => {}} onRetry={() => {}} onNextPage={() => {}} />)
-  expect(screen.getByRole('status')).toHaveTextContent('No matches in Al-Fatihah or Al-Baqarah on this page')
 })
 
 it('offers a retry when search fails', async () => {

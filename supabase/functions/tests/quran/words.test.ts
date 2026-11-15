@@ -218,19 +218,49 @@ it('ends a cancelled dictionary request while the shared catalogue is still load
   }
 })
 
-it('shares cold dictionary index reads across concurrent verses requests and caches the result', async () => {
+it('shares dictionary index loads between concurrent verse requests and reuses them for later requests', async () => {
   const laneAssets = indexAssets('catalogue.json', { roots: { سمو: ['n1'] }, lemmas: {}, entryFiles: {} })
   const mufradatAssets = indexAssets('index.json', { roots: { سمو: ['jk-l1'] }, lemmas: {} })
-  const lane = createBundledLaneReader(laneAssets)
-  const mufradat = createBundledMufradatReader(mufradatAssets)
-  const requestPage = () => read(provider(), false, async () => bismiChapter(), {
-    lane, mufradat,
+  const releaseAssets = Promise.withResolvers<void>()
+  const lane = createBundledLaneReader(async path => {
+    await releaseAssets.promise
+    return laneAssets(path)
   })
-  const responses = await Promise.all([requestPage(), requestPage()])
-  for (const response of [...responses, await requestPage()]) {
+  const mufradat = createBundledMufradatReader(async path => {
+    await releaseAssets.promise
+    return mufradatAssets(path)
+  })
+  function trackIndexRequests(loadIndex: typeof lane.loadIndex) {
+    const bothRequested = Promise.withResolvers<void>()
+    const load = vi.fn(loadIndex)
+    return {
+      bothRequested: bothRequested.promise,
+      loadIndex() {
+        const lookup = load()
+        if (load.mock.calls.length === 2) bothRequested.resolve()
+        return lookup
+      },
+    }
+  }
+  const laneRequests = trackIndexRequests(lane.loadIndex)
+  const mufradatRequests = trackIndexRequests(mufradat.loadIndex)
+  const requestPage = () => read(provider(), false, async () => bismiChapter(), {
+    lane: laneRequests, mufradat: mufradatRequests,
+  })
+  const concurrent = Promise.all([requestPage(), requestPage()])
+  await Promise.all([laneRequests.bothRequested, mufradatRequests.bothRequested])
+  releaseAssets.resolve()
+
+  async function expectIndexedWords(response: Response) {
+    expect(response.status).toBe(200)
     expect(VersesResponseSchema.parse(await response.json()).verses[0]?.words?.[0]?.availability)
       .toEqual({ corpus: 'lexical', lane: 'indexed', mufradat: 'indexed' })
   }
+  await Promise.all((await concurrent).map(expectIndexedWords))
+  expect(laneAssets.mock.calls.map(([path]) => path.pathname.split('/').at(-1))).toEqual(['manifest.json', 'catalogue.json'])
+  expect(mufradatAssets.mock.calls.map(([path]) => path.pathname.split('/').at(-1))).toEqual(['manifest.json', 'index.json'])
+
+  await expectIndexedWords(await requestPage())
   expect(laneAssets).toHaveBeenCalledTimes(2)
   expect(mufradatAssets).toHaveBeenCalledTimes(2)
 })

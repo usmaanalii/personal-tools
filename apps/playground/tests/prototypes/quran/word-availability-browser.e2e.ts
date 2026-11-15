@@ -42,7 +42,7 @@ test('keeps dense verse controls within the built reader after direct load and r
   expect(await verseRegion.evaluate(region => region.scrollWidth <= region.clientWidth)).toBe(true)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
 
-  const pauseWord = wordButtons.nth(3)
+  const pauseWord = verseRegion.getByRole('button', { name: / · 2:20:4$/ })
   const arabicWithPause = 'أَبْصَـٰرَهُمْ ۖ'
   await expect(pauseWord).toHaveAccessibleName(`${arabicWithPause} · 2:20:4`)
   const circles = pauseWord.getByText('○○○', { exact: true })
@@ -68,6 +68,6 @@ test('keeps dense verse controls within the built reader after direct load and r
   await dialog.getByRole('button', { name: 'Next word' }).click()
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
-  await expect(wordButtons.nth(4)).toBeFocused()
+  await expect(verseRegion.getByRole('button', { name: / · 2:20:5$/ })).toBeFocused()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })

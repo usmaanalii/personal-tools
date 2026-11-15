@@ -12,7 +12,9 @@ test('loads the comparison directly and after refresh', async ({ page }) => {
 test('fits a dense Arabic verse with usable word targets and keyboard selection on a narrow screen', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 })
   await page.goto('./quran-word-availability/')
-  const words = page.getByRole('region', { name: 'Al-Baqarah 2:20' }).getByRole('button')
+  const verse = page.getByRole('region', { name: 'Al-Baqarah 2:20' })
+  const words = verse.getByRole('button')
+  const firstWord = verse.getByRole('button', { name: / · 2:20:1$/ })
   await expect(words).toHaveCount(25)
   await page.evaluate(() => document.fonts.ready)
   const bounds = await words.evaluateAll(buttons => buttons.map(button => {
@@ -22,9 +24,9 @@ test('fits a dense Arabic verse with usable word targets and keyboard selection 
   expect(new Set(bounds.map(word => word.y)).size).toBeGreaterThan(1)
   expect(bounds.every(word => word.width >= 44 && word.height >= 44)).toBe(true)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320)
-  await words.first().focus()
+  await firstWord.focus()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('status')).toContainText('Corpus: Available. Lane: Available. Mufradāt: Unavailable.')
-  await expect(words.first()).toBeFocused()
+  await expect(firstWord).toBeFocused()
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })

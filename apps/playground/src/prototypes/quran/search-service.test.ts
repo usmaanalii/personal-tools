@@ -13,7 +13,11 @@ it('loads an attributed search page through the Quran function', async () => {
     return HttpResponse.json({ status: 'ready', results: [{ chapter: 1, verse: 3, chapterName: 'Al-Fatihah', arabic: 'الرَّحْمَٰنِ الرَّحِيمِ', translation: 'the Lord of Mercy', translationName: 'M.A.S. Abdel Haleem' }], nextPage: '2', coverage: 'limited' })
   }))
   try {
-    await expect(searchService.search({ query: 'mercy', language: 'english', page: null }, new AbortController().signal)).resolves.toMatchObject({ status: 'ready', nextPage: '2' })
+    await expect(searchService.search({ query: 'mercy', language: 'english', page: null }, new AbortController().signal)).resolves.toMatchObject({
+      status: 'ready',
+      results: [{ chapter: 1, verse: 3, translationName: 'M.A.S. Abdel Haleem' }],
+      nextPage: '2',
+    })
   } finally {
     vi.unstubAllEnvs()
   }

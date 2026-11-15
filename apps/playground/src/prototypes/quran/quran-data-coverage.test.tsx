@@ -79,6 +79,7 @@ it('keeps the displayed positions when loading more fails and retries the same c
   let attempts = 0
   server.use(http.get(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/quran/v2/coverage/lookup`, ({ request }) => {
     const cursor = new URL(request.url).searchParams.get('cursor')
+    if (cursor !== null && cursor !== 'next') return new HttpResponse(null, { status: 400 })
     if (cursor !== null && ++attempts === 1) return new HttpResponse(null, { status: 503 })
     return HttpResponse.json({
       mode: 'word', total: 2, nextCursor: cursor === null ? 'next' : null,
@@ -94,6 +95,7 @@ it('keeps the displayed positions when loading more fails and retries the same c
   expect(screen.getByText('2:2, word 1')).toBeVisible()
   await user.click(retry)
   expect(await screen.findByText('2:2, word 2')).toBeVisible()
+  expect(screen.getByText('2:2, word 1')).toBeVisible()
 })
 
 it('keeps the lookup editable after invalid input and announces a valid miss', async () => {

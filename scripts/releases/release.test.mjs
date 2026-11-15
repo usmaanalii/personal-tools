@@ -109,21 +109,32 @@ test("rejects foreign, untested, preview, or malformed deployments before browse
 test("refuses a changed project, competing deployment owner, or stale commit before staging", async () => {
   // Catch setup mistakes and outdated runs before paying for a build or upload.
   // An active Git integration could publish independently, bypassing our tests.
-  for (const changes of [
-    { head: async () => "b".repeat(40) },
-    { project: async () => ({ id: "wrong" }) },
-    {
-      project: async () => ({
-        id: project.projectId,
-        accountId: project.teamId,
-        rootDirectory: project.root,
-        nodeVersion: "22.x",
-        link: { type: "github" },
-      }),
-    },
+  const settings = await platform().project();
+  for (const [changes, error] of [
+    [{ head: async () => "b".repeat(40) }, /Stale release/],
+    [
+      { project: async () => ({ ...settings, id: "prj_other" }) },
+      /Project settings or deployment owner mismatch/,
+    ],
+    [
+      { project: async () => ({ ...settings, accountId: "team_other" }) },
+      /Project settings or deployment owner mismatch/,
+    ],
+    [
+      { project: async () => ({ ...settings, rootDirectory: "apps/other" }) },
+      /Project settings or deployment owner mismatch/,
+    ],
+    [
+      { project: async () => ({ ...settings, nodeVersion: "24.x" }) },
+      /Project settings or deployment owner mismatch/,
+    ],
+    [
+      { project: async () => ({ ...settings, link: { type: "github" } }) },
+      /Project settings or deployment owner mismatch/,
+    ],
   ]) {
     const io = platform(changes);
-    await assert.rejects(release(project, sha, io));
+    await assert.rejects(release(project, sha, io), error);
     assert.deepEqual(io.evidence, []);
   }
 });

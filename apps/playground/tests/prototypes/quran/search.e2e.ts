@@ -63,7 +63,7 @@ test('opens Search on desktop after directly loading and refreshing the reader',
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
 })
 
-test('keeps the focused verse visible with enlarged text', async ({ page }) => {
+test('positions the focused verse below tall Reader controls with enlarged text', async ({ page }) => {
   await page.setViewportSize({ width: 640, height: 800 })
   await mockQuranContent(page)
   await page.goto('./quran/')

@@ -69,7 +69,7 @@ it('hides the previous entry when another word is selected', async () => {
   expect(screen.queryByText(buildMufradatEntry().paragraphs.join(' '))).not.toBeInTheDocument()
 })
 
-it('announces a failed load and moves focus to the reference after retry', async () => {
+it('shows the load error and focuses the dictionary after retry', async () => {
   server.use(http.get(endpoint, () => new HttpResponse(null, { status: 503 })))
   const user = userEvent.setup()
   render(<WordMufradat word={word()} />)
