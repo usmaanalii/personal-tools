@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { mockQuranContent } from './content-fixture'
 
@@ -37,4 +38,42 @@ test('returns from Google sign-in to the static reader and restores the session 
   await page.reload()
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Verses' })).toBeVisible()
+})
+
+test('returns from an email link to the static reader in the browser that requested it', async ({ page, baseURL }) => {
+  await mockQuranContent(page)
+  const reader = new URL('quran/', baseURL).href
+  let challenge: string | undefined
+  await page.route('**/auth/v1/otp?**', async route => {
+    expect(new URL(route.request().url()).searchParams.get('redirect_to')).toBe(reader)
+    const request = route.request().postDataJSON()
+    challenge = request.code_challenge
+    await route.fulfill({ headers: { 'access-control-allow-origin': '*' }, json: {} })
+  })
+  await page.route('**/auth/v1/token?grant_type=pkce', async route => {
+    const { auth_code, code_verifier } = route.request().postDataJSON()
+    expect(auth_code).toBe('email-fixture')
+    expect(createHash('sha256').update(code_verifier).digest('base64url')).toBe(challenge)
+    await route.fulfill({
+      headers: { 'access-control-allow-origin': '*' },
+      json: {
+        access_token: 'access-fixture',
+        refresh_token: 'refresh-fixture',
+        expires_in: 3600,
+        user: { id: 'cde32903-8a24-4ade-9c2c-9c31cdee3a91', email: 'reader@example.test' },
+      },
+    })
+  })
+
+  await page.goto(reader)
+  await page.getByRole('button', { name: 'Sign in with email' }).press('Enter')
+  const email = page.getByRole('textbox', { name: 'Email address' })
+  await expect(email).toBeFocused()
+  expect((await new AxeBuilder({ page }).include('[aria-label="Reader account"]').analyze()).violations).toEqual([])
+  await email.fill('reader@example.test')
+  await page.getByRole('button', { name: 'Send sign-in link' }).click()
+  await expect(page.getByText(/if a link can be sent/i)).toBeVisible()
+  await page.goto(`${reader}?code=email-fixture`)
+  await expect(page.getByText('reader@example.test')).toBeVisible()
+  await expect(page).toHaveURL(reader)
 })

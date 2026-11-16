@@ -1,11 +1,19 @@
 'use client'
 
-import type { Auth, Session } from '@scratch-pages/auth'
-import { Button } from '@scratch-pages/ui'
+import type { Auth, EmailLinkAuth, Session } from '@scratch-pages/auth'
+import { Button, EmailLinkForm } from '@scratch-pages/ui'
 import { useState } from 'react'
 import { z } from 'zod'
 
-type AccountActions = Pick<Auth, 'signIn' | 'signOut'>
+type AccountActions = Pick<Auth, 'signIn' | 'signOut'> & Partial<EmailLinkAuth>
+
+const callbackMessages = {
+  denied: 'Google sign-in was cancelled or denied.',
+  failed:
+    'Could not finish sign-in. For email sign-in, request a new link and open it in this browser.',
+  'link-expired':
+    'This sign-in link is invalid or expired. Request a new link.',
+}
 
 const signInResponse = z.object({ url: z.url() })
 
@@ -21,6 +29,17 @@ const browserActions: AccountActions = {
     if (!response.ok) throw new Error('Could not sign out')
     window.location.reload()
   },
+  async requestEmailLink(email) {
+    const response = await fetch('/auth/email-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    if (response.status === 429) return 'rate-limited'
+    if (!response.ok)
+      throw new Error('Could not request an email sign-in link.')
+    return 'accepted'
+  },
 }
 
 export function AccountControls({
@@ -30,7 +49,7 @@ export function AccountControls({
 }: {
   readonly session: Session
   readonly actions?: AccountActions
-  readonly callback?: 'denied' | 'failed' | undefined
+  readonly callback?: keyof typeof callbackMessages | undefined
 }) {
   const [phase, setPhase] = useState<'initial' | 'idle' | 'pending' | 'failed'>(
     'initial',
@@ -62,9 +81,7 @@ export function AccountControls({
       </h2>
       {phase === 'initial' && callback && (
         <p role="alert" className="mb-4 text-ui-error">
-          {callback === 'denied'
-            ? 'Google sign-in was cancelled or denied.'
-            : 'Could not finish Google sign-in. Try again.'}
+          {callbackMessages[callback]}
         </p>
       )}
       {signedIn && (
@@ -81,6 +98,12 @@ export function AccountControls({
       >
         {pending ? progress : label}
       </Button>
+      {!signedIn && actions.requestEmailLink && (
+        <EmailLinkForm
+          requestLink={actions.requestEmailLink}
+          disabled={pending}
+        />
+      )}
       <p role="status" className="sr-only">
         {pending ? progress : ''}
       </p>

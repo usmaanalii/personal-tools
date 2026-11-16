@@ -16,13 +16,15 @@ export async function GET(request: NextRequest) {
 
   const query = request.nextUrl.searchParams
   const denied = query.get('error') === 'access_denied'
-  const home = new URL(
-    denied ? '/?auth=denied#account' : '/?auth=failed#account',
-    origin,
+  const expired = query.get('error_code') === 'otp_expired'
+  const home = new URL('/#account', origin)
+  home.searchParams.set(
+    'auth',
+    expired ? 'link-expired' : denied ? 'denied' : 'failed',
   )
   const response = new NextResponse(null, { status: 303, headers })
   response.headers.set('location', home.href)
-  if (query.has('error') || !query.has('code')) {
+  if (query.has('error') || expired || !query.has('code')) {
     clearVerifier(response, origin)
     return response
   }

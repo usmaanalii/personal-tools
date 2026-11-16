@@ -65,6 +65,43 @@ it('starts Google PKCE with the app-supplied destination despite an incoming red
   expect(url.searchParams.get('code_challenge_method')).toBe('s256')
 })
 
+it('requests a magic link with PKCE for the configured reader destination', async () => {
+  const delivered = vi.fn()
+  server.use(http.post(`${config.supabaseUrl}/auth/v1/otp`, async ({ request }) => {
+    delivered(new URL(request.url).searchParams.get('redirect_to'), await request.json())
+    return HttpResponse.json({})
+  }))
+  window.history.replaceState({}, '', '/personal-tools/quran/?next=https://outside.example')
+  const auth = createSupabaseAuth(config)
+
+  await expect(auth.requestEmailLink('reader@example.test')).resolves.toBe('accepted')
+
+  expect(delivered).toHaveBeenCalledExactlyOnceWith(config.redirectTo, expect.objectContaining({
+    email: 'reader@example.test',
+    code_challenge: expect.stringMatching(/^[\w-]{43}$/),
+    code_challenge_method: 's256',
+  }))
+})
+
+it('reports throttling without exposing the email provider response', async () => {
+  server.use(http.post(`${config.supabaseUrl}/auth/v1/otp`, () =>
+    HttpResponse.json({ code: 'over_email_send_rate_limit', msg: 'private' }, { status: 429 }),
+  ))
+  const auth = createSupabaseAuth(config)
+  await expect(auth.requestEmailLink('reader@example.test')).resolves.toBe('rate-limited')
+})
+
+it('does not send a link with a plain proof key when S256 is unavailable', async () => {
+  vi.stubGlobal('crypto', { getRandomValues: window.crypto.getRandomValues.bind(window.crypto) })
+  const send = vi.fn()
+  server.use(http.post(`${config.supabaseUrl}/auth/v1/otp`, () => {
+    send()
+    return HttpResponse.json({})
+  }))
+  await expect(createSupabaseAuth(config).requestEmailLink('reader@example.test')).rejects.toThrow('Could not request an email sign-in link.')
+  expect(send).not.toHaveBeenCalled()
+})
+
 it('exchanges a callback once, with the code removed from the URL before the request', async () => {
   const tokenRequest = vi.fn()
   server.use(http.post(`${config.supabaseUrl}/auth/v1/token`, async ({ request }) => {

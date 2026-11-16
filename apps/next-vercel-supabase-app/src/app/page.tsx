@@ -9,7 +9,10 @@ export default async function Home({ searchParams }: PageProps<'/'>) {
     cookies().then(readSession),
     searchParams,
   ])
-  const callback = auth === 'denied' || auth === 'failed' ? auth : undefined
+  const callback =
+    auth === 'denied' || auth === 'failed' || auth === 'link-expired'
+      ? auth
+      : undefined
   return (
     <ConnectionLab
       account={

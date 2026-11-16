@@ -30,6 +30,12 @@ The home page displays the account controls when auth is configured. Users can s
 
 Next.js exchanges the PKCE code and keeps the access and refresh tokens in host-only, HttpOnly cookies. Hosted cookies require HTTPS. The server refreshes the access token when its cookie expires and verifies the current identity with Supabase before rendering. The refresh cookie lasts at most 30 days from its last rotation, subject to Supabase's session limits. The browser sees the shared app session and calls same-origin Next.js routes for sign-in and sign-out.
 
+### Email sign-in links
+
+Email sign-in uses the same exact `/auth/callback` allowlist entry. The browser sends the request to the same-origin `/auth/email-link` route. Open the email link in the requesting browser within 10 minutes, while its proof cookie is available. A later sign-in request can replace that proof.
+
+Use the shared Supabase project's Email provider, `ConfirmationURL` template and SMTP setup. On the authorised Vercel deployment, request a link, confirm the return to the account section, reload, then sign out. Repeat the expired-link, replay and identity checks for this app. Do not record the browser during the real account checks. [Shared email configuration and hosted checks](../playground/README.md#email-sign-in-links)
+
 ## Quality checks
 
 Run from the repository root:
@@ -41,11 +47,11 @@ pnpm --filter next-vercel-supabase-app test:e2e
 
 `check` runs Biome lint, Prettier, Next route type generation, strict TypeScript and Vitest integration tests with coverage. Lint warnings fail the check. The lint rules include the shared recommended rules, Next.js/React checks, explicit-any and `@ts-ignore` errors, and floating-promise checks. Coverage must reach 100% of statements, branches, functions and lines in the API route and shared response schema.
 
-The UI tests render the connection lab and account controls in jsdom. MSW supplies HTTP responses for the hello check and the server auth tests. The account controls also run with fake sign-in and sign-out actions.
+The UI tests render the connection lab and account controls in jsdom. MSW supplies HTTP responses for the hello check and the server auth tests. The account controls also run with fake Google, email and sign-out actions.
 
 The app's `biome.json` extends the repository settings. Biome replaces ESLint, but its type inference and rules differ from typescript-eslint. The floating-promise rule is enabled as an error and is still an experimental nursery rule. Strict TypeScript runs as a separate check.
 
-`test:e2e` builds Next.js for production and starts it on port 3100. It also starts a local fake Supabase server on port 54329. Desktop and mobile Chromium tests check the public greeting, sign in through the callback, reload, confirm a separate browser context stays anonymous, and sign out. These tests exercise the production build with a local provider fixture.
+`test:e2e` builds Next.js for production and starts it on port 3100. It also starts a local Supabase fixture on port 54329. Desktop and mobile Chromium tests check the public greeting, Google and email callbacks, session restoration and sign-out. The email test reads its link from the fixture mailbox.
 
 The test files are:
 

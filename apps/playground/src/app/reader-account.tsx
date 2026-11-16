@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import type { Auth, Session } from '@scratch-pages/auth'
-import { Button } from '@scratch-pages/ui'
+import type { Auth, EmailLinkAuth, Session } from '@scratch-pages/auth'
+import { Button, EmailLinkForm } from '@scratch-pages/ui'
 import type { CallbackResult } from './auth-callback'
 import googleSignInArtwork from './google-sign-in.png'
 
 type Operation = 'sign-in' | 'sign-out'
 type AccountAction = { readonly operation: Operation; readonly status: 'pending' | 'failed' }
 
-export type ReaderAuth = Auth & { readonly callback?: Promise<CallbackResult> }
+export type ReaderAuth = Auth & { readonly callback?: Promise<CallbackResult>; readonly requestEmailLink?: EmailLinkAuth['requestEmailLink'] | undefined }
 
 export function ReaderAccount({ auth }: { readonly auth: ReaderAuth }) {
   const { callback } = auth
@@ -61,12 +61,14 @@ export function ReaderAccount({ auth }: { readonly auth: ReaderAuth }) {
       {callbackState === 'pending' && <p role="status">Finishing sign-in…</p>}
       {callbackState === 'cancelled' && <p role="status">Sign-in was cancelled.</p>}
       {callbackState === 'failed' && <p role="alert">Could not finish sign-in. Try again.</p>}
+      {callbackState === 'link-expired' && <p role="alert">This sign-in link is invalid or expired. Request a new link.</p>}
       {session?.status === 'guest' && callbackState !== 'pending' && <>
         <Button variant="ghost" size="compact" className="max-w-full" disabled={signInState === 'pending'} onClick={() => void run('sign-in')}>
           <img className="h-auto min-w-0" src={googleSignInArtwork} width={180} height={40} alt="Sign in with Google" />
         </Button>
         {signInState === 'pending' && <p role="status">Opening Google sign-in…</p>}
         {signInState === 'failed' && <p role="alert">Could not start sign-in. Try again.</p>}
+        {auth.requestEmailLink && <EmailLinkForm requestLink={auth.requestEmailLink} disabled={signInState === 'pending'} />}
       </>}
     </div>
   </section>

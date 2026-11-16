@@ -1,5 +1,6 @@
 export { Button } from './button'
 export { Input } from './input'
+export { EmailLinkForm } from './email-link-form'
 export { Skeleton } from './skeleton'
 export { ViewSwitcher } from './view-switcher'
 export { DialogRoot, DialogTrigger, DialogClose, DialogContent, DialogTitle } from './dialog'

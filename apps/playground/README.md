@@ -42,7 +42,7 @@ It builds the frontend against that local URL; verse/provider responses remain f
 
 ## Quran reader sign-in
 
-Reading is available to guests. The account controls below the reader let visitors sign in with Google and sign out of the current browser session. The browser restores a valid session on reload. Bookmarks belong to the current reading visit. The Quran Edge Function accepts anonymous requests and receives no reader session token.
+Reading is available to guests. The account controls below the reader let visitors sign in with Google or request a sign-in link by email. The browser restores a valid session on reload. Sign-out ends the current browser session. Bookmarks belong to the current reading visit. The Quran Edge Function accepts anonymous requests and receives no reader session token.
 
 The framework-neutral contract lives in `@scratch-pages/auth`. Playground loads the Supabase Auth adapter on the Quran route and supplies its return URL from the configured Vite base and the reader path. The adapter owns PKCE, browser storage and token refresh. The interface receives only the account ID and display label. Browser storage is readable by scripts on the same origin, including other GitHub Pages projects there. Use a trusted origin for hosted testing and deployment.
 
@@ -50,9 +50,17 @@ Set up the Google OAuth web client with the Supabase provider callback URI shown
 
 Vite defaults to port 5173 and the `/personal-tools/` base, so its default reader return on localhost is `http://localhost:5173/personal-tools/quran/`. For a controlled check with the root-base redirect `http://localhost:5173/quran/`, run `VITE_BASE_PATH=/ pnpm --filter playground dev --host localhost --port 5173 --strictPort` and open that exact URL. The hosted Quran API may reject local origins. The account controls remain available when chapter loading fails.
 
-Before enabling Google, confirm the project can use Google as its sole sign-in method and recheck existing identities. Supabase can automatically link identities that share a verified email. Resolve provider isolation if another consumer relies on email or another method. Use test accounts on an approved origin to exercise sign-in, consent cancellation, reload, expiry, sign-out and a second account. Disable browser recordings for these checks. Separately verify guest reading on the deployed build. [Identity linking](https://supabase.com/docs/guides/auth/auth-identity-linking)
+Use test accounts on an approved origin to exercise Google sign-in, consent cancellation, reload, expiry, sign-out and a second account. Disable browser recordings for these checks. Verify guest reading on the deployed build.
 
 The sign-in control uses Google's approved button artwork. [Google branding guidelines](https://developers.google.com/identity/branding-guidelines)
+
+### Email sign-in links
+
+Enable Email and magic-link sign-in in Supabase. Enable email sign-ups for first-time users. Keep the `ConfirmationURL` variable in both the Magic Link and Confirm Signup templates so the link returns a PKCE code to the exact reader URL listed above. Open the link in the browser and device that requested it. Later sign-in requests can replace the proof key for an earlier link. [Supabase email sign-in](https://supabase.com/docs/guides/auth/auth-email-passwordless) · [Supabase PKCE flow](https://supabase.com/docs/guides/auth/sessions/pkce-flow)
+
+Supabase's built-in mail service sends to authorised project team addresses and limits the project to two emails per hour. Configure a verified sender and custom SMTP for public delivery. Disable SMTP link tracking and check delivery limits in the Supabase dashboard. The default resend interval is 60 seconds. [Custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) · [Auth rate limits](https://supabase.com/docs/guides/auth/rate-limits)
+
+On the deployed reader, request a link for a controlled test address. Open it in the requesting browser, confirm the return to `/personal-tools/quran/`, reload and sign out. Check that an expired or reused link offers a fresh request and that a separate browser cannot use the original proof key. Check both sign-in orders using a verified email shared with Google, then repeat with a different address. Supabase can associate verified identities with the same user ID. The reader uses that ID for account identity. [Supabase identity linking](https://supabase.com/docs/guides/auth/auth-identity-linking)
 
 ## Quran API setup
 
@@ -238,7 +246,7 @@ When a page suite needs a split, name each file `<page>.<domain>.test.tsx` and k
 `test:e2e` builds preview assets and serves only those static files at `http://127.0.0.1:5173/personal-tools/`, without an SPA fallback. Playwright owns the server and refuses to reuse that port. Desktop and mobile Chromium checks cover:
 
 - `tests/prototypes/quran/reader.e2e.ts` checks homepage keyboard entry, axe, overflow, reader refresh, and Back and Forward across the static pages.
-- `tests/prototypes/quran/reader-auth.e2e.ts` checks the static Pages callback, S256 verifier continuity and session restoration on reload using an HTTP fixture. The reader auth Vitest suites cover UI recovery and SDK logout and expiry. Genuine Google sign-in requires the hosted checks above.
+- `tests/prototypes/quran/reader-auth.e2e.ts` checks the static Pages callback and S256 verifier for Google and email sign-in using HTTP fixtures. It also checks session restoration after Google sign-in. The reader auth Vitest suites cover UI recovery and SDK logout and expiry. Follow the hosted checks above for real provider verification.
 - `tests/prototypes/quran/loading-layout.e2e.ts` checks reduced motion and the position of the verse region as scripture loads.
 - `tests/prototypes/quran/mobile-reading-space.e2e.ts` checks visible scripture at 320×568, document scrolling, scroll restoration at narrow and desktop widths, saved-verse focus and the start of the next word's analysis. Physical software keyboard and safe-area behaviour require device testing.
 - `tests/prototypes/quran/dictionary-browser.e2e.ts`: scrolling an entry returned by the actual local Deno dictionary while the selected word and verse context remain visible, then returning focus on close. Query mapping and source URL details are covered by Vitest.

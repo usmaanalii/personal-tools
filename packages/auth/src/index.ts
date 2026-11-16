@@ -8,6 +8,10 @@ export type Session =
   | { readonly status: 'guest' }
   | { readonly status: 'authenticated'; readonly identity: Identity }
 
+export interface EmailLinkAuth {
+  requestEmailLink(email: string): Promise<'accepted' | 'rate-limited'>
+}
+
 export interface Auth {
   /** Delivers the current session and subsequent changes until unsubscribed. */
   observeSession(listener: (session: Session) => void): () => void

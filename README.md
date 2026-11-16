@@ -27,7 +27,7 @@ The Quran word availability prototype uses captured verses to show whether each 
 A reading prototype designed for phones, with a wider layout on desktop.
 The reader uses verse data to show source availability for Corpus, Lane and Mufradāt beneath selectable words. [Reader guide](apps/playground/README.md#quran-api-setup)
 
-Optional Google sign-in uses the existing Quran route. Hosted rollout requires Google OAuth configuration in Supabase. [Playground sign-in setup](apps/playground/README.md#quran-reader-sign-in)
+Optional Google and email-link sign-in use the existing Quran route. [Playground sign-in setup](apps/playground/README.md#quran-reader-sign-in)
 
 Issue #19 adds grammar analysis to word details through the existing verse API.
 Release packaging records the published website/application-use grant and
@@ -130,7 +130,7 @@ In repository settings, set **Pages > Build and deployment > Source** to **GitHu
 
 Select **Check connection** to call Supabase through the Next.js server. The page shows progress, displays the greeting on success, and lets you retry after a failed request. The app has strict TypeScript, lint and formatting checks, API and page integration tests, and desktop/mobile browser smoke checks.
 
-The Next.js app supports optional Google sign-in through the shared auth contract. See the [app setup](apps/next-vercel-supabase-app/README.md#google-sign-in) for the required callback configuration.
+The Next.js app supports optional Google and email-link sign-in through the shared auth contract. [Next.js sign-in setup](apps/next-vercel-supabase-app/README.md#google-sign-in)
 
 ```sh
 pnpm dev:next

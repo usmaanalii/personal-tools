@@ -1,6 +1,6 @@
-export type CallbackResult = 'complete' | 'cancelled' | 'failed'
+export type CallbackResult = 'complete' | 'cancelled' | 'failed' | 'link-expired'
 
-type Callback = { readonly code: string } | 'cancelled' | 'failed' | undefined
+type Callback = { readonly code: string } | Exclude<CallbackResult, 'complete'> | undefined
 
 const callbackFields = [
   'code', 'error', 'error_code', 'error_description', 'sb_flow_id',
@@ -17,6 +17,7 @@ export function takeAuthCallback(): Callback {
   if (!hasQuery && !hasFragment) return undefined
 
   const [code] = query.getAll('code')
+  const expired = query.get('error_code') === 'otp_expired' || fragment.get('error_code') === 'otp_expired'
   const denied = query.get('error') === 'access_denied' || fragment.get('error') === 'access_denied'
   const validCode = code && !hasFragment && callbackFields.every(field =>
     field === 'code' ? query.getAll(field).length === 1 : !query.has(field),
@@ -25,6 +26,7 @@ export function takeAuthCallback(): Callback {
   if (hasFragment) url.hash = ''
   window.history.replaceState(window.history.state, '', url)
 
+  if (expired) return 'link-expired'
   if (denied) return 'cancelled'
   return validCode ? { code } : 'failed'
 }

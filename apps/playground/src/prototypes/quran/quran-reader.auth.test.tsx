@@ -3,8 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import App from '../../app/app'
-import type { Auth, Session } from '@scratch-pages/auth'
+import type { Auth, EmailLinkAuth, Session } from '@scratch-pages/auth'
 import type { CallbackResult } from '../../app/auth-callback'
+import { createSupabaseAuth } from '../../app/supabase-auth'
 import { quranEndpoint, server } from '../../test-server'
 
 afterEach(() => window.history.replaceState({}, '', '/'))
@@ -13,13 +14,15 @@ function renderWithSession(initial: Session, {
   signIn = vi.fn(async () => {}),
   callback,
   signOut,
-}: { signIn?: Auth['signIn']; callback?: Promise<CallbackResult>; signOut?: Auth['signOut'] } = {}) {
+  requestEmailLink,
+}: { signIn?: Auth['signIn']; callback?: Promise<CallbackResult>; signOut?: Auth['signOut']; requestEmailLink?: EmailLinkAuth['requestEmailLink'] } = {}) {
   const listeners = new Set<(session: Session) => void>()
   const publish = (session: Session) => listeners.forEach(listener => { listener(session) })
   const user = userEvent.setup()
   window.history.pushState({}, '', '/quran/')
   render(<App auth={{
     callback,
+    requestEmailLink,
     observeSession(listener) {
       listeners.add(listener)
       listener(initial)
@@ -39,6 +42,33 @@ it('lets a guest read the Quran and choose to sign in with Google', async () => 
 
   expect(signIn).toHaveBeenCalledOnce()
   expect(screen.getByRole('region', { name: 'Verses' })).toBeVisible()
+})
+
+it('lets a guest request an email link while keeping the reader available', async () => {
+  const requestEmailLink = vi.fn<EmailLinkAuth['requestEmailLink']>().mockResolvedValue('accepted')
+  const { user } = renderWithSession({ status: 'guest' }, { requestEmailLink })
+  await user.click(await screen.findByRole('button', { name: 'Sign in with email' }))
+  await user.type(screen.getByRole('textbox', { name: 'Email address' }), 'reader@example.test')
+  await user.click(screen.getByRole('button', { name: 'Send sign-in link' }))
+
+  expect(requestEmailLink).toHaveBeenCalledExactlyOnceWith('reader@example.test')
+  expect(await screen.findByText(/if a link can be sent/i)).toBeVisible()
+  expect(screen.getByRole('region', { name: 'Verses' })).toBeVisible()
+})
+
+it('cleans an expired email link and offers a new request without interrupting reading', async () => {
+  window.history.pushState({}, '', '/quran/?error=access_denied&error_code=otp_expired&error_description=provider-details')
+  const auth = createSupabaseAuth({
+    supabaseUrl: 'https://auth.example',
+    supabasePublishableKey: 'fixture-key',
+    redirectTo: new URL('/quran/', window.location.origin).href,
+  })
+  render(<App auth={auth} />)
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('This sign-in link is invalid or expired. Request a new link.')
+  expect(window.location.search).toBe('')
+  expect(await screen.findByRole('button', { name: 'Sign in with email' })).toBeEnabled()
+  expect(await screen.findByRole('region', { name: 'Verses' })).toBeVisible()
 })
 
 it('replaces the prior identity when the active account changes', async () => {

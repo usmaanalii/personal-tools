@@ -10,10 +10,14 @@ const fixtureTokens = {
   user: identity,
 }
 
-async function exchange(request, response) {
+async function readJson(request) {
   const chunks = []
   for await (const chunk of request) chunks.push(chunk)
-  const body = JSON.parse(Buffer.concat(chunks).toString())
+  return JSON.parse(Buffer.concat(chunks).toString())
+}
+
+async function exchange(request, response) {
+  const body = await readJson(request)
   const { auth_code: code, code_verifier: verifier } = body
   const challenge = createHash('sha256')
     .update(verifier ?? '')
@@ -23,6 +27,20 @@ async function exchange(request, response) {
     return
   }
   response.end(JSON.stringify(fixtureTokens))
+}
+
+const testMail = new Map()
+
+async function deliverLink(request, response, redirect) {
+  const { email, code_challenge: challenge } = await readJson(request)
+  if (redirect !== 'http://127.0.0.1:3100/auth/callback' || !challenge) {
+    response.writeHead(400).end()
+    return
+  }
+  const callback = new URL(redirect)
+  callback.searchParams.set('code', challenge)
+  testMail.set(email, callback.href)
+  response.end('{}')
 }
 
 // Test-only upstream: the production Next route still performs real HTTP.
@@ -46,6 +64,25 @@ const server = createServer((request, response) => {
   }
   if (url.pathname === '/auth/v1/token') {
     void exchange(request, response).catch(() => response.writeHead(400).end())
+    return
+  }
+  if (url.pathname === '/auth/v1/otp' && request.method === 'POST') {
+    void deliverLink(
+      request,
+      response,
+      url.searchParams.get('redirect_to'),
+    ).catch(() => response.writeHead(400).end())
+    return
+  }
+  if (url.pathname === '/test/email-link') {
+    const email = url.searchParams.get('email')
+    const link = testMail.get(email)
+    if (!link) {
+      response.writeHead(404).end()
+      return
+    }
+    testMail.delete(email)
+    response.end(JSON.stringify({ link }))
     return
   }
   if (request.headers.authorization === 'Bearer fixture-access') {

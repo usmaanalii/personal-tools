@@ -1,5 +1,5 @@
 import { AuthClient } from '@supabase/auth-js'
-import type { Session } from '@scratch-pages/auth'
+import type { Auth, EmailLinkAuth, Session } from '@scratch-pages/auth'
 import { z } from 'zod'
 import { takeAuthCallback, type CallbackResult } from './auth-callback'
 
@@ -70,9 +70,16 @@ export function createSupabaseAuth({
       if (error || !data.url) throw new Error('Could not start sign-in.')
       navigate(data.url)
     },
+    async requestEmailLink(email) {
+      if (!window.crypto?.subtle) throw new Error('Could not request an email sign-in link.')
+      const { error } = await client.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } })
+      if (error?.status === 429) return 'rate-limited'
+      if (error) throw new Error('Could not request an email sign-in link.')
+      return 'accepted'
+    },
     async signOut() {
       const { error } = await client.signOut({ scope: 'local' })
       if (error) throw new Error('Could not sign out.')
     },
-  }
+  } satisfies Auth & EmailLinkAuth & { readonly callback: Promise<CallbackResult> | undefined }
 }
