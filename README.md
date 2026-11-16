@@ -130,6 +130,8 @@ In repository settings, set **Pages > Build and deployment > Source** to **GitHu
 
 Select **Check connection** to call Supabase through the Next.js server. The page shows progress, displays the greeting on success, and lets you retry after a failed request. The app has strict TypeScript, lint and formatting checks, API and page integration tests, and desktop/mobile browser smoke checks.
 
+The Next.js app supports optional Google sign-in through the shared auth contract. See the [app setup](apps/next-vercel-supabase-app/README.md#google-sign-in) for the required callback configuration.
+
 ```sh
 pnpm dev:next
 pnpm check:next

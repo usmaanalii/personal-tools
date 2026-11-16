@@ -22,6 +22,14 @@ Use `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from the existing Supabase pro
 
 The server calls `/functions/v1/hello` and checks the response JSON with Zod. It returns a safe 502 response if the upstream service returns an error, cannot be reached, takes more than eight seconds, or sends invalid JSON data. Requests are not cached. Calling from the server also avoids changing the function's browser CORS settings.
 
+## Google sign-in
+
+Set `AUTH_ORIGIN` to the exact origin visitors use, such as `http://localhost:3000` for local development. In the existing Supabase project, enable Google and add that origin's `/auth/callback` to the redirect allowlist. Google must continue to redirect to the Supabase project's OAuth callback. Keep the existing Playground allowlist entries.
+
+The home page displays the account controls when auth is configured. Users can sign in, reload the page, and sign out from the current Next.js session. The public connection check remains available to guests.
+
+Next.js exchanges the PKCE code and keeps the access and refresh tokens in host-only, HttpOnly cookies. Hosted cookies require HTTPS. The server refreshes the access token when its cookie expires and verifies the current identity with Supabase before rendering. The refresh cookie lasts at most 30 days from its last rotation, subject to Supabase's session limits. The browser sees the shared app session and calls same-origin Next.js routes for sign-in and sign-out.
+
 ## Quality checks
 
 Run from the repository root:
@@ -33,17 +41,19 @@ pnpm --filter next-vercel-supabase-app test:e2e
 
 `check` runs Biome lint, Prettier, Next route type generation, strict TypeScript and Vitest integration tests with coverage. Lint warnings fail the check. The lint rules include the shared recommended rules, Next.js/React checks, explicit-any and `@ts-ignore` errors, and floating-promise checks. Coverage must reach 100% of statements, branches, functions and lines in the API route and shared response schema.
 
-The UI tests render the real home page in jsdom, with MSW supplying HTTP responses. They cover greetings, loading, errors and retries, Enter activation, and malformed responses. Browser behaviour and layout are checked separately by Playwright.
+The UI tests render the connection lab and account controls in jsdom. MSW supplies HTTP responses for the hello check and the server auth tests. The account controls also run with fake sign-in and sign-out actions.
 
 The app's `biome.json` extends the repository settings. Biome replaces ESLint, but its type inference and rules differ from typescript-eslint. The floating-promise rule is enabled as an error and is still an experimental nursery rule. Strict TypeScript runs as a separate check.
 
-`test:e2e` builds Next.js for production and starts it on port 3100. It also starts a local fake Supabase server on port 54329, so no Supabase credentials or external backend are needed. Desktop and mobile Chromium tests open and refresh the page, request the greeting through the real Next route, and check for horizontal overflow. Detailed UI states stay in Vitest. These browser tests check the local app and fake backend; use the hosted check below to test the real service.
+`test:e2e` builds Next.js for production and starts it on port 3100. It also starts a local fake Supabase server on port 54329. Desktop and mobile Chromium tests check the public greeting, sign in through the callback, reload, confirm a separate browser context stays anonymous, and sign out. These tests exercise the production build with a local provider fixture.
 
 The test files are:
 
 - `src/components/connection-check.test.tsx` for page interactions.
 - `src/app/api/supabase/route.test.ts` for the HTTP handler.
+- `src/app/auth/google.test.ts` for callback, session, and cookie behaviour at the provider boundary.
 - `tests/connection/greeting.e2e.ts` for the browser journey used locally and on deployments.
+- `tests/connection/authentication.e2e.ts` for the local production auth journey.
 - `tests/connection/fixtures/` for the local upstream server.
 
 Local browser tests save screenshots and traces when they fail. The journey itself takes no unconditional screenshots. Hosted checks disable recordings to avoid saving authentication data.
@@ -70,6 +80,10 @@ Playwright starts and stops the local app and fake backend. It refuses to reuse 
 ## Deploy to Vercel
 
 Use the existing project `prj_JMebKnoQdyM6tIXkOSCbVNsMOSyc` in team `team_MZ10t1hz7YShThLCkaopqpe6` (`usyyys-projects`). Keep its Root Directory set to `apps/next-vercel-supabase-app`, use Node 22.x, and allow access to workspace files outside that folder. Configure production `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` on the server. This app does not need another Vercel project.
+
+For production Google sign-in, set the server-only `AUTH_ORIGIN=https://next-vercel-supabase-app.vercel.app` and allowlist `https://next-vercel-supabase-app.vercel.app/auth/callback` in Supabase. To verify Google on a protected preview, configure that deployment with its own approved HTTPS origin and allowlist its exact callback. Use a stable preview alias if the deployment origin is not available when signing in. The generated pre-promotion URL uses the public greeting smoke unless it has been configured as an exact auth origin.
+
+On each configured hosted origin, use a real account to check the Google redirect, callback, reload and sign-out. Open the home URL directly and confirm the session is consistent. Confirm an expired or revoked session can return to guest mode, and leave any checks you could not reproduce open on the issue. Record the deployment ID and commit without saving tokens or browser login state.
 
 Complete the one-time setup in [the shared release runbook](../../.github/workflows/VERCEL_RELEASES.md) before enabling automatic releases. It explains the GitHub environment and credentials, adding another app, and recovering from a failed release. This app's settings are in `scripts/releases/projects.json`. GitHub Actions handles deployment, so Vercel Git deployments stay disabled in both project settings and `vercel.json`.
 

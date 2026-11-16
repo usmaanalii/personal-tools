@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { selectProjects } from "./selection.mjs";
 
@@ -15,6 +16,14 @@ test("selects only the app whose source changed", () => {
   assert.deepEqual(selectProjects(projects, ["apps/next/page.tsx"]), [
     projects[0],
   ]);
+});
+
+test("selects the Next app when the shared auth contract changes", () => {
+  const configured = JSON.parse(
+    readFileSync(new URL("./projects.json", import.meta.url), "utf8"),
+  );
+  const selected = selectProjects(configured, ["packages/auth/src/index.ts"]);
+  assert.ok(selected.some(({ key }) => key === "next"));
 });
 
 [

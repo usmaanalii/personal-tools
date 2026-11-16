@@ -23,12 +23,18 @@ importers:
       '@scratch-pages/api-contracts':
         specifier: workspace:*
         version: link:../../packages/api-contracts
+      '@scratch-pages/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@scratch-pages/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
       '@scratch-pages/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@supabase/auth-js':
+        specifier: 2.119.0
+        version: 2.119.0
       next:
         specifier: 16.4.3
         version: 16.4.3(@playwright/test@1.65.0)(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)

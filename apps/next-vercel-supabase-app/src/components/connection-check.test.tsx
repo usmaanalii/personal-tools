@@ -2,12 +2,12 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { expect, it } from 'vitest'
-import Home from '../app/page'
 import { server } from '../test/server'
+import { ConnectionLab } from './connection-lab'
 
 function renderPage() {
   const user = userEvent.setup()
-  render(<Home />)
+  render(<ConnectionLab />)
   return user
 }
 

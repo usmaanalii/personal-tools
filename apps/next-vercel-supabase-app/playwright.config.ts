@@ -33,8 +33,9 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 180_000,
       env: {
-        SUPABASE_URL: 'http://127.0.0.1:54329',
+        SUPABASE_URL: 'http://localhost:54329',
         SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e_fixture',
+        AUTH_ORIGIN: 'http://127.0.0.1:3100',
         NEXT_TELEMETRY_DISABLED: '1',
       },
     },

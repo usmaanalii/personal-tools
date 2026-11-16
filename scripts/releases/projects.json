@@ -11,6 +11,7 @@
     "affected": [
       "apps/next-vercel-supabase-app/",
       "packages/api-contracts/",
+      "packages/auth/",
       "packages/design-tokens/",
       "packages/ui/"
     ],
