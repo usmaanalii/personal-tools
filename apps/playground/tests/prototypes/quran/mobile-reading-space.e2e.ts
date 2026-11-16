@@ -51,6 +51,9 @@ test('returns to the same document position after visiting another destination',
   await mockQuranContent(page)
   await page.goto('./quran/')
   const laterVerse = page.getByRole('article').nth(4)
+  await expect(laterVerse).toBeVisible()
+  // Measure after font loading stops changing the verse heights.
+  await page.evaluate(async () => { await document.fonts.ready })
   await laterVerse.scrollIntoViewIfNeeded()
   const position = await page.evaluate(() => window.scrollY)
   expect(position).toBeGreaterThan(0)
