@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
 import { releaseBackend } from "./backend.mjs";
 import { latestAttempt, verifyCurrentMain } from "./github.mjs";
@@ -78,13 +78,13 @@ async function backend() {
       return data.version;
     },
     deploy: (slug) => {
-      try {
-        execFileSync("supabase", ["functions", "deploy", slug, `--remote=${projectRef}`, "--yes"], {
-          stdio: ["ignore", "ignore", "pipe"], timeout: 300_000,
-        });
-      } catch (error) {
-        throw new Error(`Supabase deploy failed for ${slug} (${deployDiagnostic(error)}). Check live versions before recovery.`);
+      const result = spawnSync("supabase", ["functions", "deploy", slug, `--remote=${projectRef}`, "--yes"], {
+        stdio: ["ignore", "ignore", "pipe"], encoding: "utf8", timeout: 300_000,
+      });
+      if (result.error || result.status !== 0) {
+        throw new Error(`Supabase deploy failed for ${slug} (${deployDiagnostic(result.error ?? result)}). Check live versions before recovery.`);
       }
+      return result.stderr.split(/\r?\n/).includes(`No change found in Function: ${slug}`);
     },
     record: (slug, version) => summary(`- ${slug} version ${version}`),
     smoke: async () => {

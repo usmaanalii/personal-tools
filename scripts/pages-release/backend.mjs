@@ -8,9 +8,11 @@ export async function releaseBackend({ projectRef, publicUrl, accessToken }, io)
   const previous = await Promise.all(functions.map((slug) => io.version(slug)));
   await io.assertCurrent();
   for (const [index, slug] of functions.entries()) {
-    await io.deploy(slug);
+    const bundleUnchanged = await io.deploy(slug);
     const version = await io.version(slug, { requirePublic: true });
-    if (!Number.isSafeInteger(version) || version <= (previous[index] ?? 0)) {
+    const previousVersion = previous[index] ?? 0;
+    const bundleVerified = version > previousVersion || (version === previousVersion && bundleUnchanged === true);
+    if (!Number.isSafeInteger(version) || !bundleVerified) {
       throw new Error(`Unverified ${slug} deployment version`);
     }
     io.record(slug, version);

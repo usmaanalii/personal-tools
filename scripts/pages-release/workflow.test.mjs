@@ -123,6 +123,16 @@ test("forced recovery replaces unhealthy hosted functions and verifies the new v
   assert.equal(result.status, 1);
 });
 
+test("recovery verifies an unchanged function when the CLI confirms a bundle match", (t) => {
+  const { result, deployed, summary } = runBackend(t, {
+    deployScript: 'if [ "$3" = hello ]; then printf "No change found in Function: hello\\n" >&2; else printf "%s\\n" "$3" >> "$DEPLOYED"; fi',
+  });
+  assert.equal(readFileSync(deployed, "utf8"), "quran\n", result.stderr);
+  assert.match(readFileSync(summary, "utf8"), /hello version 16\n- quran version 17/);
+  assert.match(result.stderr, /Hosted smoke failed: Hello greeting/);
+  assert.equal(result.status, 1);
+});
+
 test("deployment failures report a safe category without echoing CLI credentials", (t) => {
   const { result, deployed } = runBackend(t, {
     deployScript: 'printf "HTTP 403: %s\\n" "$SUPABASE_ACCESS_TOKEN" >&2; exit 1',
