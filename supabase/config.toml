@@ -2,6 +2,9 @@
 # This demo endpoint returns no private data and is intentionally public.
 verify_jwt = false
 
+[functions.account-deletion]
+verify_jwt = true
+
 [functions.quran]
 # Public read-only Quran content; no private data or user login.
 # CORS is browser policy, not authentication. The handler bounds upstream work.

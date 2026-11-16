@@ -1,6 +1,6 @@
 # Edge Functions
 
-This workspace owns the `hello` and `quran` backend handlers and their API-contract tests. Install dependencies from the repository root with `pnpm install`.
+This workspace owns the `hello`, `quran` and `account-deletion` Edge Functions and their API-contract tests. Install dependencies from the repository root with `pnpm install`.
 
 ## Tests
 
@@ -32,13 +32,15 @@ The existing Playground E2E workflow runs these tests independently of the front
 
 `quran` requires server-only Quran Foundation credentials and an allowed browser origin list; see [Quran setup and deployment](quran/README.md). Never put provider credentials in frontend configuration or test fixtures.
 
-### Account deletion confirmation
+### Account deletion
 
-The confirmation handler for [issue #40](https://github.com/usmaanalii/personal-tools/issues/40) is under development. It validates the bearer with Supabase Auth and checks the provider session in Postgres. The database grants claim execution to the service role and allows one active deletion claim per account. A verified, unexpired intent can be claimed by its initiating session. The provider call hard-deletes that account, which also removes its temporary intent records.
+The backend for [issue #40](https://github.com/usmaanalii/personal-tools/issues/40) validates the bearer with Supabase Auth and checks the provider session in Postgres. It accepts four POST actions. `begin` sends a PKCE link to the account's confirmed email for an app callback configured on the server. `verify` consumes the code and revokes the temporary proof session. `cancel` invalidates an unclaimed intent. Only `confirm` can hard-delete an account. The service role is used only inside the Edge Function.
 
-A duplicate confirmation or an uncertain provider outcome returns `202`. The existing claim prevents a second deletion call while the outcome is unresolved. The email proof lifecycle, reconciliation, Edge Function entry point and app integrations are still pending.
+Deletion email requests are limited to one per account per minute. Unclaimed intents expire after ten minutes. Requesting a new link replaces the previous unclaimed intent. Confirmation requires a verified, unexpired intent from the initiating session. The database allows one active claim per account. A duplicate confirmation, cancellation after a claim, or an uncertain provider outcome returns `202`. Hard deletion removes the account's temporary intent records.
 
-Run the confirmation HTTP tests with `pnpm --filter edge-functions test tests/account-deletion`. Run the database tests with `supabase test db` against a local Supabase stack after applying the deletion-intent migration. The database tests insert and roll back their own fixtures.
+Set `ACCOUNT_DELETION_PLAYGROUND_CALLBACK` and `ACCOUNT_DELETION_NEXT_CALLBACK` as Edge Function settings for the apps being tested. Add the exact callback destinations to the Supabase Auth redirect allowlist. The function adds `deletion_intent` to the callback URL. The configured Playground callback supplies the allowed browser origin. Next.js sends account commands from its server. Supabase provides the URL, anon key and service-role key to the function runtime.
+
+Run the HTTP tests with `pnpm --filter edge-functions test tests/account-deletion`. Run the database tests with `supabase test db` against a local Supabase stack after applying both account-deletion migrations. The database tests roll back their fixtures. App integration, reconciliation, expired-intent cleanup and hosted rollout are pending.
 
 The [Pages release workflow](../../.github/workflows/README.md#edge-function-releases) deploys both functions from the repository root with pinned Supabase CLI 3.0.0. It checks the hosted API before Pages publication. Keep each function's `deno.json` and `deno.lock` with its entry point and retain the relative imports into `packages/api-contracts`.
 

@@ -5,7 +5,7 @@
   "scripts": {
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "check:deno": "deno check --frozen --config hello/deno.json hello/index.ts && deno check --frozen --config quran/deno.json quran/index.ts"
+    "check:deno": "deno check --frozen --config hello/deno.json hello/index.ts && deno check --frozen --config quran/deno.json quran/index.ts && deno check --frozen --config account-deletion/deno.json account-deletion/index.ts"
   },
   "devDependencies": {
     "vitest": "5.1.0",

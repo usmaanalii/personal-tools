@@ -10,7 +10,7 @@ type Options = {
 const claimsSchema = z.object({ sub: z.uuid(), session_id: z.uuid() })
 const userSchema = z.object({ id: z.uuid(), is_anonymous: z.literal(false).optional() })
 
-function readClaims(token: string) {
+export function readAccountDeletionClaims(token: string) {
   const [, payload] = token.split('.')
   if (!payload) return undefined
 
@@ -24,7 +24,7 @@ function readClaims(token: string) {
 
 export function authenticateAccountDeletion({ supabaseUrl, apiKey, sessionIsActive }: Options) {
   return async (token: string): Promise<AccountDeletionSession | undefined> => {
-    const claims = readClaims(token)
+    const claims = readAccountDeletionClaims(token)
     if (!claims) return undefined
 
     const response = await fetch(new URL('/auth/v1/user', supabaseUrl), {
