@@ -29,6 +29,33 @@ test("selecting a backend release enables the production backend job", () => {
   assert.notEqual(deployAndSmoke["continue-on-error"], true);
 });
 
+test("Pages can publish after its gate passes with the optional backend job skipped", () => {
+  const { jobs } = releaseWorkflow();
+  // The explicit status function prevents GitHub's implicit success() from propagating the skip.
+  assert.equal(jobs.deploy.if, "${{ !cancelled() && needs.gate.result == 'success' }}");
+});
+
+test("a selected Pages release runs site-wide checks and fails if publication was skipped", () => {
+  const { jobs } = releaseWorkflow();
+  const verify = jobs.verify;
+  assert.ok(verify, "Expected an independent verification job after publishing Pages");
+  assert.deepEqual(verify.needs, ["selection", "deploy"]);
+  assert.equal(verify.if.replace(/\s+/g, " ").trim(),
+    "!cancelled() && needs.selection.result == 'success' && needs.selection.outputs.pages == 'true'");
+  const requirePublication = verify.steps[0];
+  assert.equal(requirePublication.env.DEPLOY_RESULT, "${{ needs.deploy.result }}");
+  for (const [deployResult, expectedStatus] of [["skipped", 1], ["failure", 1], ["success", 0]]) {
+    const result = spawnSync(requirePublication.run, {
+      shell: true, env: { ...process.env, DEPLOY_RESULT: deployResult }, encoding: "utf8",
+    });
+    assert.equal(result.status, expectedStatus, deployResult);
+  }
+  const browser = verify.steps.find(({ run }) => run?.endsWith(" pnpm test:pages"));
+  assert.ok(browser);
+  assert.equal(browser.env.PLAYWRIGHT_BASE_URL, "${{ needs.deploy.outputs.page_url }}");
+  assert.equal(jobs.deploy.outputs.page_url, "${{ steps.deployment.outputs.page_url }}");
+});
+
 test("the production command cannot succeed without Supabase credentials", () => {
   const result = spawnSync(process.execPath, ["scripts/pages-release/ci.mjs", "backend"], {
     env: { ...process.env, SUPABASE_ACCESS_TOKEN: "", SUPABASE_PROJECT_REF: "", VITE_SUPABASE_URL: "" },
