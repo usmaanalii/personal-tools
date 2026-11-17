@@ -38,9 +38,13 @@ The backend for [issue #40](https://github.com/usmaanalii/personal-tools/issues/
 
 Deletion email requests are limited to one per account per minute. Unclaimed intents expire after ten minutes. Requesting a new link replaces the previous unclaimed intent. Confirmation requires a verified, unexpired intent from the initiating session. The database allows one active claim per account. A duplicate confirmation, cancellation after a claim, or an uncertain provider outcome returns `202`. Hard deletion removes the account's temporary intent records.
 
-Set `ACCOUNT_DELETION_PLAYGROUND_CALLBACK` and `ACCOUNT_DELETION_NEXT_CALLBACK` as Edge Function settings for the apps being tested. Add the exact callback destinations to the Supabase Auth redirect allowlist. The function adds `deletion_intent` to the callback URL. The configured Playground callback supplies the allowed browser origin. Next.js sends account commands from its server. Supabase provides the URL, anon key and service-role key to the function runtime.
+Set `ACCOUNT_DELETION_PLAYGROUND_CALLBACK` and `ACCOUNT_DELETION_NEXT_CALLBACK` as Edge Function settings for the apps being tested. Add the exact callback destinations to the Supabase Auth redirect allowlist. The function adds `deletion_intent` to the callback URL. The configured Playground callback supplies the allowed browser origin. The Next.js integration will send account commands from its server. Supabase provides the URL, anon key and service-role key to the function runtime.
 
-Run the HTTP tests with `pnpm --filter edge-functions test tests/account-deletion`. Run the database tests with `supabase test db` against a local Supabase stack after applying both account-deletion migrations. The database tests roll back their fixtures. App integration, reconciliation, expired-intent cleanup and hosted rollout are pending.
+Route deletion links to the deletion verifier before handling ordinary sign-in. Send the proof code and intent with the session that requested the link. When verification succeeds, show the final confirmation and preserve the existing app session. Only explicit confirmation can start deletion.
+
+Run the HTTP tests with `pnpm --filter edge-functions test tests/account-deletion`. Run the database tests with `supabase test db` against a local Supabase stack after applying both account-deletion migrations. The database tests roll back their fixtures.
+
+The [Playground integration](../../apps/playground/README.md#account-deletion) is available for controlled local builds. Next.js integration, reconciliation, auditing, expired-intent cleanup and hosted rollout are pending.
 
 The [Pages release workflow](../../.github/workflows/README.md#edge-function-releases) deploys both functions from the repository root with pinned Supabase CLI 3.0.0. It checks the hosted API before Pages publication. Keep each function's `deno.json` and `deno.lock` with its entry point and retain the relative imports into `packages/api-contracts`.
 
