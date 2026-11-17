@@ -30,6 +30,7 @@ export default defineConfig({
       VITE_BASE_PATH: '/personal-tools/',
       VITE_SUPABASE_URL: 'http://127.0.0.1:8000',
       VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
+      VITE_ACCOUNT_DELETION_ENABLED: 'true',
     },
     url: 'http://127.0.0.1:5173/personal-tools/',
     reuseExistingServer: false,

@@ -77,3 +77,49 @@ test('returns from an email link to the static reader in the browser that reques
   await expect(page.getByText('reader@example.test')).toBeVisible()
   await expect(page).toHaveURL(reader)
 })
+
+test('opens the deletion dialog from a static callback and restores keyboard focus on Escape', async ({ page, baseURL }) => {
+  await mockQuranContent(page)
+  const reader = new URL('quran/', baseURL).href
+  await page.route('**/auth/v1/authorize?**', route =>
+    route.fulfill({ status: 302, headers: { location: `${reader}?code=sign-in-fixture` } }),
+  )
+  await page.route('**/auth/v1/token?grant_type=pkce', route => route.fulfill({
+    headers: { 'access-control-allow-origin': '*' },
+    json: {
+      access_token: 'access-fixture',
+      refresh_token: 'refresh-fixture',
+      expires_in: 3600,
+      user: { id: 'cde32903-8a24-4ade-9c2c-9c31cdee3a91', email: 'reader@example.test' },
+    },
+  }))
+  const actions: string[] = []
+  await page.route('**/functions/v1/account-deletion', route => {
+    const { action } = route.request().postDataJSON()
+    actions.push(action)
+    return route.fulfill({
+      headers: { 'access-control-allow-origin': '*' },
+      json: { status: action === 'verify' ? 'verified' : 'cancelled' },
+    })
+  })
+  await page.goto(reader)
+  await page.getByRole('button', { name: 'Sign in with Google' }).press('Enter')
+  await expect(page.getByText('reader@example.test')).toBeVisible()
+
+  await page.goto(`${reader}?deletion_intent=fd9f47dd-9ae2-4e04-afbb-f15b3465c24b&code=proof-fixture`)
+  const dialog = page.getByRole('dialog', { name: 'Delete account' })
+  const cancel = dialog.getByRole('button', { name: 'Cancel' })
+  const confirm = dialog.getByRole('button', { name: 'Permanently delete account' })
+  await expect(cancel).toBeFocused()
+  await expect(page).toHaveURL(reader)
+  await expect(confirm).toBeInViewport()
+  expect((await new AxeBuilder({ page }).include('[role="dialog"]').analyze()).violations).toEqual([])
+
+  await page.keyboard.press('Shift+Tab')
+  await expect(confirm).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Delete account' })).toBeFocused()
+  await expect(page.getByText('reader@example.test')).toBeVisible()
+  expect(actions).toEqual(['verify', 'cancel'])
+})

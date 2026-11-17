@@ -62,6 +62,14 @@ Supabase's built-in mail service sends to authorised project team addresses and 
 
 On the deployed reader, request a link for a controlled test address. Open it in the requesting browser, confirm the return to `/personal-tools/quran/`, reload and sign out. Check that an expired or reused link offers a fresh request and that a separate browser cannot use the original proof key. Check both sign-in orders using a verified email shared with Google, then repeat with a different address. Supabase can associate verified identities with the same user ID. The reader uses that ID for account identity. [Supabase identity linking](https://supabase.com/docs/guides/auth/auth-identity-linking)
 
+### Account deletion
+
+Set `VITE_ACCOUNT_DELETION_ENABLED=true` for a controlled local build. The Pages workflow leaves this option off. Point the build at a test Supabase project with the account-deletion migrations and Edge Function installed. Set `ACCOUNT_DELETION_PLAYGROUND_CALLBACK` in the Edge Function environment to the exact reader URL for that build, including the trailing slash. Allow the same URL in Supabase Auth and use a controlled mailbox. The reader calls the function with the current session and public key. The service role key belongs in the function environment.
+
+In the reader, sign in and choose **Delete account**. Send a verification link and open it in the browser that sent it. The link opens the final confirmation. Cancelling invalidates the request. A successful deletion ends the browser session and returns you to guest reading. A pending deletion is shown as pending while the server outcome is unresolved.
+
+The reader auth browser tests check the callback at the static Pages path, keyboard focus and dialog fit with HTTP fixtures. For a live check, use disposable accounts and an isolated Supabase project with mail delivery. Verify cancellation, a successful deletion and rejection of the deleted account's old session. Complete hosted verification before enabling deletion on Pages.
+
 ## Quran API setup
 
 The browser calls `/functions/v1/quran/v2/chapters` and `/functions/v1/quran/v2/verses?chapter=1&page=1` on `VITE_SUPABASE_URL`. Each verse page contains at most 20 verses. Previous/Next verses navigate pages; opening a saved verse restores its page. Chapter search uses the chapter list returned by the API.

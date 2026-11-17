@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
@@ -8,7 +8,205 @@ import type { CallbackResult } from '../../app/auth-callback'
 import { createSupabaseAuth } from '../../app/supabase-auth'
 import { quranEndpoint, server } from '../../test-server'
 
-afterEach(() => window.history.replaceState({}, '', '/'))
+afterEach(() => {
+  window.history.replaceState({}, '', '/')
+  localStorage.clear()
+})
+
+const deletionIntent = 'fd9f47dd-9ae2-4e04-afbb-f15b3465c24b'
+
+async function signInForAccountDeletion() {
+  const config = {
+    supabaseUrl: 'https://auth.example',
+    supabasePublishableKey: 'fixture-key',
+    redirectTo: new URL('/quran/', window.location.origin).href,
+    accountDeletionEnabled: true,
+  }
+  server.use(http.post(`${config.supabaseUrl}/auth/v1/token`, () => HttpResponse.json({
+    access_token: 'access-fixture',
+    refresh_token: 'refresh-fixture',
+    expires_in: 3600,
+    user: { id: 'cde32903-8a24-4ade-9c2c-9c31cdee3a91', email: 'reader@example.test' },
+  })))
+  await createSupabaseAuth({ ...config, navigate: () => {} }).signIn()
+  window.history.replaceState({}, '', '/quran/?code=sign-in-fixture')
+  expect(await createSupabaseAuth(config).callback).toBe('complete')
+  return config
+}
+
+it('requests a deletion link for the signed-in account before offering permanent deletion', async () => {
+  const config = await signInForAccountDeletion()
+  const requested = vi.fn()
+  server.use(http.post(`${config.supabaseUrl}/functions/v1/account-deletion`, async ({ request }) => {
+    requested(request.headers.get('authorization'), await request.json())
+    return HttpResponse.json({ status: 'sent', intent: deletionIntent }, { status: 201 })
+  }))
+  const user = userEvent.setup()
+  render(<App auth={createSupabaseAuth(config)} />)
+
+  await user.click(await screen.findByRole('button', { name: 'Delete account' }))
+  const dialog = screen.getByRole('dialog', { name: 'Delete account' })
+  expect(within(dialog).getByText(/reader@example.test/)).toBeVisible()
+  await user.click(within(dialog).getByRole('button', { name: 'Send verification link' }))
+
+  expect(await within(dialog).findByRole('status')).toHaveTextContent('Open the link in this browser')
+  expect(requested).toHaveBeenCalledExactlyOnceWith('Bearer access-fixture', {
+    action: 'begin', app: 'playground',
+  })
+  expect(within(dialog).queryByRole('button', { name: 'Permanently delete account' })).not.toBeInTheDocument()
+})
+
+it('explains when the reader can request another deletion link after throttling', async () => {
+  const config = await signInForAccountDeletion()
+  server.use(http.post(`${config.supabaseUrl}/functions/v1/account-deletion`, () =>
+    HttpResponse.json({ error: 'rate_limited' }, { status: 429 }),
+  ))
+  const user = userEvent.setup()
+  render(<App auth={createSupabaseAuth(config)} />)
+
+  await user.click(await screen.findByRole('button', { name: 'Delete account' }))
+  const dialog = screen.getByRole('dialog', { name: 'Delete account' })
+  await user.click(within(dialog).getByRole('button', { name: 'Send verification link' }))
+
+  expect(await within(dialog).findByRole('alert')).toHaveTextContent('Wait a minute before requesting another verification link.')
+})
+
+it('returns as a guest only after confirming permanent deletion from a verified link', async () => {
+  const config = await signInForAccountDeletion()
+  const commands = vi.fn()
+  server.use(
+    http.post<never, { readonly action: string }>(`${config.supabaseUrl}/functions/v1/account-deletion`, async ({ request }) => {
+      const body = await request.json()
+      commands(body)
+      return body?.action === 'verify'
+        ? HttpResponse.json({ status: 'verified' })
+        : new HttpResponse(null, { status: 204 })
+    }),
+    http.post(`${config.supabaseUrl}/auth/v1/logout`, () => new HttpResponse(null, { status: 403 })),
+  )
+  window.history.replaceState({}, '', `/quran/?deletion_intent=${deletionIntent}&code=proof-fixture`)
+  const user = userEvent.setup()
+  render(<App auth={createSupabaseAuth(config)} />)
+
+  const dialog = await screen.findByRole('dialog', { name: 'Delete account' })
+  expect(commands).toHaveBeenCalledExactlyOnceWith({ action: 'verify', intent: deletionIntent, code: 'proof-fixture' })
+  await user.click(within(dialog).getByRole('button', { name: 'Permanently delete account' }))
+
+  expect(await screen.findByText('Account deleted.')).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Sign in with Google' })).toBeEnabled()
+  expect(screen.queryByText('reader@example.test')).not.toBeInTheDocument()
+  expect(screen.getByRole('region', { name: 'Verses' })).toBeVisible()
+  expect(commands).toHaveBeenLastCalledWith({ action: 'confirm', intent: deletionIntent })
+  expect(commands).toHaveBeenCalledTimes(2)
+})
+
+it('invalidates a sent deletion link when the reader cancels', async () => {
+  const config = await signInForAccountDeletion()
+  const commands = vi.fn()
+  server.use(http.post<never, { readonly action: string }>(`${config.supabaseUrl}/functions/v1/account-deletion`, async ({ request }) => {
+    const body = await request.json()
+    commands(body)
+    return body?.action === 'begin'
+      ? HttpResponse.json({ status: 'sent', intent: deletionIntent }, { status: 201 })
+      : HttpResponse.json({ status: 'cancelled' })
+  }))
+  const user = userEvent.setup()
+  render(<App auth={createSupabaseAuth(config)} />)
+
+  await user.click(await screen.findByRole('button', { name: 'Delete account' }))
+  const dialog = screen.getByRole('dialog', { name: 'Delete account' })
+  await user.click(within(dialog).getByRole('button', { name: 'Send verification link' }))
+  expect(await within(dialog).findByText(/open the link in this browser/i)).toBeVisible()
+  await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+  expect(await screen.findByText('Account deletion cancelled.')).toBeVisible()
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  expect(screen.getByText('reader@example.test')).toBeVisible()
+  expect(commands).toHaveBeenLastCalledWith({ action: 'cancel', intent: deletionIntent })
+  expect(commands).toHaveBeenCalledTimes(2)
+})
+
+it('reports a pending deletion without offering another confirmation', async () => {
+  const config = await signInForAccountDeletion()
+  const confirmation = vi.fn()
+  server.use(http.post<never, { readonly action: string }>(`${config.supabaseUrl}/functions/v1/account-deletion`, async ({ request }) => {
+    const body = await request.json()
+    if (body?.action === 'verify') return HttpResponse.json({ status: 'verified' })
+    confirmation(body)
+    return HttpResponse.json({ status: 'pending' }, { status: 202 })
+  }))
+  window.history.replaceState({}, '', `/quran/?deletion_intent=${deletionIntent}&code=proof-fixture`)
+  const user = userEvent.setup()
+  render(<App auth={createSupabaseAuth(config)} />)
+
+  const dialog = await screen.findByRole('dialog', { name: 'Delete account' })
+  await user.click(within(dialog).getByRole('button', { name: 'Permanently delete account' }))
+
+  expect(await within(dialog).findByText('Account deletion is still pending.')).toBeVisible()
+  expect(within(dialog).queryByRole('button', { name: 'Permanently delete account' })).not.toBeInTheDocument()
+  await user.click(within(dialog).getByRole('button', { name: 'Close' }))
+  expect(screen.getByText('Account deletion is still pending.')).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Delete account' })).toBeDisabled()
+  expect(screen.getByText('reader@example.test')).toBeVisible()
+  expect(confirmation).toHaveBeenCalledExactlyOnceWith({ action: 'confirm', intent: deletionIntent })
+})
+
+it('offers a fresh request when a deletion link has expired', async () => {
+  const config = await signInForAccountDeletion()
+  window.history.replaceState({}, '', `/quran/?deletion_intent=${deletionIntent}&error_code=otp_expired`)
+  render(<App auth={createSupabaseAuth(config)} />)
+
+  expect(await screen.findByText('This deletion link is invalid or expired. Request a new link from your account.')).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Delete account' })).toBeEnabled()
+  expect(screen.getByText('reader@example.test')).toBeVisible()
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  expect(window.location.search).toBe('')
+})
+
+it.each(['Permanently delete account', 'Cancel'])('lets the reader start over when the request expires before %s', async button => {
+  const config = await signInForAccountDeletion()
+  server.use(http.post<never, { readonly action: string }>(`${config.supabaseUrl}/functions/v1/account-deletion`, async ({ request }) => {
+    const { action } = await request.json()
+    return action === 'verify'
+      ? HttpResponse.json({ status: 'verified' })
+      : HttpResponse.json({ error: 'invalid_intent' }, { status: 409 })
+  }))
+  window.history.replaceState({}, '', `/quran/?deletion_intent=${deletionIntent}&code=proof-fixture`)
+  const user = userEvent.setup()
+  render(<App auth={createSupabaseAuth(config)} />)
+
+  const dialog = await screen.findByRole('dialog', { name: 'Delete account' })
+  await user.click(within(dialog).getByRole('button', { name: button }))
+
+  expect(await within(dialog).findByRole('alert')).toHaveTextContent('This deletion request is no longer valid.')
+  expect(within(dialog).queryByRole('button', { name: 'Permanently delete account' })).not.toBeInTheDocument()
+  await user.click(within(dialog).getByRole('button', { name: 'Close' }))
+  await user.click(screen.getByRole('button', { name: 'Delete account' }))
+  expect(screen.getByRole('button', { name: 'Send verification link' })).toBeEnabled()
+})
+
+it('lets the reader leave the dialog when the server cannot confirm cancellation', async () => {
+  const config = await signInForAccountDeletion()
+  server.use(http.post<never, { readonly action: string }>(`${config.supabaseUrl}/functions/v1/account-deletion`, async ({ request }) => {
+    const { action } = await request.json()
+    return action === 'verify'
+      ? HttpResponse.json({ status: 'verified' })
+      : HttpResponse.json({ error: 'confirmation_unavailable' }, { status: 503 })
+  }))
+  window.history.replaceState({}, '', `/quran/?deletion_intent=${deletionIntent}&code=proof-fixture`)
+  const user = userEvent.setup()
+  render(<App auth={createSupabaseAuth(config)} />)
+
+  const dialog = await screen.findByRole('dialog', { name: 'Delete account' })
+  await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+  expect(await within(dialog).findByRole('alert')).toHaveTextContent('The verification link may still be valid.')
+  await user.click(within(dialog).getByRole('button', { name: 'Close' }))
+
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  expect(screen.getByRole('region', { name: 'Verses' })).toBeVisible()
+  await user.click(screen.getByRole('button', { name: 'Delete account' }))
+  expect(screen.getByRole('button', { name: 'Retry cancellation' })).toBeEnabled()
+})
 
 function renderWithSession(initial: Session, {
   signIn = vi.fn(async () => {}),

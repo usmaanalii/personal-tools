@@ -144,6 +144,35 @@ it('cleans a denied callback and never exchanges the accompanying code', async (
   expect(tokenRequest).not.toHaveBeenCalled()
 })
 
+it('verifies a deletion link with the original session and keeps the reader URL clean', async () => {
+  const verified = vi.fn()
+  const signInExchange = vi.fn()
+  server.use(
+    http.post(`${config.supabaseUrl}/auth/v1/token`, () => {
+      signInExchange()
+      return tokenResponse()
+    }),
+    http.post(`${config.supabaseUrl}/functions/v1/account-deletion`, async ({ request }) => {
+      verified(request.headers.get('authorization'), window.location.search, await request.json())
+      return HttpResponse.json({ status: 'verified' })
+    }),
+  )
+  const outbound = createSupabaseAuth({ ...config, navigate: () => {} })
+  await outbound.signIn()
+  window.history.replaceState({}, '', '/personal-tools/quran/?code=sign-in-fixture')
+  expect(await createSupabaseAuth(config).callback).toBe('complete')
+  const intent = 'fd9f47dd-9ae2-4e04-afbb-f15b3465c24b'
+  window.history.replaceState({}, '', `/personal-tools/quran/?chapter=2&deletion_intent=${intent}&code=proof-fixture`)
+
+  const returning = createSupabaseAuth({ ...config, accountDeletionEnabled: true })
+
+  expect(await returning.deletionCallback).toEqual({ status: 'verified', intent, accountId })
+  expect(signInExchange).toHaveBeenCalledTimes(1)
+  expect(verified).toHaveBeenCalledExactlyOnceWith('Bearer access-fixture', '?chapter=2', {
+    action: 'verify', intent, code: 'proof-fixture',
+  })
+})
+
 it('clears the browser session after revoking the current session', async () => {
   const logout = vi.fn()
   server.use(
