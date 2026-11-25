@@ -47,7 +47,7 @@
     "react-dom": "^19.3.1",
     "@scratch-pages/api-contracts": "workspace:*",
     "@scratch-pages/auth": "workspace:*",
-    "@supabase/auth-js": "2.119.0"
+    "@supabase/auth-js": "2.119.2"
   },
   "engines": {
     "node": "^22.22.3 || >=24.8.0"
